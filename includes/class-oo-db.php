@@ -496,7 +496,9 @@ class OO_DB { // Renamed class
         if ( !empty($args['search']) ) { $search_term = '%' . $wpdb->esc_like($args['search']) . '%'; $where_clauses[] = "(stream_name LIKE %s OR stream_description LIKE %s)"; $query_params[] = $search_term; $query_params[] = $search_term;}
         if ( !empty($where_clauses) ) { $sql .= " WHERE " . implode(" AND ", $where_clauses); }
         if (!empty($query_params)){ $sql = $wpdb->prepare($sql, $query_params); }
-        return $wpdb->get_var( $sql );
+        $count = $wpdb->get_var( $sql );
+        oo_log('Streams count result: ' . $count . ' SQL: ' . $sql, __METHOD__);
+        return $count;
     }
 
     // --- Phase CRUD Methods ---
@@ -890,6 +892,622 @@ class OO_DB { // Renamed class
         oo_log('Job log deleted successfully. ID: ' . $log_id . ', Rows affected: ' . $result, __METHOD__);
         return true;
     }
+
+    // --- Job CRUD Methods (NEW) ---
+    /**
+     * Add a new job.
+     * @param array $args Associative array of job data (job_number, client_name, etc.)
+     * @return int|WP_Error The new job_id on success, or WP_Error on failure.
+     */
+    public static function add_job( $args ) {
+        self::init(); global $wpdb;
+        oo_log('Attempting to add job with args:', $args);
+
+        if ( empty( $args['job_number'] ) ) {
+            return new WP_Error('missing_job_number', 'Job Number is required.');
+        }
+
+        // Check if job_number already exists
+        $existing_job = $wpdb->get_var( $wpdb->prepare(
+            "SELECT job_id FROM " . self::$jobs_table . " WHERE job_number = %s",
+            sanitize_text_field( $args['job_number'] )
+        ) );
+        if ( $existing_job ) {
+            return new WP_Error('job_number_exists', 'This Job Number already exists.');
+        }
+
+        $data = array(
+            'job_number' => sanitize_text_field( $args['job_number'] ),
+            'client_name' => isset($args['client_name']) ? sanitize_text_field( $args['client_name'] ) : null,
+            'client_contact' => isset($args['client_contact']) ? sanitize_textarea_field( $args['client_contact'] ) : null,
+            'start_date' => isset($args['start_date']) ? oo_sanitize_date( $args['start_date'] ) : null,
+            'due_date' => isset($args['due_date']) ? oo_sanitize_date( $args['due_date'] ) : null,
+            'overall_status' => isset($args['overall_status']) ? sanitize_text_field( $args['overall_status'] ) : 'Pending',
+            'notes' => isset($args['notes']) ? sanitize_textarea_field( $args['notes'] ) : null,
+            'created_at' => current_time('mysql', 1),
+            'updated_at' => current_time('mysql', 1)
+        );
+
+        $formats = array(
+            '%s', // job_number
+            '%s', // client_name
+            '%s', // client_contact
+            '%s', // start_date
+            '%s', // due_date
+            '%s', // overall_status
+            '%s', // notes
+            '%s', // created_at
+            '%s'  // updated_at
+        );
+        
+        // Remove null values and their formats to allow DB defaults
+        foreach ($data as $key => $value) {
+            if (is_null($value)) {
+                unset($data[$key]);
+                // Find the corresponding format and unset it. This is a bit tricky due to array re-indexing if not careful.
+                // For simplicity, we will rely on $wpdb to handle nulls appropriately if the format is still %s.
+                // Or, ensure formats array is built in parallel to non-null data keys.
+            }
+        }
+
+        $result = $wpdb->insert( self::$jobs_table, $data, $formats );
+
+        if ( $result === false ) {
+            oo_log('Error adding job: ' . $wpdb->last_error, $data);
+            return new WP_Error('db_insert_error', 'Could not add job: ' . $wpdb->last_error);
+        }
+        oo_log('Job added successfully. ID: ' . $wpdb->insert_id, __METHOD__);
+        return $wpdb->insert_id;
+    }
+
+    /**
+     * Get a specific job by its ID.
+     * @param int $job_id
+     * @return object|null Job object or null if not found.
+     */
+    public static function get_job( $job_id ) {
+        self::init(); global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$jobs_table . " WHERE job_id = %d", $job_id ) );
+    }
+
+    /**
+     * Get a specific job by its number.
+     * @param string $job_number
+     * @return object|null Job object or null if not found.
+     */
+    public static function get_job_by_number( $job_number ) {
+        self::init(); global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$jobs_table . " WHERE job_number = %s", sanitize_text_field($job_number) ) );
+    }
+
+    /**
+     * Update an existing job.
+     * @param int $job_id
+     * @param array $args Associative array of data to update.
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function update_job( $job_id, $args ) {
+        self::init(); global $wpdb;
+        oo_log('Attempting to update job ID: ' . $job_id . ' with args:', $args);
+
+        $job_id = intval($job_id);
+        if ( $job_id <= 0 ) {
+            return new WP_Error('invalid_job_id', 'Invalid Job ID provided for update.');
+        }
+
+        $data = array();
+        $formats = array();
+
+        if ( isset( $args['job_number'] ) ) {
+            $new_job_number = sanitize_text_field($args['job_number']);
+            // Check if new job_number conflicts with another existing job
+            $existing_job = $wpdb->get_var( $wpdb->prepare(
+                "SELECT job_id FROM " . self::$jobs_table . " WHERE job_number = %s AND job_id != %d",
+                $new_job_number, $job_id
+            ) );
+            if ( $existing_job ) {
+                return new WP_Error('job_number_exists', 'This Job Number is already assigned to another job.');
+            }
+            $data['job_number'] = $new_job_number;
+            $formats[] = '%s';
+        }
+        if ( array_key_exists('client_name', $args) ) { $data['client_name'] = sanitize_text_field( $args['client_name'] ); $formats[] = '%s'; }
+        if ( array_key_exists('client_contact', $args) ) { $data['client_contact'] = sanitize_textarea_field( $args['client_contact'] ); $formats[] = '%s'; }
+        if ( array_key_exists('start_date', $args) ) { $data['start_date'] = oo_sanitize_date( $args['start_date'] ); $formats[] = '%s'; }
+        if ( array_key_exists('due_date', $args) ) { $data['due_date'] = oo_sanitize_date( $args['due_date'] ); $formats[] = '%s'; }
+        if ( isset( $args['overall_status'] ) ) { $data['overall_status'] = sanitize_text_field( $args['overall_status'] ); $formats[] = '%s'; }
+        if ( array_key_exists('notes', $args) ) { $data['notes'] = sanitize_textarea_field( $args['notes'] ); $formats[] = '%s'; }
+
+        if ( empty($data) ) {
+            return new WP_Error('no_data_to_update', 'No data provided to update.');
+        }
+
+        $data['updated_at'] = current_time('mysql', 1);
+        $formats[] = '%s';
+
+        $result = $wpdb->update( self::$jobs_table, $data, array( 'job_id' => $job_id ), $formats, array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error updating job ID ' . $job_id . ': ' . $wpdb->last_error, $data);
+            return new WP_Error('db_update_error', 'Could not update job: ' . $wpdb->last_error);
+        }
+        oo_log('Job updated successfully. ID: ' . $job_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Delete a job.
+     * @param int $job_id
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function delete_job( $job_id ) {
+        self::init(); global $wpdb;
+        $job_id = intval($job_id);
+        if ( $job_id <= 0 ) {
+            return new WP_Error('invalid_job_id', 'Invalid Job ID for deletion.');
+        }
+
+        // Optional: Check for related job_streams and handle them (e.g., prevent deletion or cascade)
+        // For now, the DB schema uses ON DELETE CASCADE for job_streams related to jobs.
+        // Expenses related to jobs also use ON DELETE CASCADE.
+        // Job logs related to jobs also use ON DELETE CASCADE.
+
+        $result = $wpdb->delete( self::$jobs_table, array( 'job_id' => $job_id ), array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error deleting job ID ' . $job_id . ': ' . $wpdb->last_error, __METHOD__);
+            return new WP_Error('db_delete_error', 'Could not delete job: ' . $wpdb->last_error);
+        }
+        if ( $result === 0 ) {
+            return new WP_Error('job_not_found', 'Job not found for deletion.');
+        }
+        oo_log('Job deleted successfully. ID: ' . $job_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Get multiple jobs with filtering, sorting, and pagination.
+     * @param array $params Parameters for filtering, orderby, order, number, offset, search.
+     * @return array Array of job objects.
+     */
+    public static function get_jobs( $params = array() ) {
+        self::init(); global $wpdb;
+
+        $defaults = array(
+            'job_number' => null,
+            'client_name_like' => null,
+            'overall_status' => null,
+            'date_field' => null, // e.g., 'start_date', 'due_date', 'created_at'
+            'date_from' => null,
+            'date_to' => null,
+            'orderby' => 'created_at',
+            'order' => 'DESC',
+            'number' => 20,
+            'offset' => 0,
+            'search_general' => null // General search across job_number, client_name, notes
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql = "SELECT * FROM " . self::$jobs_table;
+        $where_clauses = array();
+        $query_params = array();
+
+        if ( !empty($args['job_number']) ) { $where_clauses[] = "job_number = %s"; $query_params[] = sanitize_text_field($args['job_number']); }
+        if ( !empty($args['client_name_like']) ) { $where_clauses[] = "client_name LIKE %s"; $query_params[] = '%' . $wpdb->esc_like($args['client_name_like']) . '%'; }
+        if ( !empty($args['overall_status']) ) { $where_clauses[] = "overall_status = %s"; $query_params[] = sanitize_text_field($args['overall_status']); }
+        
+        if ( !empty($args['date_field']) && in_array($args['date_field'], ['start_date', 'due_date', 'created_at', 'updated_at'])) {
+            if ( !empty($args['date_from']) ) { $where_clauses[] = $args['date_field'] . " >= %s"; $query_params[] = oo_sanitize_date($args['date_from']); }
+            if ( !empty($args['date_to']) ) { $where_clauses[] = $args['date_field'] . " <= %s"; $query_params[] = oo_sanitize_date($args['date_to']); }
+        }
+
+        if ( !empty($args['search_general']) ) {
+            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search_general'])) . '%';
+            $search_fields = array("job_number LIKE %s", "client_name LIKE %s", "notes LIKE %s");
+            $where_clauses[] = "(" . implode(" OR ", $search_fields) . ")";
+            $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;
+        }
+
+        if ( !empty($where_clauses) ) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        if ( !empty($query_params) ) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+
+        $allowed_orderby = ['job_id', 'job_number', 'client_name', 'start_date', 'due_date', 'overall_status', 'created_at', 'updated_at'];
+        $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'created_at';
+        $order = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
+        $sql .= " ORDER BY $orderby $order";
+
+        if ( $args['number'] > 0 ) {
+            $sql .= $wpdb->prepare(" LIMIT %d OFFSET %d", $args['number'], $args['offset']);
+        }
+
+        return $wpdb->get_results( $sql );
+    }
+
+    /**
+     * Get the count of jobs based on filters.
+     * @param array $params Parameters for filtering (same as get_jobs, excluding pagination/order).
+     * @return int Count of jobs.
+     */
+    public static function get_jobs_count( $params = array() ) {
+        self::init(); global $wpdb;
+
+        $defaults = array(
+            'job_number' => null,
+            'client_name_like' => null,
+            'overall_status' => null,
+            'date_field' => null,
+            'date_from' => null,
+            'date_to' => null,
+            'search_general' => null
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql = "SELECT COUNT(*) FROM " . self::$jobs_table;
+        $where_clauses = array();
+        $query_params = array();
+
+        // Build WHERE clauses and query_params identical to get_jobs()
+        if ( !empty($args['job_number']) ) { $where_clauses[] = "job_number = %s"; $query_params[] = sanitize_text_field($args['job_number']); }
+        if ( !empty($args['client_name_like']) ) { $where_clauses[] = "client_name LIKE %s"; $query_params[] = '%' . $wpdb->esc_like($args['client_name_like']) . '%'; }
+        if ( !empty($args['overall_status']) ) { $where_clauses[] = "overall_status = %s"; $query_params[] = sanitize_text_field($args['overall_status']); }
+        if ( !empty($args['date_field']) && in_array($args['date_field'], ['start_date', 'due_date', 'created_at', 'updated_at'])) {
+            if ( !empty($args['date_from']) ) { $where_clauses[] = $args['date_field'] . " >= %s"; $query_params[] = oo_sanitize_date($args['date_from']); }
+            if ( !empty($args['date_to']) ) { $where_clauses[] = $args['date_field'] . " <= %s"; $query_params[] = oo_sanitize_date($args['date_to']); }
+        }
+        if ( !empty($args['search_general']) ) {
+            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search_general'])) . '%';
+            $search_fields = array("job_number LIKE %s", "client_name LIKE %s", "notes LIKE %s");
+            $where_clauses[] = "(" . implode(" OR ", $search_fields) . ")";
+            $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;
+        }
+
+        if ( !empty($where_clauses) ) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        if ( !empty($query_params) ) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+
+        return (int) $wpdb->get_var( $sql );
+    }
+
+    // --- JobStream CRUD Methods (NEW) ---
+    // Placeholder for add_job_stream, get_job_stream, update_job_stream, get_job_streams_for_job etc.
+
+    /**
+     * Add a new job stream.
+     * Links a job to a specific stream with additional details.
+     *
+     * @param array $args Associative array of job stream data. Required: job_id, stream_id.
+     *                    Optional: status_in_stream, assigned_manager_id, start_date_stream,
+     *                              due_date_stream, building_id, notes.
+     * @return int|WP_Error The new job_stream_id on success, or WP_Error on failure.
+     */
+    public static function add_job_stream( $args ) {
+        self::init(); global $wpdb;
+        oo_log('Attempting to add job_stream with args:', $args);
+
+        if ( empty( $args['job_id'] ) || empty( $args['stream_id'] ) ) {
+            return new WP_Error('missing_required_fields', 'Job ID and Stream ID are required to add a job stream.');
+        }
+
+        // Check for uniqueness: A job can only have a specific stream type once.
+        $existing = $wpdb->get_var( $wpdb->prepare(
+            "SELECT job_stream_id FROM " . self::$job_streams_table . " WHERE job_id = %d AND stream_id = %d",
+            intval( $args['job_id'] ),
+            intval( $args['stream_id'] )
+        ) );
+        if ( $existing ) {
+            return new WP_Error('job_stream_exists', 'This stream is already associated with this job.');
+        }
+
+        $data = array(
+            'job_id' => intval( $args['job_id'] ),
+            'stream_id' => intval( $args['stream_id'] ),
+            'status_in_stream' => isset($args['status_in_stream']) ? sanitize_text_field( $args['status_in_stream'] ) : 'Not Started',
+            'assigned_manager_id' => isset($args['assigned_manager_id']) ? intval( $args['assigned_manager_id'] ) : null,
+            'start_date_stream' => isset($args['start_date_stream']) ? oo_sanitize_date( $args['start_date_stream'] ) : null,
+            'due_date_stream' => isset($args['due_date_stream']) ? oo_sanitize_date( $args['due_date_stream'] ) : null,
+            'building_id' => isset($args['building_id']) ? intval( $args['building_id'] ) : null,
+            'notes' => isset($args['notes']) ? sanitize_textarea_field( $args['notes'] ) : null,
+            'created_at' => current_time('mysql', 1),
+            'updated_at' => current_time('mysql', 1)
+        );
+
+        $formats = array(
+            '%d', // job_id
+            '%d', // stream_id
+            '%s', // status_in_stream
+            '%d', // assigned_manager_id (use %d, will be NULL if value is null)
+            '%s', // start_date_stream
+            '%s', // due_date_stream
+            '%d', // building_id (use %d, will be NULL if value is null)
+            '%s', // notes
+            '%s', // created_at
+            '%s'  // updated_at
+        );
+        
+        // Remove null values and their formats to allow DB defaults, except for explicit nulls.
+        // $wpdb->insert handles null values correctly for columns that allow NULL.
+        // No need to manually unset nulls here if formats match column types correctly.
+
+        $result = $wpdb->insert( self::$job_streams_table, $data, $formats );
+
+        if ( $result === false ) {
+            oo_log('Error adding job_stream: ' . $wpdb->last_error, array('data' => $data, 'formats' => $formats));
+            return new WP_Error('db_insert_error', 'Could not add job stream: ' . $wpdb->last_error);
+        }
+        oo_log('Job stream added successfully. ID: ' . $wpdb->insert_id, __METHOD__);
+        return $wpdb->insert_id;
+    }
+
+    /**
+     * Get a specific job stream by its ID.
+     * @param int $job_stream_id
+     * @return object|null Job stream object or null if not found.
+     */
+    public static function get_job_stream( $job_stream_id ) {
+        self::init(); global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$job_streams_table . " WHERE job_stream_id = %d", intval($job_stream_id) ) );
+    }
+
+    /**
+     * Get a specific job stream by job_id and stream_id.
+     * @param int $job_id
+     * @param int $stream_id
+     * @return object|null Job stream object or null if not found.
+     */
+    public static function get_job_stream_by_job_and_stream( $job_id, $stream_id ) {
+        self::init(); global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare(
+            "SELECT * FROM " . self::$job_streams_table . " WHERE job_id = %d AND stream_id = %d",
+            intval($job_id), intval($stream_id)
+        ) );
+    }
+
+    /**
+     * Update an existing job stream.
+     * @param int $job_stream_id
+     * @param array $args Associative array of data to update.
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function update_job_stream( $job_stream_id, $args ) {
+        self::init(); global $wpdb;
+        oo_log('Attempting to update job_stream ID: ' . $job_stream_id . ' with args:', $args);
+
+        $job_stream_id = intval($job_stream_id);
+        if ( $job_stream_id <= 0 ) {
+            return new WP_Error('invalid_job_stream_id', 'Invalid Job Stream ID provided for update.');
+        }
+
+        $data = array();
+        $formats = array();
+
+        // Note: job_id and stream_id typically shouldn't be updated as they define the unique link.
+        // If they need to change, it might be conceptually a delete and re-add.
+        // However, if an update is allowed for some reason, ensure uniqueness.
+        if ( isset( $args['job_id'] ) || isset( $args['stream_id'] ) ) {
+            $current_js = self::get_job_stream($job_stream_id);
+            if (!$current_js) {
+                return new WP_Error('job_stream_not_found', 'Job stream to update not found.');
+            }
+            $new_job_id = isset( $args['job_id'] ) ? intval($args['job_id']) : $current_js->job_id;
+            $new_stream_id = isset( $args['stream_id'] ) ? intval($args['stream_id']) : $current_js->stream_id;
+
+            if ($new_job_id !== $current_js->job_id || $new_stream_id !== $current_js->stream_id) {
+                 $existing = $wpdb->get_var( $wpdb->prepare(
+                    "SELECT job_stream_id FROM " . self::$job_streams_table . " WHERE job_id = %d AND stream_id = %d AND job_stream_id != %d",
+                    $new_job_id, $new_stream_id, $job_stream_id
+                ) );
+                if ( $existing ) {
+                    return new WP_Error('job_stream_conflict', 'Updating job_id or stream_id would cause a conflict with an existing job stream.');
+                }
+            }
+            if (isset($args['job_id'])) { $data['job_id'] = $new_job_id; $formats[] = '%d';}
+            if (isset($args['stream_id'])) { $data['stream_id'] = $new_stream_id; $formats[] = '%d';}
+        }
+
+
+        if ( array_key_exists('status_in_stream', $args) ) { $data['status_in_stream'] = sanitize_text_field( $args['status_in_stream'] ); $formats[] = '%s'; }
+        if ( array_key_exists('assigned_manager_id', $args) ) { $data['assigned_manager_id'] = is_null($args['assigned_manager_id']) ? null : intval( $args['assigned_manager_id'] ); $formats[] = '%d'; }
+        if ( array_key_exists('start_date_stream', $args) ) { $data['start_date_stream'] = oo_sanitize_date( $args['start_date_stream'] ); $formats[] = '%s'; }
+        if ( array_key_exists('due_date_stream', $args) ) { $data['due_date_stream'] = oo_sanitize_date( $args['due_date_stream'] ); $formats[] = '%s'; }
+        if ( array_key_exists('building_id', $args) ) { $data['building_id'] = is_null($args['building_id']) ? null : intval( $args['building_id'] ); $formats[] = '%d'; }
+        if ( array_key_exists('notes', $args) ) { $data['notes'] = sanitize_textarea_field( $args['notes'] ); $formats[] = '%s'; }
+
+        if ( empty($data) ) {
+            oo_log('No data provided to update for job_stream ID: ' . $job_stream_id, __METHOD__);
+            return new WP_Error('no_data_to_update', 'No data provided to update job stream.');
+        }
+
+        $data['updated_at'] = current_time('mysql', 1);
+        $formats[] = '%s';
+
+        $result = $wpdb->update( self::$job_streams_table, $data, array( 'job_stream_id' => $job_stream_id ), $formats, array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error updating job_stream ID ' . $job_stream_id . ': ' . $wpdb->last_error, array('data' => $data, 'formats' => $formats));
+            return new WP_Error('db_update_error', 'Could not update job stream: ' . $wpdb->last_error);
+        }
+        oo_log('Job stream updated successfully. ID: ' . $job_stream_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Delete a job stream.
+     * @param int $job_stream_id
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function delete_job_stream( $job_stream_id ) {
+        self::init(); global $wpdb;
+        $job_stream_id = intval($job_stream_id);
+        if ( $job_stream_id <= 0 ) {
+            return new WP_Error('invalid_job_stream_id', 'Invalid Job Stream ID for deletion.');
+        }
+
+        // Note: Foreign key constraints (e.g., from oo_job_logs if it directly references job_stream_id) should be considered.
+        // Currently, oo_job_logs references job_id and stream_id, so direct deletion of job_stream should be okay
+        // as long as other tables don't directly FK to job_stream_id with RESTRICT.
+
+        $result = $wpdb->delete( self::$job_streams_table, array( 'job_stream_id' => $job_stream_id ), array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error deleting job_stream ID ' . $job_stream_id . ': ' . $wpdb->last_error, __METHOD__);
+            return new WP_Error('db_delete_error', 'Could not delete job stream: ' . $wpdb->last_error);
+        }
+        if ( $result === 0 ) {
+            // This isn't necessarily an error, could mean the record was already deleted.
+            oo_log('Job stream not found for deletion or no rows affected. ID: ' . $job_stream_id, __METHOD__);
+            return true; // Or return a specific indicator like WP_Error('job_stream_not_found', 'Job stream not found for deletion.')
+        }
+        oo_log('Job stream deleted successfully. ID: ' . $job_stream_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Get multiple job streams with filtering, sorting, and pagination.
+     * @param array $params Parameters for filtering, orderby, order, number, offset.
+     *                       Filters: job_id, stream_id, status_in_stream, assigned_manager_id, building_id
+     * @return array Array of job stream objects.
+     */
+    public static function get_job_streams( $params = array() ) {
+        self::init(); global $wpdb;
+
+        $defaults = array(
+            'job_id' => null,
+            'stream_id' => null,
+            'status_in_stream' => null,
+            'assigned_manager_id' => null,
+            'building_id' => null,
+            'orderby' => 'js.job_stream_id', // Default order by job_stream_id
+            'order' => 'ASC',
+            'number' => 20,
+            'offset' => 0,
+            // Consider adding search capabilities if needed
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        // Base query with joins for potential future use (e.g., pulling job_number or stream_name directly)
+        $sql = "SELECT js.*, j.job_number, s.stream_name
+                FROM " . self::$job_streams_table . " js
+                LEFT JOIN " . self::$jobs_table . " j ON js.job_id = j.job_id
+                LEFT JOIN " . self::$streams_table . " s ON js.stream_id = s.stream_id";
+
+        $where_clauses = array();
+        $query_params = array();
+
+        if ( !empty($args['job_id']) ) { $where_clauses[] = "js.job_id = %d"; $query_params[] = intval($args['job_id']); }
+        if ( !empty($args['stream_id']) ) { $where_clauses[] = "js.stream_id = %d"; $query_params[] = intval($args['stream_id']); }
+        if ( !empty($args['status_in_stream']) ) { $where_clauses[] = "js.status_in_stream = %s"; $query_params[] = sanitize_text_field($args['status_in_stream']); }
+        if ( !empty($args['assigned_manager_id']) ) { $where_clauses[] = "js.assigned_manager_id = %d"; $query_params[] = intval($args['assigned_manager_id']); }
+        if ( !empty($args['building_id']) ) { $where_clauses[] = "js.building_id = %d"; $query_params[] = intval($args['building_id']); }
+
+        if ( !empty($where_clauses) ) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        if ( !empty($query_params) ) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+
+        $allowed_orderby = ['js.job_stream_id', 'js.job_id', 'js.stream_id', 'js.status_in_stream', 'js.start_date_stream', 'js.due_date_stream', 'j.job_number', 's.stream_name', 'js.created_at'];
+        // Sanitize orderby to prevent SQL injection if it's dynamic. Here, we use a whitelist.
+        $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'js.job_stream_id';
+        $order = strtoupper($args['order']) === 'DESC' ? 'DESC' : 'ASC'; // Sanitize order
+        $sql .= " ORDER BY $orderby $order";
+
+        if ( $args['number'] > 0 ) {
+            $sql .= $wpdb->prepare(" LIMIT %d OFFSET %d", intval($args['number']), intval($args['offset']));
+        }
+        
+        oo_log('Executing get_job_streams query: ' . $sql, __METHOD__);
+        return $wpdb->get_results( $sql );
+    }
+
+    /**
+     * Get the count of job streams based on filters.
+     * @param array $params Parameters for filtering (same as get_job_streams, excluding pagination/order).
+     * @return int Count of job streams.
+     */
+    public static function get_job_streams_count( $params = array() ) {
+        self::init(); global $wpdb;
+
+        $defaults = array(
+            'job_id' => null,
+            'stream_id' => null,
+            'status_in_stream' => null,
+            'assigned_manager_id' => null,
+            'building_id' => null,
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql = "SELECT COUNT(js.job_stream_id) 
+                FROM " . self::$job_streams_table . " js
+                LEFT JOIN " . self::$jobs_table . " j ON js.job_id = j.job_id
+                LEFT JOIN " . self::$streams_table . " s ON js.stream_id = s.stream_id";
+                
+        $where_clauses = array();
+        $query_params = array();
+
+        if ( !empty($args['job_id']) ) { $where_clauses[] = "js.job_id = %d"; $query_params[] = intval($args['job_id']); }
+        if ( !empty($args['stream_id']) ) { $where_clauses[] = "js.stream_id = %d"; $query_params[] = intval($args['stream_id']); }
+        if ( !empty($args['status_in_stream']) ) { $where_clauses[] = "js.status_in_stream = %s"; $query_params[] = sanitize_text_field($args['status_in_stream']); }
+        if ( !empty($args['assigned_manager_id']) ) { $where_clauses[] = "js.assigned_manager_id = %d"; $query_params[] = intval($args['assigned_manager_id']); }
+        if ( !empty($args['building_id']) ) { $where_clauses[] = "js.building_id = %d"; $query_params[] = intval($args['building_id']); }
+
+
+        if ( !empty($where_clauses) ) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        if ( !empty($query_params) ) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+        oo_log('Executing get_job_streams_count query: ' . $sql, __METHOD__);
+        return (int) $wpdb->get_var( $sql );
+    }
+
+    /**
+     * Get all job streams associated with a specific job.
+     * Convenience wrapper for get_job_streams.
+     *
+     * @param int $job_id The ID of the job.
+     * @param array $extra_args Additional arguments for get_job_streams (e.g., orderby, order).
+     * @return array Array of job stream objects.
+     */
+    public static function get_job_streams_for_job( $job_id, $extra_args = array() ) {
+        if ( empty($job_id) || intval($job_id) <= 0 ) {
+            return array(); // Or WP_Error
+        }
+        $args = array_merge( $extra_args, array('job_id' => intval($job_id), 'number' => -1 ) ); // number -1 to get all
+        return self::get_job_streams( $args );
+    }
+
+    /**
+     * Get all job streams associated with a specific stream type.
+     * Convenience wrapper for get_job_streams.
+     *
+     * @param int $stream_id The ID of the stream.
+     * @param array $extra_args Additional arguments for get_job_streams.
+     * @return array Array of job stream objects.
+     */
+    public static function get_job_streams_by_stream( $stream_id, $extra_args = array() ) {
+        if ( empty($stream_id) || intval($stream_id) <= 0 ) {
+            return array(); // Or WP_Error
+        }
+        $args = array_merge( $extra_args, array('stream_id' => intval($stream_id), 'number' => -1 ) );
+        return self::get_job_streams( $args );
+    }
+
+
+    // --- Building CRUD Methods (NEW) ---
+    // Placeholder for add_building, get_building, update_building, get_buildings etc.
 }
 
 // Initialize table names on load with new class name

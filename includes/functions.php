@@ -160,4 +160,26 @@ function oo_log($message, $context = '') {
     }
     // Fallback if custom log fails
     error_log(trim($log_entry_prefix . $message_str)); 
+}
+
+if ( ! function_exists( 'oo_sanitize_date' ) ) {
+    /**
+     * Sanitize a date string and format it to YYYY-MM-DD.
+     *
+     * @param string|null $date_string The date string to sanitize.
+     * @return string|null The sanitized date in YYYY-MM-DD format, or null if input is empty or invalid.
+     */
+    function oo_sanitize_date( $date_string ) {
+        if ( empty( $date_string ) ) {
+            return null;
+        }
+        try {
+            $date = new DateTime( $date_string );
+            return $date->format( 'Y-m-d' );
+        } catch ( Exception $e ) {
+            // Log invalid date format if needed
+            oo_log( "Invalid date format provided: " . $date_string . " - Error: " . $e->getMessage(), __FUNCTION__ );
+            return null; // Or handle error as appropriate
+        }
+    }
 } 
