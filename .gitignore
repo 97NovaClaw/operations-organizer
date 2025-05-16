@@ -31,6 +31,8 @@ Thumbs.db
 # Build artifacts
 *.zip
 
-# EJPT Plugin Specific Debug Log
-debug/
+# Operations Organizer Plugin Specific Debug Log
+# Ignore the log file itself, but not the directory or its control files
+!debug/.htaccess
+!debug/.gitkeep
 debug/debug.log 
