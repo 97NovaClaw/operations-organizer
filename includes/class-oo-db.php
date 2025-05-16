@@ -26,12 +26,12 @@ class OO_DB { // Renamed class
      * Create/update custom database tables.
      */
     public static function create_tables() {
-        oo_log('Attempting to create/update database tables...', __METHOD__); // Use new log function
+        oo_log('Attempting to create/update database tables...', __METHOD__);
         self::init();
         global $wpdb;
         $charset_collate = $wpdb->get_charset_collate();
 
-        // SQL for oo_employees table (formerly ejpt_employees)
+        // SQL for oo_employees table
         $sql_employees = "CREATE TABLE " . self::$employees_table . " (
             employee_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             employee_number VARCHAR(50) NOT NULL,
@@ -50,17 +50,17 @@ class OO_DB { // Renamed class
             stream_type_slug VARCHAR(50) NOT NULL,
             stream_type_name VARCHAR(100) NOT NULL,
             is_active BOOLEAN NOT NULL DEFAULT 1,
-            kpi_fields_config TEXT NULLABLE, /* JSON for KPI fields relevant to this stream type */
+            kpi_fields_config TEXT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (stream_type_id),
             UNIQUE KEY uq_stream_type_slug (stream_type_slug)
         ) $charset_collate;";
 
-        // SQL for oo_phases table (formerly ejpt_phases, now with stream_type_id)
+        // SQL for oo_phases table
         $sql_phases = "CREATE TABLE " . self::$phases_table . " (
             phase_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            stream_type_id INT UNSIGNED NOT NULL, /* FK to oo_stream_types */
-            phase_slug VARCHAR(100) NOT NULL, /* Unique within a stream_type */
+            stream_type_id INT UNSIGNED NOT NULL,
+            phase_slug VARCHAR(100) NOT NULL,
             phase_name VARCHAR(100) NOT NULL,
             phase_description TEXT NULL,
             sort_order INT NOT NULL DEFAULT 0,
@@ -70,22 +70,19 @@ class OO_DB { // Renamed class
             UNIQUE KEY uq_stream_phase_slug (stream_type_id, phase_slug),
             INDEX idx_stream_type_id (stream_type_id),
             INDEX idx_is_active (is_active)
-            /* FOREIGN KEY (stream_type_id) REFERENCES " . self::$stream_types_table . "(stream_type_id) ON DELETE CASCADE ON UPDATE CASCADE */
-            /* Add FK constraints after all tables are defined to avoid order issues with dbDelta */
         ) $charset_collate;";
 
-        // SQL for oo_job_logs table (formerly ejpt_job_logs)
-        // Will need kpi_data JSON field, and potentially job_stream_id instead of job_number later
+        // SQL for oo_job_logs table
         $sql_job_logs = "CREATE TABLE " . self::$job_logs_table . " (
             log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            employee_id BIGINT UNSIGNED NOT NULL, /* FK to oo_employees */
-            job_number VARCHAR(50) NOT NULL, /* For now, keep job_number; will link to a future jobs table */
-            phase_id INT UNSIGNED NOT NULL, /* FK to oo_phases */
+            employee_id BIGINT UNSIGNED NOT NULL,
+            job_number VARCHAR(50) NOT NULL,
+            phase_id INT UNSIGNED NOT NULL,
             start_time DATETIME NOT NULL,
             end_time DATETIME NULL,
-            boxes_completed INT UNSIGNED NULL, /* Will become part of kpi_data or be conditional */
-            items_completed INT UNSIGNED NULL, /* Will become part of kpi_data or be conditional */
-            kpi_data JSON NULL, /* For flexible KPIs */
+            boxes_completed INT UNSIGNED NULL,
+            items_completed INT UNSIGNED NULL,
+            kpi_data JSON NULL,
             status VARCHAR(20) NOT NULL DEFAULT 'started',
             notes TEXT NULL,
             PRIMARY KEY (log_id),
@@ -95,30 +92,27 @@ class OO_DB { // Renamed class
             INDEX idx_start_time (start_time),
             INDEX idx_end_time (end_time),
             INDEX idx_status (status)
-            /* FOREIGN KEY (employee_id) REFERENCES " . self::$employees_table . "(employee_id) ON DELETE RESTRICT ON UPDATE CASCADE, */
-            /* FOREIGN KEY (phase_id) REFERENCES " . self::$phases_table . "(phase_id) ON DELETE RESTRICT ON UPDATE CASCADE */
         ) $charset_collate;";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         oo_log('Running dbDelta for employees table (' . self::$employees_table . ').', __METHOD__);
-        dbDelta( $sql_employees );
-        oo_log('Running dbDelta for stream types table (' . self::$stream_types_table . ').', __METHOD__);
-        dbDelta( $sql_stream_types );
-        oo_log('Running dbDelta for phases table (' . self::$phases_table . ').', __METHOD__);
-        dbDelta( $sql_phases );
-        oo_log('Running dbDelta for job logs table (' . self::$job_logs_table . ').', __METHOD__);
-        dbDelta( $sql_job_logs );
+        $delta_results_employees = dbDelta( $sql_employees );
+        oo_log('dbDelta employees result: ', $delta_results_employees);
         
-        // Add foreign key constraints separately after tables are created/updated by dbDelta
-        // This avoids issues if tables are created in a different order by dbDelta
-        // Note: dbDelta does not add foreign keys itself. This needs to be run manually or via separate $wpdb->query calls.
-        // For now, these are commented out, as direct $wpdb->query for ALTER TABLE is better after dbDelta.
-        /*
-        $wpdb->query("ALTER TABLE " . self::$phases_table . " ADD CONSTRAINT fk_phases_stream_type FOREIGN KEY (stream_type_id) REFERENCES " . self::$stream_types_table . "(stream_type_id) ON DELETE CASCADE ON UPDATE CASCADE;");
-        $wpdb->query("ALTER TABLE " . self::$job_logs_table . " ADD CONSTRAINT fk_logs_employee FOREIGN KEY (employee_id) REFERENCES " . self::$employees_table . "(employee_id) ON DELETE RESTRICT ON UPDATE CASCADE;");
-        $wpdb->query("ALTER TABLE " . self::$job_logs_table . " ADD CONSTRAINT fk_logs_phase FOREIGN KEY (phase_id) REFERENCES " . self::$phases_table . "(phase_id) ON DELETE RESTRICT ON UPDATE CASCADE;");
-        */
-        oo_log('Finished creating/updating database tables. Manual checks for foreign keys might be needed if dbDelta limitations apply.', __METHOD__);
+        oo_log('Running dbDelta for stream types table (' . self::$stream_types_table . ').', __METHOD__);
+        $delta_results_stream_types = dbDelta( $sql_stream_types );
+        oo_log('dbDelta stream types result: ', $delta_results_stream_types);
+
+        oo_log('Running dbDelta for phases table (' . self::$phases_table . ').', __METHOD__);
+        $delta_results_phases = dbDelta( $sql_phases );
+        oo_log('dbDelta phases result: ', $delta_results_phases);
+
+        oo_log('Running dbDelta for job logs table (' . self::$job_logs_table . ').', __METHOD__);
+        $delta_results_job_logs = dbDelta( $sql_job_logs );
+        oo_log('dbDelta job logs result: ', $delta_results_job_logs);
+        
+        oo_log('Finished dbDelta calls. Check logs above for specific table creation/update details.', __METHOD__);
+        // Foreign keys should be added via separate ALTER TABLE queries if needed, *after* ensuring tables exist.
     }
 
     // ... TODO: Rename all EJPT_DB methods to OO_DB, update table name references, and adapt logic ...
