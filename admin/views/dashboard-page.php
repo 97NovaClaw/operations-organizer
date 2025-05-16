@@ -79,13 +79,13 @@ global $employees, $phases;
         <?php 
         // --- DASHBOARD VIEW DEBUGGING ---
         if (defined('WP_DEBUG') && WP_DEBUG === true) {
-            ejpt_log('Dashboard View (DEBUG): $GLOBALS[\'phases\'] content just before conditional check:', 'dashboard-view');
-            ejpt_log(isset($GLOBALS['phases']) ? $GLOBALS['phases'] : 'GLOBALS[\'phases\'] is not set', 'dashboard-view-phases-var (DEBUG)');
-            ejpt_log('Dashboard View (DEBUG): empty($GLOBALS[\'phases\']) result: ' . (empty($GLOBALS['phases']) ? 'true (is empty)' : 'false (not empty)'), 'dashboard-view');
+            oo_log('Dashboard View (DEBUG): $GLOBALS[\'phases\'] content just before conditional check:', 'dashboard-view');
+            oo_log(isset($GLOBALS['phases']) ? $GLOBALS['phases'] : 'GLOBALS[\'phases\'] is not set', 'dashboard-view-phases-var (DEBUG)');
+            oo_log('Dashboard View (DEBUG): empty($GLOBALS[\'phases\']) result: ' . (empty($GLOBALS['phases']) ? 'true (is empty)' : 'false (not empty)'), 'dashboard-view');
             if (isset($GLOBALS['phases']) && is_array($GLOBALS['phases'])) {
-                 ejpt_log('Dashboard View (DEBUG): count($GLOBALS[\'phases\']) result: ' . count($GLOBALS['phases']), 'dashboard-view');
+                 oo_log('Dashboard View (DEBUG): count($GLOBALS[\'phases\']) result: ' . count($GLOBALS['phases']), 'dashboard-view');
             } else {
-                 ejpt_log('Dashboard View (DEBUG): $GLOBALS[\'phases\'] is not an array or not set, count not applicable directly.', 'dashboard-view');
+                 oo_log('Dashboard View (DEBUG): $GLOBALS[\'phases\'] is not an array or not set, count not applicable directly.', 'dashboard-view');
             }
         }
         // --- END DASHBOARD VIEW DEBUGGING ---
@@ -234,7 +234,7 @@ jQuery(document).ready(function($) {
                     let buttons = '<button class="button button-secondary oo-edit-log-button" data-log-id="' + row.log_id + '"><?php echo esc_js(__("Edit", "operations-organizer")); ?></button>';
                     buttons += ' <button class="button button-link-delete oo-delete-log-button" data-log-id="' + row.log_id + '" style="color:#b32d2e;margin-left:5px;"><?php echo esc_js(__("Delete", "operations-organizer")); ?></button>';
                     return buttons;
-                }
+              } 
             }
         ],
         order: [[4, 'desc']], // Default order by start_time descending
@@ -448,7 +448,7 @@ jQuery(document).ready(function($) {
             error: function(jqXHR, textStatus, errorThrown) {
                 console.error('Dashboard JS: AJAX error for get_job_log_details:', textStatus, errorThrown, jqXHR.responseText); // DEBUG Line 4
                 showNotice('error', '<?php echo esc_js(__("AJAX request failed: ", "operations-organizer")); ?>' + textStatus + ' - ' + errorThrown);
-                ejpt_log('AJAX error fetching log details: ' + textStatus + ' - ' + errorThrown + ' | Response: ' + jqXHR.responseText, 'Dashboard JS');
+                oo_log('AJAX error fetching log details: ' + textStatus + ' - ' + errorThrown + ' | Response: ' + jqXHR.responseText, 'Dashboard JS');
                 $clickedButton.prop('disabled', false).text('<?php echo esc_js(__("Edit", "operations-organizer")); ?>'); // Re-enable button
             }
         });
@@ -516,26 +516,26 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 if (response.success) {
                     showNotice('success', response.data.message);
-                    ejpt_log('Successfully deleted log ID: ' + logId, 'Dashboard JS Delete');
+                    oo_log('Successfully deleted log ID: ' + logId, 'Dashboard JS Delete');
                     if (typeof dashboardTable !== 'undefined') {
                         dashboardTable.ajax.reload(null, false); // Reload DataTable, false = don't reset pagination
                     }
                 } else {
                     showNotice('error', response.data.message || '<?php echo esc_js(__("Could not delete log entry.", "operations-organizer")); ?>');
-                    ejpt_log('Error deleting log: ', response.data);
+                    oo_log('Error deleting log: ', response.data);
                     $clickedButton.prop('disabled', false).text('<?php echo esc_js(__("Delete", "operations-organizer")); ?>'); // Re-enable button on error
                 }
             },
             error: function(jqXHR, textStatus, errorThrown) {
                 showNotice('error', '<?php echo esc_js(__("AJAX request failed: ", "operations-organizer")); ?>' + textStatus + ' - ' + errorThrown);
-                ejpt_log('AJAX error deleting log: ' + textStatus + ' - ' + errorThrown + ' | Response: ' + jqXHR.responseText, 'Dashboard JS Delete');
+                oo_log('AJAX error deleting log: ' + textStatus + ' - ' + errorThrown + ' | Response: ' + jqXHR.responseText, 'Dashboard JS Delete');
                 $clickedButton.prop('disabled', false).text('<?php echo esc_js(__("Delete", "operations-organizer")); ?>'); // Re-enable button on error
             }
         });
     });
 
 });
-</script>
+</script> 
 
 <!-- Edit Job Log Modal -->
 <div id="ooEditLogModal" class="oo-modal" style="display:none;">
