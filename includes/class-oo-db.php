@@ -1782,6 +1782,582 @@ class OO_DB { // Renamed class
 
     // --- ExpenseType CRUD Methods (NEW) ---
     // Placeholder for add_expense_type, get_expense_type, update_expense_type, etc.
+
+    /**
+     * Add a new expense type.
+     *
+     * @param array $args Associative array of expense type data.
+     *                    Required: type_name.
+     *                    Optional: default_unit, is_active.
+     * @return int|WP_Error The new expense_type_id on success, or WP_Error on failure.
+     */
+    public static function add_expense_type( $args ) {
+        self::init(); global $wpdb;
+        oo_log('Attempting to add expense type with args:', $args);
+
+        if ( empty( $args['type_name'] ) ) {
+            return new WP_Error('missing_type_name', 'Expense Type Name is required.');
+        }
+
+        $existing_type = $wpdb->get_var( $wpdb->prepare(
+            "SELECT expense_type_id FROM " . self::$expense_types_table . " WHERE type_name = %s",
+            sanitize_text_field( $args['type_name'] )
+        ) );
+        if ( $existing_type ) {
+            return new WP_Error('expense_type_name_exists', 'This Expense Type Name already exists.');
+        }
+
+        $data = array(
+            'type_name' => sanitize_text_field( $args['type_name'] ),
+            'default_unit' => isset($args['default_unit']) ? sanitize_text_field( $args['default_unit'] ) : null,
+            'is_active' => isset($args['is_active']) ? intval( $args['is_active'] ) : 1,
+            'created_at' => current_time('mysql', 1),
+            'updated_at' => current_time('mysql', 1)
+        );
+
+        $formats = array(
+            '%s', // type_name
+            '%s', // default_unit
+            '%d', // is_active
+            '%s', // created_at
+            '%s'  // updated_at
+        );
+
+        $result = $wpdb->insert( self::$expense_types_table, $data, $formats );
+
+        if ( $result === false ) {
+            oo_log('Error adding expense type: ' . $wpdb->last_error, array('data' => $data));
+            return new WP_Error('db_insert_error', 'Could not add expense type: ' . $wpdb->last_error);
+        }
+        oo_log('Expense type added successfully. ID: ' . $wpdb->insert_id, __METHOD__);
+        return $wpdb->insert_id;
+    }
+
+    /**
+     * Get a specific expense type by its ID.
+     * @param int $expense_type_id
+     * @return object|null Expense type object or null if not found.
+     */
+    public static function get_expense_type( $expense_type_id ) {
+        self::init(); global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$expense_types_table . " WHERE expense_type_id = %d", intval($expense_type_id) ) );
+    }
+
+    /**
+     * Get a specific expense type by its name.
+     * @param string $type_name
+     * @return object|null Expense type object or null if not found.
+     */
+    public static function get_expense_type_by_name( $type_name ) {
+        self::init(); global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$expense_types_table . " WHERE type_name = %s", sanitize_text_field($type_name) ) );
+    }
+
+    /**
+     * Update an existing expense type.
+     * @param int $expense_type_id
+     * @param array $args Associative array of data to update.
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function update_expense_type( $expense_type_id, $args ) {
+        self::init(); global $wpdb;
+        oo_log('Attempting to update expense type ID: ' . $expense_type_id . ' with args:', $args);
+
+        $expense_type_id = intval($expense_type_id);
+        if ( $expense_type_id <= 0 ) {
+            return new WP_Error('invalid_expense_type_id', 'Invalid Expense Type ID provided for update.');
+        }
+
+        $data = array();
+        $formats = array();
+
+        if ( isset( $args['type_name'] ) ) {
+            $new_type_name = sanitize_text_field($args['type_name']);
+            $existing_type = $wpdb->get_var( $wpdb->prepare(
+                "SELECT expense_type_id FROM " . self::$expense_types_table . " WHERE type_name = %s AND expense_type_id != %d",
+                $new_type_name, $expense_type_id
+            ) );
+            if ( $existing_type ) {
+                return new WP_Error('expense_type_name_exists', 'This Expense Type Name is already assigned to another type.');
+            }
+            $data['type_name'] = $new_type_name;
+            $formats[] = '%s';
+        }
+        if ( array_key_exists('default_unit', $args) ) { $data['default_unit'] = sanitize_text_field( $args['default_unit'] ); $formats[] = '%s'; }
+        if ( isset( $args['is_active'] ) ) { $data['is_active'] = intval( $args['is_active'] ); $formats[] = '%d'; }
+
+        if ( empty($data) ) {
+            oo_log('No data provided to update for expense type ID: ' . $expense_type_id, __METHOD__);
+            return new WP_Error('no_data_to_update', 'No data provided to update expense type.');
+        }
+
+        $data['updated_at'] = current_time('mysql', 1);
+        $formats[] = '%s';
+
+        $result = $wpdb->update( self::$expense_types_table, $data, array( 'expense_type_id' => $expense_type_id ), $formats, array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error updating expense type ID ' . $expense_type_id . ': ' . $wpdb->last_error, array('data' => $data));
+            return new WP_Error('db_update_error', 'Could not update expense type: ' . $wpdb->last_error);
+        }
+        oo_log('Expense type updated successfully. ID: ' . $expense_type_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Toggle the active status of an expense type.
+     * @param int $expense_type_id
+     * @param bool $is_active
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function toggle_expense_type_status( $expense_type_id, $is_active ) {
+        oo_log('Toggling expense type status for ID: ' . $expense_type_id . ' to ' . $is_active, __METHOD__);
+        self::init(); global $wpdb;
+        $result = $wpdb->update(
+            self::$expense_types_table, 
+            array( 'is_active' => intval($is_active), 'updated_at' => current_time('mysql', 1) ), 
+            array( 'expense_type_id' => intval($expense_type_id) ), 
+            array( '%d', '%s' ), 
+            array( '%d' )
+        );
+        if ($result === false) {
+            $error = new WP_Error('db_error', 'Could not update expense type status. Error: ' . $wpdb->last_error);
+            oo_log('Error toggling expense type status: DB update failed. ' . $wpdb->last_error, $error);
+            return $error;
+        }
+        oo_log('Expense type status toggled successfully for ID: ' . $expense_type_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Delete an expense type.
+     * Note: Foreign key to oo_expenses is ON DELETE RESTRICT.
+     * @param int $expense_type_id
+     * @return bool|WP_Error True on success, WP_Error on failure (e.g., if type is in use).
+     */
+    public static function delete_expense_type( $expense_type_id ) {
+        self::init(); global $wpdb;
+        $expense_type_id = intval($expense_type_id);
+        if ( $expense_type_id <= 0 ) {
+            return new WP_Error('invalid_expense_type_id', 'Invalid Expense Type ID for deletion.');
+        }
+
+        // Check if this expense type is used in any expenses
+        $usage_count = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM " . self::$expenses_table . " WHERE expense_type_id = %d",
+            $expense_type_id
+        ) );
+
+        if ( $usage_count > 0 ) {
+            oo_log('Attempt to delete expense type ID ' . $expense_type_id . ' failed because it is in use.', __METHOD__);
+            return new WP_Error('expense_type_in_use', 'This expense type cannot be deleted because it is currently assigned to one or more expenses.');
+        }
+
+        $result = $wpdb->delete( self::$expense_types_table, array( 'expense_type_id' => $expense_type_id ), array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error deleting expense type ID ' . $expense_type_id . ': ' . $wpdb->last_error, __METHOD__);
+            return new WP_Error('db_delete_error', 'Could not delete expense type: ' . $wpdb->last_error);
+        }
+        if ( $result === 0 ) {
+            oo_log('Expense type not found for deletion or no rows affected. ID: ' . $expense_type_id, __METHOD__);
+            return true; // Not necessarily an error
+        }
+        oo_log('Expense type deleted successfully. ID: ' . $expense_type_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Get multiple expense types with filtering, sorting, and pagination.
+     * @param array $params Parameters: is_active, search (type_name), orderby, order, number, offset.
+     * @return array Array of expense type objects.
+     */
+    public static function get_expense_types( $params = array() ) {
+        self::init(); global $wpdb;
+
+        $defaults = array(
+            'is_active' => null,
+            'search' => null,
+            'orderby' => 'type_name',
+            'order' => 'ASC',
+            'number' => 20,
+            'offset' => 0,
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql = "SELECT * FROM " . self::$expense_types_table;
+        $where_clauses = array();
+        $query_params = array();
+
+        if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
+        
+        if ( !empty($args['search']) ) {
+            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search'])) . '%';
+            $where_clauses[] = "(type_name LIKE %s OR default_unit LIKE %s)";
+            $query_params[] = $search_term; $query_params[] = $search_term;
+        }
+
+        if ( !empty($where_clauses) ) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        if ( !empty($query_params) ) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+
+        $allowed_orderby = ['expense_type_id', 'type_name', 'default_unit', 'is_active', 'created_at'];
+        $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'type_name';
+        $order = strtoupper($args['order']) === 'DESC' ? 'DESC' : 'ASC';
+        $sql .= " ORDER BY $orderby $order";
+
+        if ( $args['number'] > 0 ) {
+            $sql .= $wpdb->prepare(" LIMIT %d OFFSET %d", intval($args['number']), intval($args['offset']));
+        }
+        
+        oo_log('Executing get_expense_types query: ' . $sql, __METHOD__);
+        return $wpdb->get_results( $sql );
+    }
+
+    /**
+     * Get the count of expense types based on filters.
+     * @param array $params Parameters: is_active, search.
+     * @return int Count of expense types.
+     */
+    public static function get_expense_types_count( $params = array() ) {
+        self::init(); global $wpdb;
+
+        $defaults = array(
+            'is_active' => null,
+            'search' => null,
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql = "SELECT COUNT(*) FROM " . self::$expense_types_table;
+        $where_clauses = array();
+        $query_params = array();
+
+        if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
+
+        if ( !empty($args['search']) ) {
+            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search'])) . '%';
+            $where_clauses[] = "(type_name LIKE %s OR default_unit LIKE %s)";
+            $query_params[] = $search_term; $query_params[] = $search_term;
+        }
+
+        if ( !empty($where_clauses) ) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        if ( !empty($query_params) ) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+        oo_log('Executing get_expense_types_count query: ' . $sql, __METHOD__);
+        return (int) $wpdb->get_var( $sql );
+    }
+
+    // --- Expense CRUD Methods (NEW) ---
+    // Placeholder for add_expense, get_expense, update_expense, etc.
+
+    /**
+     * Add a new expense record.
+     *
+     * @param array $args Associative array of expense data.
+     *                    Required: job_id, expense_type_id, amount, expense_date.
+     *                    Optional: stream_id, employee_id, description, receipt_image_url, related_log_id.
+     * @return int|WP_Error The new expense_id on success, or WP_Error on failure.
+     */
+    public static function add_expense( $args ) {
+        self::init(); global $wpdb;
+        oo_log('Attempting to add expense with args:', $args);
+
+        if ( empty( $args['job_id'] ) || empty( $args['expense_type_id'] ) || !isset( $args['amount'] ) || empty( $args['expense_date'] ) ) {
+            return new WP_Error('missing_required_fields', 'Job ID, Expense Type ID, Amount, and Expense Date are required.');
+        }
+
+        $data = array(
+            'job_id' => intval( $args['job_id'] ),
+            'stream_id' => isset($args['stream_id']) ? intval( $args['stream_id'] ) : null,
+            'expense_type_id' => intval( $args['expense_type_id'] ),
+            'employee_id' => isset($args['employee_id']) ? intval( $args['employee_id'] ) : null,
+            'amount' => wc_format_decimal( $args['amount'], 2 ), // Assuming WooCommerce for formatting, or use number_format.
+            'expense_date' => oo_sanitize_date( $args['expense_date'] ),
+            'description' => isset($args['description']) ? sanitize_textarea_field( $args['description'] ) : null,
+            'receipt_image_url' => isset($args['receipt_image_url']) ? esc_url_raw( $args['receipt_image_url'] ) : null,
+            'related_log_id' => isset($args['related_log_id']) ? intval( $args['related_log_id'] ) : null,
+            'created_at' => current_time('mysql', 1),
+            'updated_at' => current_time('mysql', 1)
+        );
+
+        $formats = array(
+            '%d', // job_id
+            '%d', // stream_id
+            '%d', // expense_type_id
+            '%d', // employee_id
+            '%f', // amount (use %f for float/decimal)
+            '%s', // expense_date
+            '%s', // description
+            '%s', // receipt_image_url
+            '%d', // related_log_id
+            '%s', // created_at
+            '%s'  // updated_at
+        );
+        
+        // Filter out nulls for $wpdb->insert if not explicitly wanting to insert NULL
+        // For $wpdb->insert, if a key is present in $data but its corresponding format is not in $formats, it might cause issues.
+        // It's safer to ensure $data and $formats align, or let $wpdb handle nulls if columns allow.
+        // Example: if stream_id is null, it should be passed as null to $data, and its format should be %d or %s.
+
+        $result = $wpdb->insert( self::$expenses_table, $data, $formats );
+
+        if ( $result === false ) {
+            oo_log('Error adding expense: ' . $wpdb->last_error, array('data' => $data, 'formats' => $formats));
+            return new WP_Error('db_insert_error', 'Could not add expense: ' . $wpdb->last_error);
+        }
+        oo_log('Expense added successfully. ID: ' . $wpdb->insert_id, __METHOD__);
+        return $wpdb->insert_id;
+    }
+
+    /**
+     * Get a specific expense by its ID.
+     * @param int $expense_id
+     * @return object|null Expense object or null if not found.
+     */
+    public static function get_expense( $expense_id ) {
+        self::init(); global $wpdb;
+        // Consider JOINing with related tables here if always needed, or make it optional.
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$expenses_table . " WHERE expense_id = %d", intval($expense_id) ) );
+    }
+
+    /**
+     * Update an existing expense.
+     * @param int $expense_id
+     * @param array $args Associative array of data to update.
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function update_expense( $expense_id, $args ) {
+        self::init(); global $wpdb;
+        oo_log('Attempting to update expense ID: ' . $expense_id . ' with args:', $args);
+
+        $expense_id = intval($expense_id);
+        if ( $expense_id <= 0 ) {
+            return new WP_Error('invalid_expense_id', 'Invalid Expense ID provided for update.');
+        }
+
+        $data = array();
+        $formats = array();
+
+        // Fields that can be updated
+        if ( isset( $args['job_id'] ) ) { $data['job_id'] = intval( $args['job_id'] ); $formats[] = '%d'; }
+        if ( array_key_exists('stream_id', $args) ) { $data['stream_id'] = is_null($args['stream_id']) ? null : intval( $args['stream_id'] ); $formats[] = '%d'; }
+        if ( isset( $args['expense_type_id'] ) ) { $data['expense_type_id'] = intval( $args['expense_type_id'] ); $formats[] = '%d'; }
+        if ( array_key_exists('employee_id', $args) ) { $data['employee_id'] = is_null($args['employee_id']) ? null : intval( $args['employee_id'] ); $formats[] = '%d'; }
+        if ( isset( $args['amount'] ) ) { $data['amount'] = wc_format_decimal( $args['amount'], 2 ); $formats[] = '%f'; }
+        if ( isset( $args['expense_date'] ) ) { $data['expense_date'] = oo_sanitize_date( $args['expense_date'] ); $formats[] = '%s'; }
+        if ( array_key_exists('description', $args) ) { $data['description'] = sanitize_textarea_field( $args['description'] ); $formats[] = '%s'; }
+        if ( array_key_exists('receipt_image_url', $args) ) { $data['receipt_image_url'] = is_null($args['receipt_image_url']) ? null : esc_url_raw( $args['receipt_image_url'] ); $formats[] = '%s'; }
+        if ( array_key_exists('related_log_id', $args) ) { $data['related_log_id'] = is_null($args['related_log_id']) ? null : intval( $args['related_log_id'] ); $formats[] = '%d'; }
+
+        if ( empty($data) ) {
+            oo_log('No data provided to update for expense ID: ' . $expense_id, __METHOD__);
+            return new WP_Error('no_data_to_update', 'No data provided to update expense.');
+        }
+
+        $data['updated_at'] = current_time('mysql', 1);
+        $formats[] = '%s';
+
+        $result = $wpdb->update( self::$expenses_table, $data, array( 'expense_id' => $expense_id ), $formats, array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error updating expense ID ' . $expense_id . ': ' . $wpdb->last_error, array('data' => $data));
+            return new WP_Error('db_update_error', 'Could not update expense: ' . $wpdb->last_error);
+        }
+        oo_log('Expense updated successfully. ID: ' . $expense_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Delete an expense.
+     * @param int $expense_id
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function delete_expense( $expense_id ) {
+        self::init(); global $wpdb;
+        $expense_id = intval($expense_id);
+        if ( $expense_id <= 0 ) {
+            return new WP_Error('invalid_expense_id', 'Invalid Expense ID for deletion.');
+        }
+
+        $result = $wpdb->delete( self::$expenses_table, array( 'expense_id' => $expense_id ), array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error deleting expense ID ' . $expense_id . ': ' . $wpdb->last_error, __METHOD__);
+            return new WP_Error('db_delete_error', 'Could not delete expense: ' . $wpdb->last_error);
+        }
+        if ( $result === 0 ) {
+            oo_log('Expense not found for deletion or no rows affected. ID: ' . $expense_id, __METHOD__);
+            return true; 
+        }
+        oo_log('Expense deleted successfully. ID: ' . $expense_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Get multiple expenses with filtering, sorting, and pagination.
+     * @param array $params Parameters: job_id, stream_id, expense_type_id, employee_id, 
+     *                       date_from, date_to, search (description), orderby, order, number, offset.
+     * @return array Array of expense objects (potentially joined with related data).
+     */
+    public static function get_expenses( $params = array() ) {
+        self::init(); global $wpdb;
+
+        $defaults = array(
+            'job_id' => null,
+            'stream_id' => null,
+            'expense_type_id' => null,
+            'employee_id' => null,
+            'date_from' => null, // for expense_date
+            'date_to' => null,   // for expense_date
+            'search' => null,    // search description
+            'orderby' => 'exp.expense_date',
+            'order' => 'DESC',
+            'number' => 20,
+            'offset' => 0,
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql_select = "SELECT exp.*, j.job_number, s.stream_name, et.type_name AS expense_type_name, e.first_name AS emp_first_name, e.last_name AS emp_last_name";
+        $sql_from = " FROM " . self::$expenses_table . " exp ";
+        $sql_joins = "LEFT JOIN " . self::$jobs_table . " j ON exp.job_id = j.job_id " .
+                     "LEFT JOIN " . self::$streams_table . " s ON exp.stream_id = s.stream_id " .
+                     "LEFT JOIN " . self::$expense_types_table . " et ON exp.expense_type_id = et.expense_type_id " .
+                     "LEFT JOIN " . self::$employees_table . " e ON exp.employee_id = e.employee_id ";
+        
+        $sql = $sql_select . $sql_from . $sql_joins;
+
+        $where_clauses = array();
+        $query_params = array();
+
+        if ( !empty($args['job_id']) ) { $where_clauses[] = "exp.job_id = %d"; $query_params[] = intval($args['job_id']); }
+        if ( !empty($args['stream_id']) ) { $where_clauses[] = "exp.stream_id = %d"; $query_params[] = intval($args['stream_id']); }
+        if ( !empty($args['expense_type_id']) ) { $where_clauses[] = "exp.expense_type_id = %d"; $query_params[] = intval($args['expense_type_id']); }
+        if ( !empty($args['employee_id']) ) { $where_clauses[] = "exp.employee_id = %d"; $query_params[] = intval($args['employee_id']); }
+        
+        if ( !empty($args['date_from']) ) { $where_clauses[] = "exp.expense_date >= %s"; $query_params[] = oo_sanitize_date($args['date_from']); }
+        if ( !empty($args['date_to']) ) { $where_clauses[] = "exp.expense_date <= %s"; $query_params[] = oo_sanitize_date($args['date_to']); }
+
+        if ( !empty($args['search']) ) {
+            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search'])) . '%';
+            $where_clauses[] = "exp.description LIKE %s";
+            $query_params[] = $search_term;
+        }
+
+        if ( !empty($where_clauses) ) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        if ( !empty($query_params) ) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+
+        $allowed_orderby = ['exp.expense_id', 'exp.expense_date', 'exp.amount', 'j.job_number', 's.stream_name', 'et.type_name', 'exp.created_at'];
+        $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'exp.expense_date';
+        $order = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
+        $sql .= " ORDER BY $orderby $order";
+
+        if ( $args['number'] > 0 ) {
+            $sql .= $wpdb->prepare(" LIMIT %d OFFSET %d", intval($args['number']), intval($args['offset']));
+        }
+        
+        oo_log('Executing get_expenses query: ' . $sql, __METHOD__);
+        return $wpdb->get_results( $sql );
+    }
+
+    /**
+     * Get the count of expenses based on filters.
+     * @param array $params Parameters (same as get_expenses, excluding pagination/order).
+     * @return int Count of expenses.
+     */
+    public static function get_expenses_count( $params = array() ) {
+        self::init(); global $wpdb;
+
+        $defaults = array(
+            'job_id' => null,
+            'stream_id' => null,
+            'expense_type_id' => null,
+            'employee_id' => null,
+            'date_from' => null,
+            'date_to' => null,
+            'search' => null,
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql = "SELECT COUNT(exp.expense_id) FROM " . self::$expenses_table . " exp ";
+        $sql_joins = "LEFT JOIN " . self::$jobs_table . " j ON exp.job_id = j.job_id " .
+                     "LEFT JOIN " . self::$streams_table . " s ON exp.stream_id = s.stream_id " .
+                     "LEFT JOIN " . self::$expense_types_table . " et ON exp.expense_type_id = et.expense_type_id " .
+                     "LEFT JOIN " . self::$employees_table . " e ON exp.employee_id = e.employee_id ";
+        $sql .= $sql_joins; 
+
+        $where_clauses = array();
+        $query_params = array();
+
+        if ( !empty($args['job_id']) ) { $where_clauses[] = "exp.job_id = %d"; $query_params[] = intval($args['job_id']); }
+        if ( !empty($args['stream_id']) ) { $where_clauses[] = "exp.stream_id = %d"; $query_params[] = intval($args['stream_id']); }
+        if ( !empty($args['expense_type_id']) ) { $where_clauses[] = "exp.expense_type_id = %d"; $query_params[] = intval($args['expense_type_id']); }
+        if ( !empty($args['employee_id']) ) { $where_clauses[] = "exp.employee_id = %d"; $query_params[] = intval($args['employee_id']); }
+        if ( !empty($args['date_from']) ) { $where_clauses[] = "exp.expense_date >= %s"; $query_params[] = oo_sanitize_date($args['date_from']); }
+        if ( !empty($args['date_to']) ) { $where_clauses[] = "exp.expense_date <= %s"; $query_params[] = oo_sanitize_date($args['date_to']); }
+        if ( !empty($args['search']) ) {
+            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search'])) . '%';
+            $where_clauses[] = "exp.description LIKE %s";
+            $query_params[] = $search_term;
+        }
+
+        if ( !empty($where_clauses) ) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        if ( !empty($query_params) ) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+        oo_log('Executing get_expenses_count query: ' . $sql, __METHOD__);
+        return (int) $wpdb->get_var( $sql );
+    }
+
+    /**
+     * Get all expenses for a specific job.
+     * @param int $job_id
+     * @param array $extra_args Additional arguments for get_expenses.
+     * @return array Array of expense objects.
+     */
+    public static function get_expenses_for_job( $job_id, $extra_args = array() ) {
+        if ( empty($job_id) || intval($job_id) <= 0 ) {
+            return array(); 
+        }
+        $args = array_merge( $extra_args, array('job_id' => intval($job_id), 'number' => -1 ) );
+        return self::get_expenses( $args );
+    }
+
+    /**
+     * Get all expenses for a specific job and stream.
+     * @param int $job_id
+     * @param int $stream_id
+     * @param array $extra_args Additional arguments for get_expenses.
+     * @return array Array of expense objects.
+     */
+    public static function get_expenses_for_job_stream( $job_id, $stream_id, $extra_args = array() ) {
+        if ( empty($job_id) || intval($job_id) <= 0 || empty($stream_id) || intval($stream_id) <=0 ) {
+            return array();
+        }
+        $args = array_merge( $extra_args, array(
+            'job_id' => intval($job_id), 
+            'stream_id' => intval($stream_id), 
+            'number' => -1 
+            ) 
+        );
+        return self::get_expenses( $args );
+    }
+
 }
 
 // Initialize table names on load with new class name
