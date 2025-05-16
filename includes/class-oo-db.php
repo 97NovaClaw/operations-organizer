@@ -1508,6 +1508,280 @@ class OO_DB { // Renamed class
 
     // --- Building CRUD Methods (NEW) ---
     // Placeholder for add_building, get_building, update_building, get_buildings etc.
+
+    /**
+     * Add a new building.
+     *
+     * @param array $args Associative array of building data.
+     *                    Required: building_name.
+     *                    Optional: address, storage_capacity_notes, primary_contact_id, is_active.
+     * @return int|WP_Error The new building_id on success, or WP_Error on failure.
+     */
+    public static function add_building( $args ) {
+        self::init(); global $wpdb;
+        oo_log('Attempting to add building with args:', $args);
+
+        if ( empty( $args['building_name'] ) ) {
+            return new WP_Error('missing_building_name', 'Building Name is required.');
+        }
+
+        // Check if building_name already exists
+        $existing_building = $wpdb->get_var( $wpdb->prepare(
+            "SELECT building_id FROM " . self::$buildings_table . " WHERE building_name = %s",
+            sanitize_text_field( $args['building_name'] )
+        ) );
+        if ( $existing_building ) {
+            return new WP_Error('building_name_exists', 'This Building Name already exists.');
+        }
+
+        $data = array(
+            'building_name' => sanitize_text_field( $args['building_name'] ),
+            'address' => isset($args['address']) ? sanitize_textarea_field( $args['address'] ) : null,
+            'storage_capacity_notes' => isset($args['storage_capacity_notes']) ? sanitize_textarea_field( $args['storage_capacity_notes'] ) : null,
+            'primary_contact_id' => isset($args['primary_contact_id']) ? intval( $args['primary_contact_id'] ) : null,
+            'is_active' => isset($args['is_active']) ? intval( $args['is_active'] ) : 1,
+            'created_at' => current_time('mysql', 1),
+            'updated_at' => current_time('mysql', 1)
+        );
+
+        $formats = array(
+            '%s', // building_name
+            '%s', // address
+            '%s', // storage_capacity_notes
+            '%d', // primary_contact_id
+            '%d', // is_active
+            '%s', // created_at
+            '%s'  // updated_at
+        );
+
+        $result = $wpdb->insert( self::$buildings_table, $data, $formats );
+
+        if ( $result === false ) {
+            oo_log('Error adding building: ' . $wpdb->last_error, array('data' => $data));
+            return new WP_Error('db_insert_error', 'Could not add building: ' . $wpdb->last_error);
+        }
+        oo_log('Building added successfully. ID: ' . $wpdb->insert_id, __METHOD__);
+        return $wpdb->insert_id;
+    }
+
+    /**
+     * Get a specific building by its ID.
+     * @param int $building_id
+     * @return object|null Building object or null if not found.
+     */
+    public static function get_building( $building_id ) {
+        self::init(); global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$buildings_table . " WHERE building_id = %d", intval($building_id) ) );
+    }
+
+    /**
+     * Get a specific building by its name.
+     * @param string $building_name
+     * @return object|null Building object or null if not found.
+     */
+    public static function get_building_by_name( $building_name ) {
+        self::init(); global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$buildings_table . " WHERE building_name = %s", sanitize_text_field($building_name) ) );
+    }
+
+    /**
+     * Update an existing building.
+     * @param int $building_id
+     * @param array $args Associative array of data to update.
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function update_building( $building_id, $args ) {
+        self::init(); global $wpdb;
+        oo_log('Attempting to update building ID: ' . $building_id . ' with args:', $args);
+
+        $building_id = intval($building_id);
+        if ( $building_id <= 0 ) {
+            return new WP_Error('invalid_building_id', 'Invalid Building ID provided for update.');
+        }
+
+        $data = array();
+        $formats = array();
+
+        if ( isset( $args['building_name'] ) ) {
+            $new_building_name = sanitize_text_field($args['building_name']);
+            $existing_building = $wpdb->get_var( $wpdb->prepare(
+                "SELECT building_id FROM " . self::$buildings_table . " WHERE building_name = %s AND building_id != %d",
+                $new_building_name, $building_id
+            ) );
+            if ( $existing_building ) {
+                return new WP_Error('building_name_exists', 'This Building Name is already assigned to another building.');
+            }
+            $data['building_name'] = $new_building_name;
+            $formats[] = '%s';
+        }
+        if ( array_key_exists('address', $args) ) { $data['address'] = sanitize_textarea_field( $args['address'] ); $formats[] = '%s'; }
+        if ( array_key_exists('storage_capacity_notes', $args) ) { $data['storage_capacity_notes'] = sanitize_textarea_field( $args['storage_capacity_notes'] ); $formats[] = '%s'; }
+        if ( array_key_exists('primary_contact_id', $args) ) { $data['primary_contact_id'] = is_null($args['primary_contact_id']) ? null : intval( $args['primary_contact_id'] ); $formats[] = '%d'; }
+        if ( isset( $args['is_active'] ) ) { $data['is_active'] = intval( $args['is_active'] ); $formats[] = '%d'; }
+
+        if ( empty($data) ) {
+            oo_log('No data provided to update for building ID: ' . $building_id, __METHOD__);
+            return new WP_Error('no_data_to_update', 'No data provided to update building.');
+        }
+
+        $data['updated_at'] = current_time('mysql', 1);
+        $formats[] = '%s';
+
+        $result = $wpdb->update( self::$buildings_table, $data, array( 'building_id' => $building_id ), $formats, array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error updating building ID ' . $building_id . ': ' . $wpdb->last_error, array('data' => $data));
+            return new WP_Error('db_update_error', 'Could not update building: ' . $wpdb->last_error);
+        }
+        oo_log('Building updated successfully. ID: ' . $building_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Toggle the active status of a building.
+     * @param int $building_id
+     * @param bool $is_active
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function toggle_building_status( $building_id, $is_active ) {
+        oo_log('Toggling building status for ID: ' . $building_id . ' to ' . $is_active, __METHOD__);
+        self::init(); global $wpdb;
+        $result = $wpdb->update(
+            self::$buildings_table, 
+            array( 'is_active' => intval($is_active), 'updated_at' => current_time('mysql', 1) ), 
+            array( 'building_id' => intval($building_id) ), 
+            array( '%d', '%s' ), // formats for data
+            array( '%d' )  // formats for where
+        );
+        if ($result === false) {
+            $error = new WP_Error('db_error', 'Could not update building status. Error: ' . $wpdb->last_error);
+            oo_log('Error toggling building status: DB update failed. ' . $wpdb->last_error, $error);
+            return $error;
+        }
+        oo_log('Building status toggled successfully for ID: ' . $building_id, __METHOD__);
+        return true;
+    }
+
+
+    /**
+     * Delete a building.
+     * Note: job_streams.building_id is ON DELETE SET NULL.
+     * @param int $building_id
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function delete_building( $building_id ) {
+        self::init(); global $wpdb;
+        $building_id = intval($building_id);
+        if ( $building_id <= 0 ) {
+            return new WP_Error('invalid_building_id', 'Invalid Building ID for deletion.');
+        }
+
+        $result = $wpdb->delete( self::$buildings_table, array( 'building_id' => $building_id ), array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error deleting building ID ' . $building_id . ': ' . $wpdb->last_error, __METHOD__);
+            return new WP_Error('db_delete_error', 'Could not delete building: ' . $wpdb->last_error);
+        }
+        if ( $result === 0 ) {
+            oo_log('Building not found for deletion or no rows affected. ID: ' . $building_id, __METHOD__);
+            return true; // Not necessarily an error
+        }
+        oo_log('Building deleted successfully. ID: ' . $building_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Get multiple buildings with filtering, sorting, and pagination.
+     * @param array $params Parameters: is_active, search (name, address), orderby, order, number, offset.
+     * @return array Array of building objects.
+     */
+    public static function get_buildings( $params = array() ) {
+        self::init(); global $wpdb;
+
+        $defaults = array(
+            'is_active' => null,
+            'search' => null,
+            'orderby' => 'building_name',
+            'order' => 'ASC',
+            'number' => 20,
+            'offset' => 0,
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql = "SELECT * FROM " . self::$buildings_table;
+        $where_clauses = array();
+        $query_params = array();
+
+        if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
+        
+        if ( !empty($args['search']) ) {
+            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search'])) . '%';
+            $search_fields = array("building_name LIKE %s", "address LIKE %s", "storage_capacity_notes LIKE %s");
+            $where_clauses[] = "(" . implode(" OR ", $search_fields) . ")";
+            $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;
+        }
+
+        if ( !empty($where_clauses) ) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        if ( !empty($query_params) ) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+
+        $allowed_orderby = ['building_id', 'building_name', 'is_active', 'created_at', 'updated_at'];
+        $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'building_name';
+        $order = strtoupper($args['order']) === 'DESC' ? 'DESC' : 'ASC';
+        $sql .= " ORDER BY $orderby $order";
+
+        if ( $args['number'] > 0 ) {
+            $sql .= $wpdb->prepare(" LIMIT %d OFFSET %d", intval($args['number']), intval($args['offset']));
+        }
+        
+        oo_log('Executing get_buildings query: ' . $sql, __METHOD__);
+        return $wpdb->get_results( $sql );
+    }
+
+    /**
+     * Get the count of buildings based on filters.
+     * @param array $params Parameters: is_active, search.
+     * @return int Count of buildings.
+     */
+    public static function get_buildings_count( $params = array() ) {
+        self::init(); global $wpdb;
+
+        $defaults = array(
+            'is_active' => null,
+            'search' => null,
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql = "SELECT COUNT(*) FROM " . self::$buildings_table;
+        $where_clauses = array();
+        $query_params = array();
+
+        if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
+
+        if ( !empty($args['search']) ) {
+            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search'])) . '%';
+            $search_fields = array("building_name LIKE %s", "address LIKE %s", "storage_capacity_notes LIKE %s");
+            $where_clauses[] = "(" . implode(" OR ", $search_fields) . ")";
+            $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;
+        }
+
+        if ( !empty($where_clauses) ) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        if ( !empty($query_params) ) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+        oo_log('Executing get_buildings_count query: ' . $sql, __METHOD__);
+        return (int) $wpdb->get_var( $sql );
+    }
+
+    // --- ExpenseType CRUD Methods (NEW) ---
+    // Placeholder for add_expense_type, get_expense_type, update_expense_type, etc.
 }
 
 // Initialize table names on load with new class name
