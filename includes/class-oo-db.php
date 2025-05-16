@@ -95,22 +95,23 @@ class OO_DB { // Renamed class
         ) $charset_collate;";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        
         oo_log('Running dbDelta for employees table (' . self::$employees_table . ').', __METHOD__);
         $delta_results_employees = dbDelta( $sql_employees );
         oo_log('dbDelta employees result: ', $delta_results_employees);
         
         oo_log('Running dbDelta for stream types table (' . self::$stream_types_table . ').', __METHOD__);
         $delta_results_stream_types = dbDelta( $sql_stream_types );
-        // --- FORCE DEBUG OUTPUT FOR STREAM TYPES TABLE --- 
-        echo "<pre>DEBUG OUTPUT FROM ACTIVATION: dbDelta result for wp_oo_stream_types table:\n"; 
+        // --- FORCE DEBUG OUTPUT AND HALT FOR STREAM TYPES TABLE --- 
+        echo "<pre>IMMEDIATE DEBUG: dbDelta result for wp_oo_stream_types:\n"; 
         print_r($delta_results_stream_types); 
         echo "</pre>";
-        oo_log('dbDelta stream types result (this will also be in debug.log): ', $delta_results_stream_types);
-        // IMPORTANT: We will die here to ensure we see this specific output.
-        // If the table is created, this die() needs to be removed.
-        die("DEBUG: Halted after stream_types dbDelta to inspect output."); 
+        // Log it as well, in case the echo is suppressed but error_log works.
+        oo_log('IMMEDIATE DEBUG: dbDelta stream types result: ', $delta_results_stream_types);
+        die("DEBUG: Halted immediately after stream_types dbDelta to inspect its direct output."); 
+        // --- END FORCE DEBUG --- 
 
-        // Code below this will not run if die() is active above.
+        // The rest of the code will not execute due to die()
         oo_log('Running dbDelta for phases table (' . self::$phases_table . ').', __METHOD__);
         $delta_results_phases = dbDelta( $sql_phases );
         oo_log('dbDelta phases result: ', $delta_results_phases);
