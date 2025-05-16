@@ -31,7 +31,7 @@ $form_disabled = empty( $job_number_get ) || !$phase_valid;
 
 // --- START JOB FORM DEBUGGING ---
 if (defined('WP_DEBUG') && WP_DEBUG === true) {
-    ejpt_log(array(
+    oo_log(array(
         'GET_job_number' => isset($_GET['job_number']) ? $_GET['job_number'] : 'Not Set',
         'GET_phase_id' => isset($_GET['phase_id']) ? $_GET['phase_id'] : 'Not Set',
         'job_number_get' => $job_number_get,

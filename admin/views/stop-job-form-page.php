@@ -12,20 +12,20 @@ $phase_id_get = isset( $_GET['phase_id'] ) ? intval( $_GET['phase_id'] ) : 0;
 $phase_name_display = 'N/A';
 $phase_valid = false;
 if ( $phase_id_get > 0 ) {
-    $phase = EJPT_DB::get_phase( $phase_id_get );
+    $phase = OO_DB::get_phase( $phase_id_get );
     if ( $phase ) { // Phase exists, active or not
         $phase_name_display = esc_html( $phase->phase_name );
         if (!$phase->is_active) {
-             $phase_name_display .= ' (' . __('Inactive', 'ejpt') . ')';
+             $phase_name_display .= ' (' . __('Inactive', 'operations-organizer') . ')';
         }
         $phase_valid = true; // We allow stopping jobs for phases that might have become inactive
     } else {
-        $phase_name_display = '<span style="color:red;">' . __('Error: Invalid Phase ID', 'ejpt') . '</span>';
+        $phase_name_display = '<span style="color:red;">' . __('Error: Invalid Phase ID', 'operations-organizer') . '</span>';
     }
 }
 
-$active_employees = ejpt_get_active_employees_for_select();
-$current_time_display = ejpt_get_current_timestamp_display();
+$active_employees = oo_get_active_employees_for_select();
+$current_time_display = oo_get_current_timestamp_display();
 $form_disabled = empty( $job_number_get ) || !$phase_valid;
 
 ?>
@@ -33,18 +33,18 @@ $form_disabled = empty( $job_number_get ) || !$phase_valid;
     <h1><?php esc_html_e( 'Stop Job Phase & Record KPIs', 'operations-organizer' ); ?></h1>
 
     <?php if ( empty( $job_number_get ) || empty( $phase_id_get ) ): ?>
-        <div class="notice notice-error ejpt-notice"><p>
-            <?php esc_html_e( 'Error: Job Number and Phase ID must be provided in the URL and the Phase ID must be valid.', 'ejpt' ); ?>
+        <div class="notice notice-error oo-notice"><p>
+            <?php esc_html_e( 'Error: Job Number and Phase ID must be provided in the URL and the Phase ID must be valid.', 'operations-organizer' ); ?>
             <br>
-            <?php esc_html_e( 'Example QR Code URL:', 'ejpt' ); ?>
-            <code><?php echo esc_url( admin_url('admin.php?page=ejpt_stop_job&job_number=YOUR_JOB_ID&phase_id=YOUR_PHASE_ID') ); ?></code>
+            <?php esc_html_e( 'Example QR Code URL:', 'operations-organizer' ); ?>
+            <code><?php echo esc_url( admin_url('admin.php?page=oo_stop_job&job_number=YOUR_JOB_ID&phase_id=YOUR_PHASE_ID') ); ?></code>
         </p></div>
         <?php 
         if (empty( $job_number_get ) || empty( $phase_id_get )) return;
         ?>
     <?php elseif (!$phase_valid && $phase_id_get > 0): ?>
-         <div class="notice notice-error ejpt-notice"><p>
-            <?php esc_html_e( 'Error: The specified Phase ID is invalid or the phase could not be found.', 'ejpt' ); ?>
+         <div class="notice notice-error oo-notice"><p>
+            <?php esc_html_e( 'Error: The specified Phase ID is invalid or the phase could not be found.', 'operations-organizer' ); ?>
         </p></div>
     <?php endif; ?>
 
@@ -93,16 +93,16 @@ jQuery(document).ready(function($) {
     // Common function to display notices (if needed on this page specifically)
     if (typeof window.showNotice !== 'function') {
         window.showNotice = function(type, message) {
-            $('.ejpt-notice').remove();
-            var noticeHtml = '<div class="notice notice-' + type + ' is-dismissible ejpt-notice"><p>' + message + '</p>' +
+            $('.oo-notice').remove();
+            var noticeHtml = '<div class="notice notice-' + type + ' is-dismissible oo-notice"><p>' + message + '</p>' +
                              '<button type="button" class="notice-dismiss"><span class="screen-reader-text">Dismiss this notice.</span></button></div>';
             $('div.wrap > h1').first().after(noticeHtml);
             setTimeout(function() {
-                $('.ejpt-notice').fadeOut('slow', function() { $(this).remove(); });
+                $('.oo-notice').fadeOut('slow', function() { $(this).remove(); });
             }, 5000);
-            $('.ejpt-notice .notice-dismiss').on('click', function(event) {
+            $('.oo-notice .notice-dismiss').on('click', function(event) {
                 event.preventDefault();
-                $(this).closest('.ejpt-notice').remove();
+                $(this).closest('.oo-notice').remove();
             });
         };
     }
