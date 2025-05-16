@@ -12,21 +12,21 @@ $phase_id_get = isset( $_GET['phase_id'] ) ? intval( $_GET['phase_id'] ) : 0;
 $phase_name_display = 'N/A';
 $phase_valid = false;
 if ( $phase_id_get > 0 ) {
-    $phase = EJPT_DB::get_phase( $phase_id_get );
+    $phase = OO_DB::get_phase( $phase_id_get );
     if ( $phase && $phase->is_active) {
         $phase_name_display = esc_html( $phase->phase_name );
         $phase_valid = true;
     } else if ($phase && !$phase->is_active) {
-        $phase_name_display = '<span style="color:orange;">' . esc_html($phase->phase_name) . ' (' . __('Inactive', 'ejpt') . ')</span>';
+        $phase_name_display = '<span style="color:orange;">' . esc_html($phase->phase_name) . ' (' . __('Inactive', 'operations-organizer') . ')</span>';
         // Allow starting an inactive phase if explicitly linked? For now, we allow, but can be restricted.
         $phase_valid = true; // Or set to false to prevent starting inactive phases via QR
     } else {
-        $phase_name_display = '<span style="color:red;">' . __('Error: Invalid Phase ID', 'ejpt') . '</span>';
+        $phase_name_display = '<span style="color:red;">' . __('Error: Invalid Phase ID', 'operations-organizer') . '</span>';
     }
 }
 
-$active_employees = ejpt_get_active_employees_for_select();
-$current_time_display = ejpt_get_current_timestamp_display();
+$active_employees = oo_get_active_employees_for_select();
+$current_time_display = oo_get_current_timestamp_display();
 $form_disabled = empty( $job_number_get ) || !$phase_valid;
 
 // --- START JOB FORM DEBUGGING ---

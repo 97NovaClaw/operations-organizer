@@ -54,9 +54,9 @@ class OO_Employee { // Renamed class
     }
 
     public static function ajax_add_employee() {
-        oo_log('AJAX call received.', __METHOD__); // Use new log function
+        oo_log('AJAX call received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
-        check_ajax_referer('oo_add_employee_nonce', 'oo_add_employee_nonce'); // TODO: Update nonce name in JS/View
+        check_ajax_referer('oo_add_employee_nonce', 'oo_add_employee_nonce');
 
         if ( ! current_user_can( oo_get_capability() ) ) { 
             oo_log('AJAX Error: Permission denied.', __METHOD__);
@@ -86,7 +86,7 @@ class OO_Employee { // Renamed class
     public static function ajax_get_employee() {
         oo_log('AJAX call received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
-        check_ajax_referer('oo_edit_employee_nonce', '_ajax_nonce_get_employee'); // TODO: Update nonce name 
+        check_ajax_referer('oo_edit_employee_nonce', '_ajax_nonce_get_employee');
         if ( ! current_user_can( oo_get_capability() ) ) { 
             oo_log('AJAX Error: Permission denied.', __METHOD__);
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
@@ -109,7 +109,7 @@ class OO_Employee { // Renamed class
     public static function ajax_update_employee() {
         oo_log('AJAX call received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
-        check_ajax_referer('oo_edit_employee_nonce', 'oo_edit_employee_nonce'); // TODO: Update nonce name
+        check_ajax_referer('oo_edit_employee_nonce', 'oo_edit_employee_nonce');
         if ( ! current_user_can( oo_get_capability() ) ) { 
             oo_log('AJAX Error: Permission denied.', __METHOD__);
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
@@ -135,7 +135,7 @@ class OO_Employee { // Renamed class
     public static function ajax_toggle_employee_status() {
         oo_log('AJAX call received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
-        check_ajax_referer('oo_toggle_status_nonce', '_ajax_nonce'); // TODO: Update nonce name 
+        check_ajax_referer('oo_toggle_status_nonce', '_ajax_nonce');
         if ( ! current_user_can( oo_get_capability() ) ) {
             oo_log('AJAX Error: Permission denied.', __METHOD__);
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;

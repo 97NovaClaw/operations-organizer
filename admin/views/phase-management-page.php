@@ -296,16 +296,20 @@ jQuery(document).ready(function($) {
     // Common function to display notices
     if (typeof showNotice !== 'function') {
         window.showNotice = function(type, message) {
-            $('.ejpt-notice').remove();
-            var noticeHtml = '<div class="notice notice-' + type + ' is-dismissible ejpt-notice"><p>' + message + '</p>' +
+            $('.oo-notice').remove();
+            var noticeHtml = '<div class="notice notice-' + type + ' is-dismissible oo-notice"><p>' + message + '</p>' +
                              '<button type="button" class="notice-dismiss"><span class="screen-reader-text">Dismiss this notice.</span></button></div>';
-            $('div.wrap > h1').after(noticeHtml);
+            $('.oo-phase-management-page h1').first().after(noticeHtml);
+            
+            // Auto-dismiss after 5 seconds
             setTimeout(function() {
-                $('.ejpt-notice').fadeOut('slow', function() { $(this).remove(); });
+                $('.oo-notice').fadeOut('slow', function() { $(this).remove(); });
             }, 5000);
-            $('.ejpt-notice .notice-dismiss').on('click', function(event) {
+            
+            // Allow manual dismiss
+            $('.oo-notice .notice-dismiss').on('click', function(event) {
                 event.preventDefault();
-                $(this).closest('.ejpt-notice').remove();
+                $(this).closest('.oo-notice').remove();
             });
         };
     }

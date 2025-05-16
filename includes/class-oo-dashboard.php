@@ -54,7 +54,7 @@ class OO_Dashboard { // Renamed class
     public static function ajax_get_dashboard_data() {
         oo_log('AJAX call received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
-        check_ajax_referer('oo_dashboard_nonce', 'nonce'); // TODO: Update nonce name
+        check_ajax_referer('oo_dashboard_nonce', 'nonce');
 
         if (!current_user_can(oo_get_capability())) {
             oo_log('AJAX Error: Permission denied for dashboard data.', __METHOD__);
@@ -195,7 +195,7 @@ class OO_Dashboard { // Renamed class
     }
 
     public static function ajax_get_job_log_details() {
-        check_ajax_referer('oo_edit_log_nonce', 'nonce'); // TODO: Update nonce name
+        check_ajax_referer('oo_edit_log_nonce', 'nonce');
         oo_log('AJAX: Get job log details', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
         if (!current_user_can(oo_get_capability())) {
@@ -225,7 +225,7 @@ class OO_Dashboard { // Renamed class
     }
 
     public static function ajax_update_job_log() {
-        check_ajax_referer('oo_edit_log_nonce', 'oo_edit_log_nonce_field'); // TODO: Update nonce names
+        check_ajax_referer('oo_edit_log_nonce', 'oo_edit_log_nonce_field');
         oo_log('AJAX: Update job log received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
         if (!current_user_can(oo_get_capability())) {
@@ -286,7 +286,7 @@ class OO_Dashboard { // Renamed class
     }
 
     public static function ajax_delete_job_log() {
-        check_ajax_referer('oo_delete_log_nonce', 'nonce'); // TODO: Update nonce name 
+        check_ajax_referer('oo_delete_log_nonce', 'nonce');
         oo_log('AJAX: Delete job log request received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
         if (!current_user_can(oo_get_capability())) { 

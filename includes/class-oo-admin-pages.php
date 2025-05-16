@@ -96,7 +96,7 @@ class OO_Admin_Pages { // Renamed class
     public static function handle_start_job_form() {
         oo_log('AJAX call received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
-        check_ajax_referer('oo_start_job_nonce', 'oo_start_job_nonce'); // TODO: Update nonce name
+        check_ajax_referer('oo_start_job_nonce', 'oo_start_job_nonce');
 
         if (!current_user_can(oo_get_form_access_capability())) { 
             oo_log('AJAX Error: Permission denied to start job.', __METHOD__);
@@ -154,7 +154,7 @@ class OO_Admin_Pages { // Renamed class
     public static function handle_stop_job_form() {
         oo_log('AJAX call received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
-        check_ajax_referer('oo_stop_job_nonce', 'oo_stop_job_nonce'); // TODO: Update nonce name
+        check_ajax_referer('oo_stop_job_nonce', 'oo_stop_job_nonce');
 
         if (!current_user_can(oo_get_form_access_capability())) { 
             oo_log('AJAX Error: Permission denied to stop job.', __METHOD__);

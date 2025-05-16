@@ -18,8 +18,8 @@ jQuery(document).ready(function($) {
     // Common function to display notices
     // Ensures only one notice is visible at a time and fades out.
     window.showNotice = debounce(function(type, message) {
-        $('.ejpt-notice').remove(); // Remove any existing notices
-        var noticeHtml = '<div class="notice notice-' + type + ' is-dismissible ejpt-notice"><p>' + message + '</p>' +
+        $('.oo-notice').remove(); // Remove any existing notices
+        var noticeHtml = '<div class="notice notice-' + type + ' is-dismissible oo-notice"><p>' + message + '</p>' +
                          '<button type="button" class="notice-dismiss"><span class="screen-reader-text">Dismiss this notice.</span></button></div>';
         
         // Try to place notice after h1, or at the top of .wrap if h1 not specific enough
@@ -31,13 +31,13 @@ jQuery(document).ready(function($) {
 
         // Auto-dismiss after 5 seconds
         setTimeout(function() {
-            $('.ejpt-notice').fadeOut('slow', function() { $(this).remove(); });
+            $('.oo-notice').fadeOut('slow', function() { $(this).remove(); });
         }, 5000);
 
         // Allow manual dismiss
-        $('.ejpt-notice .notice-dismiss').on('click', function(event) {
+        $('.oo-notice .notice-dismiss').on('click', function(event) {
             event.preventDefault();
-            $(this).closest('.ejpt-notice').remove();
+            $(this).closest('.oo-notice').remove();
         });
     }, 250); // Debounce for 250ms to prevent multiple rapid notices
 
@@ -144,18 +144,18 @@ jQuery(document).ready(function($) {
     });
 
     // Modal Open/Close (ensure these are bound even if modals are added dynamically, though not the case here)
-    $('body').on('click', '.ejpt-open-modal-button', function() {
+    $('body').on('click', '.oo-open-modal-button', function() {
         var targetModal = $(this).data('modal-id');
         $('#' + targetModal).show();
     });
 
-    $('body').on('click', '.ejpt-close-button', function() {
-        $(this).closest('.ejpt-modal').hide();
+    $('body').on('click', '.oo-close-button', function() {
+        $(this).closest('.oo-modal').hide();
     });
 
     // Close modal if clicked outside of content
     $(window).on('click', function(event) {
-        if ($(event.target).is('.ejpt-modal')) {
+        if ($(event.target).is('.oo-modal')) {
             $(event.target).hide();
         }
     });
@@ -212,10 +212,10 @@ jQuery(document).ready(function($) {
             });
     });
 
-    // Initialize Datepicker for any elements with class .ejpt-datepicker
+    // Initialize Datepicker for any elements with class .oo-datepicker
     // This might be on dashboard page or other admin pages if added later
     if (typeof $.fn.datepicker === 'function') {
-        $('.ejpt-datepicker').datepicker({
+        $('.oo-datepicker').datepicker({
             dateFormat: 'yy-mm-dd',
             changeMonth: true,
             changeYear: true,

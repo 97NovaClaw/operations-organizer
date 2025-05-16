@@ -34,8 +34,8 @@ function oo_get_active_employees_for_select() {
  */
 function oo_get_active_phases_for_select($stream_type_id = null) {
     $args = array( 'is_active' => 1, 'orderby' => 'sort_order', 'order' => 'ASC', 'number' => -1 );
-    if ($stream_type_id) {
-        $args['stream_type_id'] = $stream_type_id;
+    if ( !is_null($stream_type_id) && $stream_type_id > 0 ) {
+        $args['stream_type_id'] = intval($stream_type_id);
     }
     $phases = OO_DB::get_phases( $args );
     $options = array();
@@ -44,6 +44,26 @@ function oo_get_active_phases_for_select($stream_type_id = null) {
             $options[] = array(
                 'id' => $phase->phase_id,
                 'name' => esc_html( $phase->phase_name )
+            );
+        }
+    }
+    return $options;
+}
+
+/**
+ * Get all active stream types for select dropdown.
+ *
+ * @return array Array of stream type data (id, name, slug).
+ */
+function oo_get_active_stream_types_for_select() {
+    $stream_types = OO_DB::get_stream_types(array('is_active' => 1, 'orderby' => 'stream_type_name'));
+    $options = array();
+    if ($stream_types) {
+        foreach ($stream_types as $st) {
+            $options[] = array(
+                'id' => $st->stream_type_id,
+                'name' => esc_html($st->stream_type_name),
+                'slug' => esc_html($st->stream_type_slug)
             );
         }
     }

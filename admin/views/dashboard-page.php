@@ -4,7 +4,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
-// Data for this page ($employees, $phases) is prepared in EJPT_Dashboard::display_dashboard_page()
+// Data for this page ($employees, $phases) is prepared in OO_Dashboard::display_dashboard_page()
 // and passed via global variables.
 global $employees, $phases; 
 ?>
@@ -14,11 +14,11 @@ global $employees, $phases;
     <div id="oo-dashboard-filters">
         <div class="filter-item">
             <label for="filter_date_from"><?php esc_html_e('Date From:', 'operations-organizer');?></label>
-            <input type="text" id="filter_date_from" name="filter_date_from" class="ejpt-datepicker" placeholder="YYYY-MM-DD">
+            <input type="text" id="filter_date_from" name="filter_date_from" class="oo-datepicker" placeholder="YYYY-MM-DD">
         </div>
         <div class="filter-item">
             <label for="filter_date_to"><?php esc_html_e('Date To:', 'operations-organizer');?></label>
-            <input type="text" id="filter_date_to" name="filter_date_to" class="ejpt-datepicker" placeholder="YYYY-MM-DD">
+            <input type="text" id="filter_date_to" name="filter_date_to" class="oo-datepicker" placeholder="YYYY-MM-DD">
         </div>
         <div class="filter-item">
             <label for="filter_employee_id"><?php esc_html_e('Employee:', 'operations-organizer');?></label>
@@ -190,8 +190,8 @@ jQuery(document).ready(function($) {
             url: oo_data.ajax_url,
             type: 'POST',
             data: function(d) { 
-                d.action = 'ejpt_get_dashboard_data';
-                d.nonce = '<?php echo wp_create_nonce("ejpt_dashboard_nonce"); ?>';
+                d.action = 'oo_get_dashboard_data';
+                d.nonce = '<?php echo wp_create_nonce("oo_dashboard_nonce"); ?>';
                 d.filter_employee_id = $('#filter_employee_id').val();
                 d.filter_job_number = $('#filter_job_number').val();
                 d.filter_phase_id = $('#filter_phase_id').val();
@@ -273,8 +273,8 @@ jQuery(document).ready(function($) {
         var currentAjaxParams = dashboardTable.ajax.params();
         var exportParams = $.extend({}, currentAjaxParams, {
             length: -1, // Fetch all records for export
-            action: 'ejpt_get_dashboard_data', // Ensure action and nonce are correctly set for export
-            nonce: '<?php echo wp_create_nonce("ejpt_dashboard_nonce"); ?>'
+            action: 'oo_get_dashboard_data', // Ensure action and nonce are correctly set for export
+            nonce: '<?php echo wp_create_nonce("oo_dashboard_nonce"); ?>'
         });
 
         // We need to add custom filters to the exportParams if they are not already part of currentAjaxParams.data
@@ -366,7 +366,7 @@ jQuery(document).ready(function($) {
             return;
         }
 
-        var actionPage = $button.hasClass('oo-start-link-btn') ? 'ejpt_start_job' : 'ejpt_stop_job';
+        var actionPage = $button.hasClass('oo-start-link-btn') ? 'oo_start_job' : 'oo_stop_job';
         var url = isAdminUrl + '?page=' + actionPage + '&job_number=' + encodeURIComponent(jobNumber) + '&phase_id=' + encodeURIComponent(phaseId);
         console.log('Generated URL:', url);
         
@@ -401,7 +401,7 @@ jQuery(document).ready(function($) {
     $('#oo-dashboard-table tbody').on('click', '.oo-edit-log-button', function () {
         console.log('Dashboard JS: Edit button event triggered.'); // DEBUG Line 1
         var logId = $(this).data('log-id');
-        // ejpt_log('Edit button clicked for log ID: ' + logId, 'Dashboard JS'); // Server-side log via separate mechanism if needed
+        // oo_log('Edit button clicked for log ID: ' + logId, 'Dashboard JS');
         console.log('Dashboard JS: Edit button clicked for log ID:', logId); // DEBUG Line 2
 
         if (!logId) {
@@ -554,10 +554,10 @@ jQuery(document).ready(function($) {
                             <?php 
                             // Use the already available $GLOBALS['employees'] if populated, otherwise fetch them.
                             // This assumes $GLOBALS['employees'] has active employees for the dashboard filters.
-                            $modal_employees = isset($GLOBALS['employees']) && is_array($GLOBALS['employees']) ? $GLOBALS['employees'] : ejpt_get_active_employees_for_select();
+                            $modal_employees = isset($GLOBALS['employees']) ? $GLOBALS['employees'] : oo_get_active_employees_for_select();
                             if (!empty($modal_employees)) {
                                 foreach ( $modal_employees as $emp_obj_or_arr ) {
-                                    // Handle if $emp_obj_or_arr is object from DB or array from ejpt_get_active_employees_for_select
+                                    // Handle if $emp_obj_or_arr is object from DB or array from oo_get_active_employees_for_select
                                     $emp_id = is_object($emp_obj_or_arr) ? $emp_obj_or_arr->employee_id : $emp_obj_or_arr['id'];
                                     $emp_name = is_object($emp_obj_or_arr) ? esc_html( $emp_obj_or_arr->first_name . ' ' . $emp_obj_or_arr->last_name . ' (' . $emp_obj_or_arr->employee_number . ')' ) : $emp_obj_or_arr['name'];
                                     echo '<option value="' . esc_attr( $emp_id ) . '">' . $emp_name . '</option>';
@@ -577,7 +577,7 @@ jQuery(document).ready(function($) {
                         <select id="edit_log_phase_id" name="edit_log_phase_id" required>
                             <option value=""><?php esc_html_e('-- Select Phase --', 'operations-organizer'); ?></option>
                             <?php 
-                            $modal_phases = isset($GLOBALS['phases']) && is_array($GLOBALS['phases']) ? $GLOBALS['phases'] : ejpt_get_active_phases_for_select();
+                            $modal_phases = isset($GLOBALS['phases']) && is_array($GLOBALS['phases']) ? $GLOBALS['phases'] : oo_get_active_phases_for_select();
                             if (!empty($modal_phases)) {
                                 foreach ( $modal_phases as $phase_obj_or_arr ) {
                                     $phase_item_id = is_object($phase_obj_or_arr) ? $phase_obj_or_arr->phase_id : $phase_obj_or_arr['id'];

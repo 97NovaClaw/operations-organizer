@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
-// Data for this page is prepared in EJPT_Employee::display_employee_management_page()
+// Data for this page is prepared in OO_Employee::display_employee_management_page()
 // and passed via global variables or directly included before this view.
 // Expected variables: $employees, $total_employees, $current_page, $per_page, $search_term, $active_filter
 // $GLOBALS['orderby'], $GLOBALS['order'] are also expected to be set.
@@ -95,9 +95,9 @@ global $employees, $total_employees, $current_page, $per_page, $search_term, $ac
                             <td class="actions column-actions" data-colname="<?php esc_attr_e('Actions', 'operations-organizer'); ?>">
                                 <button class="button-secondary oo-edit-employee-button" data-employee-id="<?php echo esc_attr( $employee->employee_id ); ?>"><?php esc_html_e('Edit', 'operations-organizer'); ?></button>
                                 <?php if ( $employee->is_active ) : ?>
-                                    <button class="button-secondary oo-toggle-status-employee-button ejpt-deactivate" data-employee-id="<?php echo esc_attr( $employee->employee_id ); ?>" data-new-status="0"><?php esc_html_e('Deactivate', 'operations-organizer'); ?></button>
+                                    <button class="button-secondary oo-toggle-status-employee-button oo-deactivate" data-employee-id="<?php echo esc_attr( $employee->employee_id ); ?>" data-new-status="0"><?php esc_html_e('Deactivate', 'operations-organizer'); ?></button>
                                 <?php else : ?>
-                                    <button class="button-secondary oo-toggle-status-employee-button ejpt-activate" data-employee-id="<?php echo esc_attr( $employee->employee_id ); ?>" data-new-status="1"><?php esc_html_e('Activate', 'operations-organizer'); ?></button>
+                                    <button class="button-secondary oo-toggle-status-employee-button oo-activate" data-employee-id="<?php echo esc_attr( $employee->employee_id ); ?>" data-new-status="1"><?php esc_html_e('Activate', 'operations-organizer'); ?></button>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -167,28 +167,28 @@ global $employees, $total_employees, $current_page, $per_page, $search_term, $ac
     </div>
 
     <!-- Edit Employee Modal -->
-    <div id="editEmployeeModal" class="ejpt-modal" style="display:none;">
-        <div class="ejpt-modal-content">
-            <span class="ejpt-close-button">&times;</span>
-            <h2><?php esc_html_e( 'Edit Employee', 'ejpt' ); ?></h2>
+    <div id="editEmployeeModal" class="oo-modal" style="display:none;">
+        <div class="oo-modal-content">
+            <span class="oo-close-button">&times;</span>
+            <h2><?php esc_html_e( 'Edit Employee', 'operations-organizer' ); ?></h2>
             <form id="oo-edit-employee-form">
                 <?php wp_nonce_field( 'oo_edit_employee_nonce', 'oo_edit_employee_nonce' ); ?>
                 <input type="hidden" id="edit_employee_id" name="edit_employee_id" value="" />
-                <table class="form-table ejpt-form-table">
+                <table class="form-table oo-form-table">
                     <tr valign="top">
-                        <th scope="row"><label for="edit_employee_number"><?php esc_html_e( 'Employee Number', 'ejpt' ); ?></label></th>
+                        <th scope="row"><label for="edit_employee_number"><?php esc_html_e( 'Employee Number', 'operations-organizer' ); ?></label></th>
                         <td><input type="text" id="edit_employee_number" name="edit_employee_number" required /></td>
                     </tr>
                     <tr valign="top">
-                        <th scope="row"><label for="edit_first_name"><?php esc_html_e( 'First Name', 'ejpt' ); ?></label></th>
+                        <th scope="row"><label for="edit_first_name"><?php esc_html_e( 'First Name', 'operations-organizer' ); ?></label></th>
                         <td><input type="text" id="edit_first_name" name="edit_first_name" required /></td>
                     </tr>
                     <tr valign="top">
-                        <th scope="row"><label for="edit_last_name"><?php esc_html_e( 'Last Name', 'ejpt' ); ?></label></th>
+                        <th scope="row"><label for="edit_last_name"><?php esc_html_e( 'Last Name', 'operations-organizer' ); ?></label></th>
                         <td><input type="text" id="edit_last_name" name="edit_last_name" required /></td>
                     </tr>
                 </table>
-                <?php submit_button( __( 'Save Changes', 'ejpt' ), 'primary', 'submit_edit_employee' ); ?>
+                <?php submit_button( __( 'Save Changes', 'operations-organizer' ), 'primary', 'submit_edit_employee' ); ?>
             </form>
         </div>
     </div>
@@ -208,7 +208,7 @@ jQuery(document).ready(function($) {
     };
 
     // Handle "Edit Employee" button click to populate modal
-    $('.ejpt-edit-employee-button').on('click', function() {
+    $('.oo-edit-employee-button').on('click', function() {
         var employeeId = $(this).data('employee-id');
         
         $.post(oo_data.ajax_url, {
@@ -231,12 +231,12 @@ jQuery(document).ready(function($) {
     });
 
     // Handle "Toggle Status" button click
-    $('.ejpt-toggle-status-employee-button').on('click', function() {
+    $('.oo-toggle-status-employee-button').on('click', function() {
         var employeeId = $(this).data('employee-id');
         var newStatus = $(this).data('new-status');
         var confirmMessage = newStatus == 1 ? 
-            '<?php echo esc_js(__('Are you sure you want to activate this employee?', 'ejpt')); ?>' : 
-            '<?php echo esc_js(__('Are you sure you want to deactivate this employee?', 'ejpt')); ?>';
+            '<?php echo esc_js(__('Are you sure you want to activate this employee?', 'operations-organizer')); ?>' : 
+            '<?php echo esc_js(__('Are you sure you want to deactivate this employee?', 'operations-organizer')); ?>';
 
         if (!confirm(confirmMessage)) {
             return;

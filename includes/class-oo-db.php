@@ -115,13 +115,9 @@ class OO_DB { // Renamed class
         oo_log('Finished dbDelta calls. Check logs for specific table creation/update details.', __METHOD__);
     }
 
-    // ... TODO: Rename all EJPT_DB methods to OO_DB, update table name references, and adapt logic ...
     // For example, add_employee, get_employees will use self::$employees_table (which is now oo_employees)
     // Methods for phases will need to accept/filter by stream_type_id
     // Methods for job_logs will need to handle new kpi_data field
-
-// Placeholder for existing methods that need renaming and refactoring:
-// ... (copy existing EJPT_DB methods here and then rename/refactor them one by one) ...
 
     // --- Employee CRUD Methods ---
     public static function add_employee( $employee_number, $first_name, $last_name ) {
