@@ -102,20 +102,18 @@ class OO_DB { // Renamed class
         oo_log('Running dbDelta for stream types table (' . self::$stream_types_table . ').', __METHOD__);
         $delta_results_stream_types = dbDelta( $sql_stream_types );
         // --- FORCE DEBUG OUTPUT FOR STREAM TYPES TABLE --- 
-        echo "<pre>DEBUG: dbDelta result for stream_types table (wp_oo_stream_types):\n"; 
+        echo "<pre>DEBUG OUTPUT FROM ACTIVATION: dbDelta result for wp_oo_stream_types table:\n"; 
         print_r($delta_results_stream_types); 
         echo "</pre>";
-        // We will die here after next dbDelta to ensure this output is seen if activation fails later
-        // For now, let this proceed to see if other tables are created.
-        oo_log('dbDelta stream types result: ', $delta_results_stream_types);
+        oo_log('dbDelta stream types result (this will also be in debug.log): ', $delta_results_stream_types);
+        // IMPORTANT: We will die here to ensure we see this specific output.
+        // If the table is created, this die() needs to be removed.
+        die("DEBUG: Halted after stream_types dbDelta to inspect output."); 
 
+        // Code below this will not run if die() is active above.
         oo_log('Running dbDelta for phases table (' . self::$phases_table . ').', __METHOD__);
         $delta_results_phases = dbDelta( $sql_phases );
         oo_log('dbDelta phases result: ', $delta_results_phases);
-        // --- If stream types failed, die now to focus on it ---
-        // if (empty($delta_results_stream_types) || (isset($delta_results_stream_types[0]) && strpos($delta_results_stream_types[0], 'Created table') === false)) {
-        //    die("Halting activation: dbDelta for stream_types might have failed. Check output above.");
-        // }
 
         oo_log('Running dbDelta for job logs table (' . self::$job_logs_table . ').', __METHOD__);
         $delta_results_job_logs = dbDelta( $sql_job_logs );
