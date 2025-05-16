@@ -44,11 +44,14 @@ class OO_DB { // Renamed class
             INDEX idx_is_active (is_active)
         ) $charset_collate;";
 
-        // SQL for oo_stream_types table (NEW - SIMPLIFIED FOR DEBUGGING)
+        // SQL for oo_stream_types table (Full Definition)
         $sql_stream_types = "CREATE TABLE " . self::$stream_types_table . " (
             stream_type_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
             stream_type_slug VARCHAR(50) NOT NULL,
             stream_type_name VARCHAR(100) NOT NULL,
+            is_active BOOLEAN NOT NULL DEFAULT 1,
+            kpi_fields_config TEXT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (stream_type_id),
             UNIQUE KEY uq_stream_type_slug (stream_type_slug)
         ) $charset_collate;";
@@ -97,15 +100,10 @@ class OO_DB { // Renamed class
         $delta_results_employees = dbDelta( $sql_employees );
         oo_log('dbDelta employees result: ', $delta_results_employees);
         
-        oo_log('Running dbDelta for SIMPLIFIED stream types table (' . self::$stream_types_table . ').', __METHOD__);
+        oo_log('Running dbDelta for stream types table (' . self::$stream_types_table . ').', __METHOD__);
         $delta_results_stream_types = dbDelta( $sql_stream_types );
-        echo "<pre>IMMEDIATE DEBUG: dbDelta result for SIMPLIFIED wp_oo_stream_types table:\n"; 
-        print_r($delta_results_stream_types); 
-        echo "</pre>";
-        oo_log('IMMEDIATE DEBUG: dbDelta SIMPLIFIED stream types result: ', $delta_results_stream_types);
-        die("DEBUG: Halted immediately after SIMPLIFIED stream_types dbDelta to inspect its direct output."); 
+        oo_log('dbDelta stream types result: ', $delta_results_stream_types);
 
-        // The rest of the code will not execute due to die()
         oo_log('Running dbDelta for phases table (' . self::$phases_table . ').', __METHOD__);
         $delta_results_phases = dbDelta( $sql_phases );
         oo_log('dbDelta phases result: ', $delta_results_phases);
@@ -114,7 +112,7 @@ class OO_DB { // Renamed class
         $delta_results_job_logs = dbDelta( $sql_job_logs );
         oo_log('dbDelta job logs result: ', $delta_results_job_logs);
         
-        oo_log('Finished dbDelta calls. Check logs above for specific table creation/update details.', __METHOD__);
+        oo_log('Finished dbDelta calls. Check logs for specific table creation/update details.', __METHOD__);
     }
 
     // ... TODO: Rename all EJPT_DB methods to OO_DB, update table name references, and adapt logic ...
