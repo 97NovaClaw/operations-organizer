@@ -16,11 +16,11 @@ class OO_Phase { // Renamed class
             wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
         }
 
-        global $phases, $total_phases, $current_page, $per_page, $search_term, $active_filter, $stream_types, $selected_stream_type_id;
+        global $phases, $total_phases, $current_page, $per_page, $search_term, $active_filter, $streams, $selected_stream_id;
 
-        // Get all stream types for a filter dropdown
-        $stream_types = OO_DB::get_stream_types(array('is_active' => 1)); // Fetch active stream types
-        $selected_stream_type_id = isset($_REQUEST['stream_type_filter']) ? intval($_REQUEST['stream_type_filter']) : null;
+        // Get all streams for a filter dropdown
+        $streams = OO_DB::get_streams(array('is_active' => 1, 'orderby' => 'stream_name', 'order' => 'ASC')); // Renamed
+        $selected_stream_id = isset($_REQUEST['stream_filter']) ? intval($_REQUEST['stream_filter']) : null; // Renamed
 
         $search_term = isset($_REQUEST['s']) ? sanitize_text_field($_REQUEST['s']) : '';
         $active_filter = isset($_REQUEST['status_filter']) ? sanitize_text_field($_REQUEST['status_filter']) : 'all';
@@ -38,11 +38,11 @@ class OO_Phase { // Renamed class
             'number' => $per_page,
             'offset' => $offset,
             'search' => $search_term,
-            'orderby' => $GLOBALS['orderby'],
+            'orderby' => $GLOBALS['orderby'], // Should be order_in_stream or phase_name
             'order' => $GLOBALS['order'],
         );
-        if ($selected_stream_type_id) {
-            $phase_args['stream_type_id'] = $selected_stream_type_id;
+        if ($selected_stream_id) {
+            $phase_args['stream_id'] = $selected_stream_id; // Renamed
         }
         if ($active_filter === 'active') {
             $phase_args['is_active'] = 1;
@@ -51,14 +51,14 @@ class OO_Phase { // Renamed class
         }
 
         $GLOBALS['phases'] = OO_DB::get_phases( $phase_args );
-        $GLOBALS['total_phases'] = OO_DB::get_phases_count($phase_args); // Count should use same filters
+        $GLOBALS['total_phases'] = OO_DB::get_phases_count($phase_args); 
         
         $GLOBALS['current_page'] = $current_page;
         $GLOBALS['per_page'] = $per_page;
         $GLOBALS['search_term'] = $search_term;
         $GLOBALS['active_filter'] = $active_filter;
-        $GLOBALS['stream_types'] = $stream_types; // Make stream types available to view
-        $GLOBALS['selected_stream_type_id'] = $selected_stream_type_id;
+        $GLOBALS['streams'] = $streams; // Renamed
+        $GLOBALS['selected_stream_id'] = $selected_stream_id; // Renamed
 
         include_once OO_PLUGIN_DIR . 'admin/views/phase-management-page.php';
     }
@@ -73,18 +73,20 @@ class OO_Phase { // Renamed class
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
         }
 
-        $stream_type_id = isset( $_POST['stream_type_id'] ) ? intval( $_POST['stream_type_id'] ) : 0;
-        $phase_slug = isset( $_POST['phase_slug'] ) ? sanitize_key( trim($_POST['phase_slug']) ) : '';
+        $stream_id = isset( $_POST['stream_id'] ) ? intval( $_POST['stream_id'] ) : 0; // Renamed
         $phase_name = isset( $_POST['phase_name'] ) ? sanitize_text_field( trim($_POST['phase_name']) ) : '';
         $phase_description = isset( $_POST['phase_description'] ) ? sanitize_textarea_field( trim($_POST['phase_description']) ) : '';
-        $sort_order = isset( $_POST['sort_order'] ) ? intval( $_POST['sort_order'] ) : 0;
+        $order_in_stream = isset( $_POST['order_in_stream'] ) ? intval( $_POST['order_in_stream'] ) : 0; // Renamed from sort_order
+        $phase_type = isset( $_POST['phase_type'] ) ? sanitize_text_field( trim($_POST['phase_type']) ) : null;
+        $default_kpi_units = isset( $_POST['default_kpi_units'] ) ? sanitize_text_field( trim($_POST['default_kpi_units']) ) : null;
 
-        if ( empty($stream_type_id) || empty($phase_slug) || empty($phase_name) ) {
-            oo_log('AJAX Error: Stream Type, Phase Slug and Name are required.', $_POST);
-            wp_send_json_error( array( 'message' => 'Error: Stream Type, Phase Slug and Phase Name are required.' ) ); return;
+        if ( empty($stream_id) || empty($phase_name) ) { // Phase slug removed from check
+            oo_log('AJAX Error: Stream and Phase Name are required.', $_POST);
+            wp_send_json_error( array( 'message' => 'Error: Stream and Phase Name are required.' ) ); return;
         }
 
-        $result = OO_DB::add_phase( $stream_type_id, $phase_slug, $phase_name, $phase_description, $sort_order );
+        // Call to OO_DB::add_phase updated with new parameters
+        $result = OO_DB::add_phase( $stream_id, $phase_name, $phase_description, $order_in_stream, $phase_type, $default_kpi_units );
 
         if ( is_wp_error( $result ) ) {
             oo_log('AJAX Error adding phase: ' . $result->get_error_message(), __METHOD__);
@@ -108,7 +110,7 @@ class OO_Phase { // Renamed class
             oo_log('AJAX Error: Invalid phase ID: ' . $phase_id, __METHOD__);
             wp_send_json_error( array( 'message' => 'Invalid phase ID.' ) ); return;
         }
-        $phase = OO_DB::get_phase( $phase_id );
+        $phase = OO_DB::get_phase( $phase_id ); // OO_DB::get_phase will need to return new fields too
         if ( $phase ) {
             oo_log('AJAX Success: Phase found.', $phase);
             wp_send_json_success( $phase );
@@ -127,17 +129,20 @@ class OO_Phase { // Renamed class
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
         }
         $phase_id = isset( $_POST['edit_phase_id'] ) ? intval( $_POST['edit_phase_id'] ) : 0;
-        $stream_type_id = isset( $_POST['edit_stream_type_id'] ) ? intval( $_POST['edit_stream_type_id'] ) : 0;
-        $phase_slug = isset( $_POST['edit_phase_slug'] ) ? sanitize_key( trim($_POST['edit_phase_slug']) ) : '';
+        $stream_id = isset( $_POST['edit_stream_id'] ) ? intval( $_POST['edit_stream_id'] ) : 0; // Renamed
         $phase_name = isset( $_POST['edit_phase_name'] ) ? sanitize_text_field( trim($_POST['edit_phase_name']) ) : '';
         $phase_description = isset( $_POST['edit_phase_description'] ) ? sanitize_textarea_field( trim($_POST['edit_phase_description']) ) : '';
-        $sort_order = isset( $_POST['edit_sort_order'] ) ? intval( $_POST['edit_sort_order'] ) : null; // Null if not set to keep existing
+        $order_in_stream = isset( $_POST['edit_order_in_stream'] ) ? intval( $_POST['edit_order_in_stream'] ) : null; // Renamed
+        $phase_type = isset( $_POST['edit_phase_type'] ) ? sanitize_text_field( trim($_POST['edit_phase_type']) ) : null;
+        $default_kpi_units = isset( $_POST['edit_default_kpi_units'] ) ? sanitize_text_field( trim($_POST['edit_default_kpi_units']) ) : null;
+        $is_active = isset( $_POST['edit_is_active'] ) ? intval( $_POST['edit_is_active'] ) : null;
 
-        if ( $phase_id <= 0 || empty($stream_type_id) || empty($phase_slug) || empty($phase_name) ) {
-            oo_log('AJAX Error: Phase ID, Stream Type, Slug and Name are required.', $_POST);
-            wp_send_json_error( array( 'message' => 'Error: Phase ID, Stream Type, Phase Slug and Phase Name are required.' ) ); return;
+        if ( $phase_id <= 0 || empty($stream_id) || empty($phase_name) ) { // Phase slug removed
+            oo_log('AJAX Error: Phase ID, Stream and Name are required.', $_POST);
+            wp_send_json_error( array( 'message' => 'Error: Phase ID, Stream and Name are required.' ) ); return;
         }
-        $result = OO_DB::update_phase( $phase_id, $stream_type_id, $phase_slug, $phase_name, $phase_description, $sort_order );
+        // Call to OO_DB::update_phase updated with new parameters
+        $result = OO_DB::update_phase( $phase_id, $stream_id, $phase_name, $phase_description, $order_in_stream, $phase_type, $default_kpi_units, $is_active );
         if ( is_wp_error( $result ) ) {
             oo_log('AJAX Error updating phase: ' . $result->get_error_message(), __METHOD__);
             wp_send_json_error( array( 'message' => 'Error: ' . $result->get_error_message() ) );

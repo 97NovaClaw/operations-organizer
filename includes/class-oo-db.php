@@ -7,19 +7,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class OO_DB { // Renamed class
 
-    private static $employees_table;
+    private static $jobs_table;
+    private static $streams_table; // Was stream_types_table, renamed for clarity to match entity
+    private static $job_streams_table;
     private static $phases_table;
     private static $job_logs_table;
-    private static $stream_types_table; // New table
-    // Potentially: private static $jobs_table, $job_streams_table in the future
+    private static $employees_table;
+    private static $buildings_table;
+    private static $expenses_table;
+    private static $expense_types_table;
 
     public static function init() {
         global $wpdb;
         // Define table names with new prefix
-        self::$employees_table = $wpdb->prefix . 'oo_employees';
+        self::$jobs_table = $wpdb->prefix . 'oo_jobs';
+        self::$streams_table = $wpdb->prefix . 'oo_streams'; // Renamed from oo_stream_types
+        self::$job_streams_table = $wpdb->prefix . 'oo_job_streams';
         self::$phases_table = $wpdb->prefix . 'oo_phases';
         self::$job_logs_table = $wpdb->prefix . 'oo_job_logs';
-        self::$stream_types_table = $wpdb->prefix . 'oo_stream_types';
+        self::$employees_table = $wpdb->prefix . 'oo_employees';
+        self::$buildings_table = $wpdb->prefix . 'oo_buildings';
+        self::$expenses_table = $wpdb->prefix . 'oo_expenses';
+        self::$expense_types_table = $wpdb->prefix . 'oo_expense_types';
     }
 
     /**
@@ -34,83 +43,202 @@ class OO_DB { // Renamed class
         // SQL for oo_employees table
         $sql_employees = "CREATE TABLE " . self::$employees_table . " (
             employee_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            employee_number VARCHAR(50) NOT NULL,
+            wp_user_id BIGINT UNSIGNED NULL,
+            employee_number VARCHAR(50) NULL, #Can be null if wp_user_id is set
+            employee_pin VARCHAR(255) NULL, #Hashed PIN for QR login
             first_name VARCHAR(100) NOT NULL,
             last_name VARCHAR(100) NOT NULL,
+            job_title VARCHAR(100) NULL,
             is_active BOOLEAN NOT NULL DEFAULT 1,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (employee_id),
             UNIQUE KEY uq_employee_number (employee_number),
+            KEY idx_wp_user_id (wp_user_id),
             INDEX idx_is_active (is_active)
         ) $charset_collate;";
 
-        // SQL for oo_stream_types table (Full Definition)
-        $sql_stream_types = "CREATE TABLE " . self::$stream_types_table . " (
-            stream_type_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            stream_type_slug VARCHAR(50) NOT NULL,
-            stream_type_name VARCHAR(100) NOT NULL,
+        // SQL for oo_streams table (formerly oo_stream_types)
+        $sql_streams = "CREATE TABLE " . self::$streams_table . " (
+            stream_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            stream_name VARCHAR(100) NOT NULL,
+            stream_description TEXT NULL,
             is_active BOOLEAN NOT NULL DEFAULT 1,
-            kpi_fields_config TEXT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (stream_type_id),
-            UNIQUE KEY uq_stream_type_slug (stream_type_slug)
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (stream_id),
+            UNIQUE KEY uq_stream_name (stream_name)
+        ) $charset_collate;";
+        
+        // SQL for oo_jobs table
+        $sql_jobs = "CREATE TABLE " . self::$jobs_table . " (
+            job_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            job_number VARCHAR(50) NOT NULL,
+            client_name VARCHAR(255) NULL,
+            client_contact TEXT NULL,
+            start_date DATE NULL,
+            due_date DATE NULL,
+            overall_status VARCHAR(50) NOT NULL DEFAULT 'Pending', # e.g., 'Pending', 'In Progress', 'On Hold', 'Completed', 'Cancelled'
+            notes TEXT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (job_id),
+            UNIQUE KEY uq_job_number (job_number),
+            INDEX idx_overall_status (overall_status),
+            INDEX idx_due_date (due_date)
+        ) $charset_collate;";
+
+        // SQL for oo_job_streams table (linking jobs to streams)
+        $sql_job_streams = "CREATE TABLE " . self::$job_streams_table . " (
+            job_stream_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            job_id BIGINT UNSIGNED NOT NULL,
+            stream_id INT UNSIGNED NOT NULL,
+            status_in_stream VARCHAR(50) NOT NULL DEFAULT 'Not Started', # e.g., 'Not Started', 'Active', 'Paused', 'Completed'
+            assigned_manager_id BIGINT UNSIGNED NULL, # FK to wp_users or oo_employees
+            start_date_stream DATE NULL,
+            due_date_stream DATE NULL,
+            building_id BIGINT UNSIGNED NULL, # FK to oo_buildings
+            notes TEXT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (job_stream_id),
+            UNIQUE KEY uq_job_stream (job_id, stream_id), # A job can only have a specific stream type once
+            FOREIGN KEY (job_id) REFERENCES " . self::$jobs_table . "(job_id) ON DELETE CASCADE,
+            FOREIGN KEY (stream_id) REFERENCES " . self::$streams_table . "(stream_id) ON DELETE RESTRICT,
+            FOREIGN KEY (building_id) REFERENCES " . self::$buildings_table . "(building_id) ON DELETE SET NULL,
+            INDEX idx_status_in_stream (status_in_stream),
+            INDEX idx_assigned_manager_id (assigned_manager_id)
         ) $charset_collate;";
 
         // SQL for oo_phases table
         $sql_phases = "CREATE TABLE " . self::$phases_table . " (
             phase_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            stream_type_id INT UNSIGNED NOT NULL,
-            phase_slug VARCHAR(100) NOT NULL,
+            stream_id INT UNSIGNED NOT NULL, # FK to oo_streams
             phase_name VARCHAR(100) NOT NULL,
             phase_description TEXT NULL,
-            sort_order INT NOT NULL DEFAULT 0,
+            order_in_stream INT NOT NULL DEFAULT 0,
+            phase_type VARCHAR(50) NULL, # e.g., 'KPI Tracking', 'Inventory', 'Cleaning'
+            default_kpi_units VARCHAR(50) NULL, # e.g. 'boxes', 'items', 'hours'
             is_active BOOLEAN NOT NULL DEFAULT 1,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (phase_id),
-            UNIQUE KEY uq_stream_phase_slug (stream_type_id, phase_slug),
-            INDEX idx_stream_type_id (stream_type_id),
-            INDEX idx_is_active (is_active)
+            FOREIGN KEY (stream_id) REFERENCES " . self::$streams_table . "(stream_id) ON DELETE CASCADE,
+            UNIQUE KEY uq_stream_phase_name (stream_id, phase_name),
+            INDEX idx_is_active (is_active),
+            INDEX idx_order_in_stream (order_in_stream)
         ) $charset_collate;";
 
         // SQL for oo_job_logs table
         $sql_job_logs = "CREATE TABLE " . self::$job_logs_table . " (
             log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            employee_id BIGINT UNSIGNED NOT NULL,
-            job_number VARCHAR(50) NOT NULL,
-            phase_id INT UNSIGNED NOT NULL,
+            job_id BIGINT UNSIGNED NOT NULL,      # FK to oo_jobs
+            stream_id INT UNSIGNED NOT NULL,    # FK to oo_streams (denormalized for easier querying, or could join through job_streams)
+            phase_id INT UNSIGNED NOT NULL,     # FK to oo_phases
+            employee_id BIGINT UNSIGNED NOT NULL, # FK to oo_employees
             start_time DATETIME NOT NULL,
-            end_time DATETIME NULL,
-            boxes_completed INT UNSIGNED NULL,
-            items_completed INT UNSIGNED NULL,
-            kpi_data JSON NULL,
-            status VARCHAR(20) NOT NULL DEFAULT 'started',
+            stop_time DATETIME NULL,
+            duration_minutes INT UNSIGNED NULL, # Calculated on stop
+            kpi_data JSON NULL, # Flexible key-value pairs
             notes TEXT NULL,
+            log_date DATE NOT NULL, # Date of the work
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (log_id),
-            INDEX idx_employee_id (employee_id),
-            INDEX idx_job_number (job_number),
-            INDEX idx_phase_id (phase_id),
+            FOREIGN KEY (job_id) REFERENCES " . self::$jobs_table . "(job_id) ON DELETE CASCADE,
+            FOREIGN KEY (stream_id) REFERENCES " . self::$streams_table . "(stream_id) ON DELETE RESTRICT,
+            FOREIGN KEY (phase_id) REFERENCES " . self::$phases_table . "(phase_id) ON DELETE RESTRICT,
+            FOREIGN KEY (employee_id) REFERENCES " . self::$employees_table . "(employee_id) ON DELETE RESTRICT,
             INDEX idx_start_time (start_time),
-            INDEX idx_end_time (end_time),
-            INDEX idx_status (status)
+            INDEX idx_stop_time (stop_time),
+            INDEX idx_log_date (log_date)
+        ) $charset_collate;";
+
+        // SQL for oo_buildings table
+        $sql_buildings = "CREATE TABLE " . self::$buildings_table . " (
+            building_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            building_name VARCHAR(150) NOT NULL,
+            address TEXT NULL,
+            storage_capacity_notes TEXT NULL,
+            primary_contact_id BIGINT UNSIGNED NULL, # FK to oo_employees or wp_users
+            is_active BOOLEAN NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (building_id),
+            UNIQUE KEY uq_building_name (building_name)
+        ) $charset_collate;";
+        
+        // SQL for oo_expense_types table
+        $sql_expense_types = "CREATE TABLE " . self::$expense_types_table . " (
+            expense_type_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            type_name VARCHAR(100) NOT NULL,
+            default_unit VARCHAR(50) NULL, # e.g., 'hour', 'item', 'km', 'job'
+            is_active BOOLEAN NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (expense_type_id),
+            UNIQUE KEY uq_type_name (type_name)
+        ) $charset_collate;";
+
+        // SQL for oo_expenses table
+        $sql_expenses = "CREATE TABLE " . self::$expenses_table . " (
+            expense_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            job_id BIGINT UNSIGNED NOT NULL,
+            stream_id INT UNSIGNED NULL, # Optional, if expense is for specific stream
+            expense_type_id INT UNSIGNED NOT NULL,
+            employee_id BIGINT UNSIGNED NULL, # Optional, if labor cost
+            amount DECIMAL(10,2) NOT NULL,
+            expense_date DATE NOT NULL,
+            description TEXT NULL,
+            receipt_image_url VARCHAR(255) NULL,
+            related_log_id BIGINT UNSIGNED NULL, # Optional, FK to oo_job_logs
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (expense_id),
+            FOREIGN KEY (job_id) REFERENCES " . self::$jobs_table . "(job_id) ON DELETE CASCADE,
+            FOREIGN KEY (stream_id) REFERENCES " . self::$streams_table . "(stream_id) ON DELETE SET NULL,
+            FOREIGN KEY (expense_type_id) REFERENCES " . self::$expense_types_table . "(expense_type_id) ON DELETE RESTRICT,
+            FOREIGN KEY (employee_id) REFERENCES " . self::$employees_table . "(employee_id) ON DELETE SET NULL,
+            FOREIGN KEY (related_log_id) REFERENCES " . self::$job_logs_table . "(log_id) ON DELETE SET NULL,
+            INDEX idx_expense_date (expense_date)
         ) $charset_collate;";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         
-        oo_log('Running dbDelta for employees table (' . self::$employees_table . ').', __METHOD__);
-        $delta_results_employees = dbDelta( $sql_employees );
-        oo_log('dbDelta employees result: ', $delta_results_employees);
+        // Order of execution matters due to foreign keys.
+        // Create tables without FKs first, or ensure referenced tables exist.
         
-        oo_log('Running dbDelta for stream types table (' . self::$stream_types_table . ').', __METHOD__);
-        $delta_results_stream_types = dbDelta( $sql_stream_types );
-        oo_log('dbDelta stream types result: ', $delta_results_stream_types);
+        oo_log('Running dbDelta for employees table (' . self::$employees_table . ').', __METHOD__);
+        dbDelta( $sql_employees );
+        
+        oo_log('Running dbDelta for streams table (' . self::$streams_table . ').', __METHOD__);
+        dbDelta( $sql_streams );
 
+        oo_log('Running dbDelta for jobs table (' . self::$jobs_table . ').', __METHOD__);
+        dbDelta( $sql_jobs );
+        
+        oo_log('Running dbDelta for buildings table (' . self::$buildings_table . ').', __METHOD__);
+        dbDelta( $sql_buildings );
+
+        oo_log('Running dbDelta for expense_types table (' . self::$expense_types_table . ').', __METHOD__);
+        dbDelta( $sql_expense_types );
+        
+        // Tables with Foreign Keys (ensure referenced tables are created above)
         oo_log('Running dbDelta for phases table (' . self::$phases_table . ').', __METHOD__);
-        $delta_results_phases = dbDelta( $sql_phases );
-        oo_log('dbDelta phases result: ', $delta_results_phases);
+        dbDelta( $sql_phases );
+        
+        oo_log('Running dbDelta for job_logs table (' . self::$job_logs_table . ').', __METHOD__);
+        dbDelta( $sql_job_logs );
 
-        oo_log('Running dbDelta for job logs table (' . self::$job_logs_table . ').', __METHOD__);
-        $delta_results_job_logs = dbDelta( $sql_job_logs );
-        oo_log('dbDelta job logs result: ', $delta_results_job_logs);
+        // Job Streams references Jobs, Streams, Buildings. Buildings should be created before this.
+        // Temporarily remove FK to buildings if it causes issues with dbDelta order, then add it back.
+        // For now, we assume dbDelta handles it or we create buildings table before this.
+        // Re-checked: oo_buildings is defined and created before oo_job_streams references it.
+        oo_log('Running dbDelta for job_streams table (' . self::$job_streams_table . ').', __METHOD__);
+        dbDelta( $sql_job_streams );
+        
+        oo_log('Running dbDelta for expenses table (' . self::$expenses_table . ').', __METHOD__);
+        dbDelta( $sql_expenses );
         
         oo_log('Finished dbDelta calls. Check logs for specific table creation/update details.', __METHOD__);
     }
@@ -247,199 +375,158 @@ class OO_DB { // Renamed class
     // ... (Placeholders for Stream Type, Phase, and Job Log methods to be refactored/added next)
     // ... existing code ...
 
-    // --- Stream Type CRUD Methods ---
-    public static function add_stream_type($slug, $name, $kpi_config = null, $is_active = 1) {
-        oo_log('Attempting to add stream type.', __METHOD__);
-        oo_log(compact('slug', 'name', 'kpi_config', 'is_active'), __METHOD__);
-        self::init(); global $wpdb;
-        if (empty($slug) || empty($name)) {
-            $error = new WP_Error('missing_fields', 'Stream Type Slug and Name are required.');
-            oo_log('Error adding stream type: Missing fields.', $error);
-            return $error;
+    // --- Stream CRUD Methods (Was Stream Type) ---
+    public static function add_stream( $stream_name, $stream_description = '', $is_active = 1 ) {
+        // formerly add_stream_type
+        oo_log('Attempting to add stream.', __METHOD__);
+        oo_log(compact('stream_name', 'stream_description', 'is_active'), __METHOD__);
+        self::init(); 
+        global $wpdb;
+        if (empty($stream_name)) {
+            return new WP_Error('missing_field', 'Stream Name is required.');
         }
-        $exists = $wpdb->get_var( $wpdb->prepare("SELECT stream_type_id FROM " . self::$stream_types_table . " WHERE stream_type_slug = %s", $slug) );
+        $exists = $wpdb->get_var( $wpdb->prepare("SELECT stream_id FROM " . self::$streams_table . " WHERE stream_name = %s", $stream_name) );
         if ($exists) {
-            $error = new WP_Error('stream_type_exists', 'Stream Type slug already exists.');
-            oo_log('Error adding stream type: Slug exists.', $error);
-            return $error;
+            return new WP_Error('stream_exists', 'Stream name already exists.');
         }
-        $data = array(
-            'stream_type_slug' => sanitize_key($slug),
-            'stream_type_name' => sanitize_text_field($name),
-            'is_active' => intval($is_active),
-            'created_at' => current_time('mysql', 1)
+        $result = $wpdb->insert(
+            self::$streams_table, 
+            array(
+                'stream_name' => sanitize_text_field($stream_name), 
+                'stream_description' => sanitize_textarea_field($stream_description), 
+                'is_active' => intval($is_active),
+                'created_at' => current_time('mysql', 1),
+                'updated_at' => current_time('mysql', 1)
+            ), 
+            array('%s', '%s', '%d', '%s', '%s')
         );
-        $formats = array('%s', '%s', '%d', '%s');
-        if (!is_null($kpi_config)) {
-            // Ensure kpi_config is a JSON string; could be an array/object from code, or already JSON string from form.
-            $kpi_json = is_string($kpi_config) ? $kpi_config : wp_json_encode($kpi_config);
-            if ($kpi_json === false) { // Check for JSON encoding error
-                 oo_log('Warning: KPI config JSON encoding failed for stream type: ' . $slug . '. Storing NULL.', __METHOD__);
-                 $data['kpi_fields_config'] = null;
-            } else {
-                 $data['kpi_fields_config'] = $kpi_json;
-            }
-            $formats[] = '%s';
-        } else {
-            $data['kpi_fields_config'] = null;
-            $formats[] = '%s';
-        }
-        $result = $wpdb->insert(self::$stream_types_table, $data, $formats);
         if ($result === false) {
-            $error = new WP_Error('db_error', 'Could not add stream type. Error: ' . $wpdb->last_error);
-            oo_log('Error adding stream type: DB insert failed. ' . $wpdb->last_error, $error);
-            return $error;
+            return new WP_Error('db_error', 'Could not add stream. Error: ' . $wpdb->last_error);
         }
-        oo_log('Stream type added successfully. ID: ' . $wpdb->insert_id, __METHOD__);
         return $wpdb->insert_id;
     }
 
-    public static function get_stream_type($stream_type_id) {
-        oo_log('Attempting to get stream type by ID: ' . $stream_type_id, __METHOD__);
-        self::init(); global $wpdb;
-        $result = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::$stream_types_table . " WHERE stream_type_id = %d", $stream_type_id));
-        oo_log('Result for get_stream_type: ', $result);
-        return $result;
+    public static function get_stream($stream_id) {
+        // formerly get_stream_type
+        oo_log('Attempting to get stream by ID: ' . $stream_id, __METHOD__);
+        self::init();
+        global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$streams_table . " WHERE stream_id = %d", $stream_id ) );
     }
     
-    public static function get_stream_type_by_slug($slug) {
-        oo_log('Attempting to get stream type by slug: ' . $slug, __METHOD__);
-        self::init(); global $wpdb;
-        $result = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::$stream_types_table . " WHERE stream_type_slug = %s", $slug));
-        oo_log('Result for get_stream_type_by_slug: ', $result);
-        return $result;
+    public static function get_stream_by_name($stream_name) {
+        // New method
+        oo_log('Attempting to get stream by name: ' . $stream_name, __METHOD__);
+        self::init();
+        global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$streams_table . " WHERE stream_name = %s", $stream_name ) );
     }
 
-    public static function update_stream_type($stream_type_id, $slug, $name, $kpi_config = null, $is_active = null) {
-        oo_log('Attempting to update stream type ID: ' . $stream_type_id, __METHOD__);
-        oo_log(compact('stream_type_id', 'slug', 'name', 'kpi_config', 'is_active'), __METHOD__);
-        self::init(); global $wpdb;
-
-        if (empty($slug) || empty($name)) {
-            $error = new WP_Error('missing_fields', 'Stream Type Slug and Name are required.');
-            oo_log('Error updating stream type: Missing fields.', $error);
-            return $error;
+    public static function update_stream($stream_id, $stream_name, $stream_description = null, $is_active = null) {
+        // formerly update_stream_type
+        oo_log('Attempting to update stream ID: ' . $stream_id, __METHOD__);
+        oo_log(compact('stream_id', 'stream_name', 'stream_description', 'is_active'), __METHOD__);
+        self::init();
+        global $wpdb;
+        if (empty($stream_name)) {
+            return new WP_Error('missing_field', 'Stream Name is required.');
         }
-
-        $existing = $wpdb->get_row( $wpdb->prepare("SELECT stream_type_id FROM " . self::$stream_types_table . " WHERE stream_type_slug = %s AND stream_type_id != %d", $slug, $stream_type_id) );
-        if ($existing) {
-            $error = new WP_Error('stream_type_slug_exists', 'Stream Type slug already exists for another type.');
-            oo_log('Error updating stream type: Slug exists for another ID.', $error);
-            return $error;
+        $existing_stream = $wpdb->get_row( $wpdb->prepare("SELECT stream_id FROM " . self::$streams_table . " WHERE stream_name = %s AND stream_id != %d", $stream_name, $stream_id) );
+        if ($existing_stream) {
+            return new WP_Error('stream_name_exists', 'This stream name is already in use.');
         }
+        $data = array('stream_name' => sanitize_text_field($stream_name), 'updated_at' => current_time('mysql', 1));
+        $formats = array('%s', '%s'); // name, updated_at
+        if ( !is_null($stream_description) ) { $data['stream_description'] = sanitize_textarea_field($stream_description); $formats[] = '%s'; }
+        if ( !is_null($is_active) ) { $data['is_active'] = intval($is_active); $formats[] = '%d'; }
+        
+        $result = $wpdb->update(self::$streams_table, $data, array( 'stream_id' => $stream_id ), $formats, array( '%d' ));
+        if ($result === false) {
+            return new WP_Error('db_error', 'Could not update stream. Error: ' . $wpdb->last_error);
+        }
+        return true;
+    }
 
-        $data = array(
-            'stream_type_slug' => sanitize_key($slug),
-            'stream_type_name' => sanitize_text_field($name),
+    public static function toggle_stream_status( $stream_id, $is_active ) {
+        // formerly toggle_stream_type_status
+        oo_log('Toggling stream status for ID: ' . $stream_id . ' to ' . $is_active, __METHOD__);
+        self::init();
+        global $wpdb;
+        $result = $wpdb->update(
+            self::$streams_table, 
+            array( 'is_active' => intval($is_active), 'updated_at' => current_time('mysql', 1) ), 
+            array( 'stream_id' => $stream_id ), 
+            array( '%d', '%s' ), 
+            array( '%d' )
         );
-        $formats = array('%s', '%s');
-
-        if (array_key_exists('kpi_fields_config', compact('kpi_config'))) { // Check if kpi_config was passed as an argument
-            $kpi_json = is_string($kpi_config) ? $kpi_config : wp_json_encode($kpi_config);
-            if ($kpi_json === false) {
-                oo_log('Warning: KPI config JSON encoding failed for stream type update: ' . $slug . '. Storing NULL.', __METHOD__);
-                $data['kpi_fields_config'] = null;
-            } else {
-                $data['kpi_fields_config'] = $kpi_json;
-            }
-            $formats[] = '%s';
-        }
-
-        if (!is_null($is_active)) {
-            $data['is_active'] = intval($is_active);
-            $formats[] = '%d';
-        }
-
-        if (empty($data)) {
-            oo_log('No data to update for stream type ID: ' . $stream_type_id, __METHOD__);
-            return true; // Or WP_Error if this should be an error
-        }
-
-        $result = $wpdb->update(self::$stream_types_table, $data, array('stream_type_id' => $stream_type_id), $formats, array('%d'));
         if ($result === false) {
-            $error = new WP_Error('db_error', 'Could not update stream type. Error: ' . $wpdb->last_error);
-            oo_log('Error updating stream type: DB update failed. ' . $wpdb->last_error, $error);
-            return $error;
+            return new WP_Error('db_error', 'Could not update stream status. Error: ' . $wpdb->last_error);
         }
-        oo_log('Stream type updated successfully. ID: ' . $stream_type_id, __METHOD__);
         return true;
     }
 
-    public static function toggle_stream_type_status( $stream_type_id, $is_active ) {
-        oo_log('Toggling stream type status for ID: ' . $stream_type_id . ' to ' . $is_active, __METHOD__);
+    public static function get_streams( $args = array() ) {
+        // formerly get_stream_types
+        oo_log('Attempting to get streams with args:', __METHOD__); oo_log($args, __METHOD__);
         self::init(); global $wpdb;
-        $result = $wpdb->update(self::$stream_types_table, array( 'is_active' => intval($is_active) ), array( 'stream_type_id' => $stream_type_id ), array( '%d' ), array( '%d' ));
-        if ($result === false) {
-            $error = new WP_Error('db_error', 'Could not update stream type status. Error: ' . $wpdb->last_error);
-            oo_log('Error toggling stream type status: DB update failed. ' . $wpdb->last_error, $error);
-            return $error;
-        }
-        oo_log('Stream type status toggled successfully for ID: ' . $stream_type_id, __METHOD__);
-        return true;
-    }
-
-    public static function get_stream_types( $args = array() ) {
-        oo_log('Attempting to get stream types with args:', __METHOD__); oo_log($args, __METHOD__);
-        self::init(); global $wpdb;
-        $defaults = array('is_active' => null, 'orderby' => 'stream_type_name', 'order' => 'ASC', 'number' => -1, 'offset' => 0);
+        $defaults = array('is_active' => null, 'orderby' => 'stream_name', 'order' => 'ASC', 'search' => '', 'number' => -1, 'offset' => 0);
         $args = wp_parse_args($args, $defaults);
-        $sql_base = "SELECT * FROM " . self::$stream_types_table;
+        $sql_base = "SELECT * FROM " . self::$streams_table;
         $where_clauses = array(); $query_params = array();
-        if (!is_null($args['is_active'])) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
-        $sql_where = ""; if ( !empty($where_clauses) ) { $sql_where = " WHERE " . implode(" AND ", $where_clauses);}
+        if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = $args['is_active']; }
+        if ( !empty($args['search']) ) { $search_term = '%' . $wpdb->esc_like($args['search']) . '%'; $where_clauses[] = "(stream_name LIKE %s OR stream_description LIKE %s)"; $query_params[] = $search_term; $query_params[] = $search_term;}
+        $sql_where = ""; if ( !empty($where_clauses) ) { $sql_where = " WHERE " . implode(" AND ", $where_clauses); }
         $sql = $sql_base . $sql_where;
         if (!empty($query_params)){ $sql = $wpdb->prepare($sql, $query_params); }
         $orderby_clause = ""; if (!empty($args['orderby'])) { $orderby_val = sanitize_sql_orderby($args['orderby']); if ($orderby_val) { $order_val = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC'; $orderby_clause = " ORDER BY $orderby_val $order_val"; }}
         $sql .= $orderby_clause;
         $limit_clause = ""; if ( isset($args['number']) && $args['number'] > 0 ) { $limit_clause = sprintf(" LIMIT %d OFFSET %d", intval($args['number']), intval($args['offset']));}
         $sql .= $limit_clause;
-        $results = $wpdb->get_results($sql);
-        oo_log('Get stream types query executed. SQL: ' . $sql . ' Number of results: ' . count($results), __METHOD__);
-        return $results;
+        return $wpdb->get_results( $sql );
     }
-
-    public static function get_stream_types_count( $args = array() ) {
-        oo_log('Attempting to get stream types count with args:', __METHOD__); oo_log($args, __METHOD__);
+    
+    public static function get_streams_count( $args = array() ) {
+        // formerly get_stream_types_count
+        oo_log('Attempting to get streams count with args:', __METHOD__); oo_log($args, __METHOD__);
         self::init(); global $wpdb;
-        $defaults = array('is_active' => null);
-        $args = wp_parse_args($args, $defaults);
-        $sql = "SELECT COUNT(*) FROM " . self::$stream_types_table;
+        $defaults = array('is_active' => null, 'search' => ''); $args = wp_parse_args($args, $defaults);
+        $sql = "SELECT COUNT(*) FROM " . self::$streams_table;
         $where_clauses = array(); $query_params = array();
-        if (!is_null($args['is_active'])) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
-        if ( !empty($where_clauses) ) { $sql .= " WHERE " . implode(" AND ", $where_clauses);}
+        if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = $args['is_active']; }
+        if ( !empty($args['search']) ) { $search_term = '%' . $wpdb->esc_like($args['search']) . '%'; $where_clauses[] = "(stream_name LIKE %s OR stream_description LIKE %s)"; $query_params[] = $search_term; $query_params[] = $search_term;}
+        if ( !empty($where_clauses) ) { $sql .= " WHERE " . implode(" AND ", $where_clauses); }
         if (!empty($query_params)){ $sql = $wpdb->prepare($sql, $query_params); }
-        $count = $wpdb->get_var($sql);
-        oo_log('Stream types count result: ' . $count . ' SQL: ' . $sql, __METHOD__);
-        return $count;
+        return $wpdb->get_var( $sql );
     }
 
-    // --- Phase CRUD Methods (adapted for stream_type_id) ---
-    public static function add_phase( $stream_type_id, $phase_slug, $phase_name, $phase_description = '', $sort_order = 0, $is_active = 1 ) {
+    // --- Phase CRUD Methods ---
+    public static function add_phase( $stream_id, $phase_name, $phase_description = '', $order_in_stream = 0, $phase_type = null, $default_kpi_units = null, $is_active = 1 ) {
         oo_log('Attempting to add phase.', __METHOD__);
-        oo_log(compact('stream_type_id', 'phase_slug', 'phase_name', 'phase_description', 'sort_order', 'is_active'), __METHOD__);
+        oo_log(compact('stream_id', 'phase_name', 'phase_description', 'order_in_stream', 'phase_type', 'default_kpi_units', 'is_active'), __METHOD__);
         self::init(); global $wpdb;
-        if (empty($stream_type_id) || empty($phase_slug) || empty($phase_name)) {
-            $error = new WP_Error('missing_fields', 'Stream Type ID, Phase Slug, and Phase Name are required.');
+        if (empty($stream_id) || empty($phase_name)) {
+            $error = new WP_Error('missing_fields', 'Stream ID and Phase Name are required.');
             oo_log('Error adding phase: Missing fields.', $error);
             return $error;
         }
-        $exists = $wpdb->get_var( $wpdb->prepare("SELECT phase_id FROM " . self::$phases_table . " WHERE stream_type_id = %d AND phase_slug = %s", $stream_type_id, $phase_slug) );
+        $exists = $wpdb->get_var( $wpdb->prepare("SELECT phase_id FROM " . self::$phases_table . " WHERE stream_id = %d AND phase_name = %s", $stream_id, $phase_name) );
         if ($exists) {
-            $error = new WP_Error('phase_exists', 'Phase slug already exists for this stream type.');
-            oo_log('Error adding phase: Slug exists for stream type.', $error);
+            $error = new WP_Error('phase_exists', 'Phase name already exists for this stream.');
+            oo_log('Error adding phase: Name exists for stream.', $error);
             return $error;
         }
         $result = $wpdb->insert(self::$phases_table, 
             array(
-                'stream_type_id'    => intval($stream_type_id),
-                'phase_slug'        => sanitize_key($phase_slug),
-                'phase_name'        => sanitize_text_field($phase_name), 
+                'stream_id' => intval($stream_id),
+                'phase_name' => sanitize_text_field($phase_name), 
                 'phase_description' => sanitize_textarea_field($phase_description),
-                'sort_order'        => intval($sort_order),
-                'is_active'         => intval($is_active), 
-                'created_at'        => current_time('mysql', 1)
+                'order_in_stream' => intval($order_in_stream),
+                'phase_type' => $phase_type,
+                'default_kpi_units' => $default_kpi_units,
+                'is_active' => intval($is_active),
+                'created_at' => current_time('mysql', 1)
             ), 
-            array('%d', '%s', '%s', '%s', '%d', '%d', '%s')
+            array('%d', '%s', '%s', '%d', '%s', '%s', '%d', '%s')
         );
         if ($result === false) {
             $error = new WP_Error('db_error', 'Could not add phase. Error: ' . $wpdb->last_error);
@@ -458,33 +545,34 @@ class OO_DB { // Renamed class
         return $result;
     }
 
-    public static function update_phase( $phase_id, $stream_type_id, $phase_slug, $phase_name, $phase_description = '', $sort_order = null, $is_active = null ) {
+    public static function update_phase( $phase_id, $stream_id, $phase_name, $phase_description = '', $order_in_stream = null, $phase_type = null, $default_kpi_units = null, $is_active = null ) {
         oo_log('Attempting to update phase ID: ' . $phase_id, __METHOD__);
-        oo_log(compact('phase_id', 'stream_type_id', 'phase_slug', 'phase_name', 'phase_description', 'sort_order', 'is_active'), __METHOD__);
+        oo_log(compact('phase_id', 'stream_id', 'phase_name', 'phase_description', 'order_in_stream', 'phase_type', 'default_kpi_units', 'is_active'), __METHOD__);
         self::init(); global $wpdb;
 
-        if (empty($stream_type_id) || empty($phase_slug) || empty($phase_name)) {
-            $error = new WP_Error('missing_fields', 'Stream Type ID, Phase Slug, and Phase Name are required for update.');
+        if (empty($stream_id) || empty($phase_name)) {
+            $error = new WP_Error('missing_fields', 'Stream ID and Phase Name are required for update.');
             oo_log('Error updating phase: Missing fields.', $error);
             return $error;
         }
 
-        $existing_phase = $wpdb->get_row( $wpdb->prepare("SELECT phase_id FROM " . self::$phases_table . " WHERE stream_type_id = %d AND phase_slug = %s AND phase_id != %d", $stream_type_id, $phase_slug, $phase_id) );
+        $existing_phase = $wpdb->get_row( $wpdb->prepare("SELECT phase_id FROM " . self::$phases_table . " WHERE stream_id = %d AND phase_name = %s AND phase_id != %d", $stream_id, $phase_name, $phase_id) );
         if ($existing_phase) {
-            $error = new WP_Error('phase_slug_exists', 'This phase slug is already in use for this stream type on another phase.');
-            oo_log('Error updating phase: Slug exists for stream type on another phase.', $error);
+            $error = new WP_Error('phase_name_exists', 'This phase name is already in use for this stream on another phase.');
+            oo_log('Error updating phase: Name exists for stream on another phase.', $error);
             return $error;
         }
 
         $data = array(
-            'stream_type_id'    => intval($stream_type_id),
-            'phase_slug'        => sanitize_key($phase_slug),
-            'phase_name'        => sanitize_text_field($phase_name),
+            'stream_id' => intval($stream_id),
+            'phase_name' => sanitize_text_field($phase_name),
             'phase_description' => sanitize_textarea_field($phase_description),
         );
-        $formats = array('%d', '%s', '%s', '%s');
+        $formats = array('%d', '%s', '%s');
 
-        if (!is_null($sort_order)) { $data['sort_order'] = intval($sort_order); $formats[] = '%d'; }
+        if (!is_null($order_in_stream)) { $data['order_in_stream'] = intval($order_in_stream); $formats[] = '%d'; }
+        if (!is_null($phase_type)) { $data['phase_type'] = $phase_type; $formats[] = '%s'; }
+        if (!is_null($default_kpi_units)) { $data['default_kpi_units'] = $default_kpi_units; $formats[] = '%s'; }
         if (!is_null($is_active)) { $data['is_active'] = intval($is_active); $formats[] = '%d'; }
 
         $result = $wpdb->update(self::$phases_table, $data, array( 'phase_id' => $phase_id ), $formats, array( '%d' ));
@@ -513,13 +601,13 @@ class OO_DB { // Renamed class
     public static function get_phases( $args = array() ) { 
         oo_log('Attempting to get phases with args:', __METHOD__); oo_log($args, __METHOD__);
         self::init(); global $wpdb;
-        $defaults = array('stream_type_id' => null, 'is_active' => null, 'orderby' => 'sort_order', 'order' => 'ASC', 'search' => '', 'number' => -1, 'offset' => 0);
+        $defaults = array('stream_id' => null, 'is_active' => null, 'orderby' => 'order_in_stream', 'order' => 'ASC', 'search' => '', 'number' => -1, 'offset' => 0);
         $args = wp_parse_args($args, $defaults);
         $sql_base = "SELECT * FROM " . self::$phases_table;
         $where_clauses = array(); $query_params = array();
-        if ( !empty($args['stream_type_id']) ) { $where_clauses[] = "stream_type_id = %d"; $query_params[] = intval($args['stream_type_id']);}
+        if ( !empty($args['stream_id']) ) { $where_clauses[] = "stream_id = %d"; $query_params[] = intval($args['stream_id']);}
         if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
-        if ( !empty($args['search']) ) { $search_term = '%' . $wpdb->esc_like($args['search']) . '%'; $where_clauses[] = "(phase_name LIKE %s OR phase_description LIKE %s OR phase_slug LIKE %s)"; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;}
+        if ( !empty($args['search']) ) { $search_term = '%' . $wpdb->esc_like($args['search']) . '%'; $where_clauses[] = "(phase_name LIKE %s OR phase_description LIKE %s OR phase_type LIKE %s)"; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;}
         $sql_where = ""; if ( !empty($where_clauses) ) { $sql_where = " WHERE " . implode(" AND ", $where_clauses);}
         $sql = $sql_base . $sql_where;
         if (!empty($query_params)){ $sql = $wpdb->prepare($sql, $query_params); }
@@ -535,12 +623,12 @@ class OO_DB { // Renamed class
     public static function get_phases_count( $args = array() ) {
         oo_log('Attempting to get phases count with args:', __METHOD__); oo_log($args, __METHOD__);
         self::init(); global $wpdb;
-        $defaults = array('stream_type_id' => null, 'is_active' => null, 'search' => ''); $args = wp_parse_args($args, $defaults);
+        $defaults = array('stream_id' => null, 'is_active' => null, 'search' => ''); $args = wp_parse_args($args, $defaults);
         $sql = "SELECT COUNT(*) FROM " . self::$phases_table;
         $where_clauses = array(); $query_params = array();
-        if ( !empty($args['stream_type_id']) ) { $where_clauses[] = "stream_type_id = %d"; $query_params[] = intval($args['stream_type_id']);}
+        if ( !empty($args['stream_id']) ) { $where_clauses[] = "stream_id = %d"; $query_params[] = intval($args['stream_id']);}
         if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
-        if ( !empty($args['search']) ) { $search_term = '%' . $wpdb->esc_like($args['search']) . '%'; $where_clauses[] = "(phase_name LIKE %s OR phase_description LIKE %s OR phase_slug LIKE %s)"; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;}
+        if ( !empty($args['search']) ) { $search_term = '%' . $wpdb->esc_like($args['search']) . '%'; $where_clauses[] = "(phase_name LIKE %s OR phase_description LIKE %s OR phase_type LIKE %s)"; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;}
         if ( !empty($where_clauses) ) { $sql .= " WHERE " . implode(" AND ", $where_clauses);}
         if (!empty($query_params)){ $sql = $wpdb->prepare($sql, $query_params); }
         $count = $wpdb->get_var( $sql );
@@ -548,18 +636,18 @@ class OO_DB { // Renamed class
         return $count;
     }
 
-    // --- Job Log CRUD Methods (adapted for kpi_data) ---
-    public static function start_job_phase( $employee_id, $job_number, $phase_id, $notes = '', $kpi_data = null ) {
+    // --- Job Log CRUD Methods ---
+    public static function start_job_phase( $employee_id, $job_id, $stream_id, $phase_id, $notes = '', $kpi_data = null ) {
         oo_log('Attempting to start job phase.', __METHOD__);
-        oo_log(compact('employee_id', 'job_number', 'phase_id', 'notes', 'kpi_data'), __METHOD__);
+        oo_log(compact('employee_id', 'job_id', 'stream_id', 'phase_id', 'notes', 'kpi_data'), __METHOD__);
         self::init(); global $wpdb;
-        if (empty($employee_id) || empty($job_number) || empty($phase_id)) {
-            $error = new WP_Error('missing_fields', 'Employee, Job Number, and Phase are required.');
+        if (empty($employee_id) || empty($job_id) || empty($stream_id) || empty($phase_id)) {
+            $error = new WP_Error('missing_fields', 'Employee, Job, Stream, and Phase are required.');
             oo_log('Error starting job: Missing fields.', $error);
             return $error;
         }
         
-        $log_to_check = self::get_open_job_log($employee_id, $job_number, $phase_id);
+        $log_to_check = self::get_open_job_log($employee_id, $job_id, $stream_id, $phase_id);
         if ($log_to_check) {
              $error = new WP_Error('already_started', 'This employee has already started this job phase and it has not been stopped yet. Log ID: ' . $log_to_check->log_id);
             oo_log('Error starting job: Already started.', $error);
@@ -568,13 +656,14 @@ class OO_DB { // Renamed class
 
         $insert_data = array(
             'employee_id' => intval($employee_id),
-            'job_number'  => sanitize_text_field($job_number),
-            'phase_id'    => intval($phase_id),
-            'start_time'  => current_time('mysql', 1),
-            'status'      => 'started',
-            'notes'       => sanitize_textarea_field($notes)
+            'job_id' => intval($job_id),
+            'stream_id' => intval($stream_id),
+            'phase_id' => intval($phase_id),
+            'start_time' => current_time('mysql', 1),
+            'status' => 'started',
+            'notes' => sanitize_textarea_field($notes)
         );
-        $formats = array('%d', '%s', '%d', '%s', '%s', '%s');
+        $formats = array('%d', '%d', '%d', '%d', '%s', '%s', '%s');
         
         if (!is_null($kpi_data) && is_array($kpi_data)) {
             if(isset($kpi_data['boxes_completed'])) {
@@ -598,24 +687,24 @@ class OO_DB { // Renamed class
         $result = $wpdb->insert(self::$job_logs_table, $insert_data, $formats);
         if ($result === false) {
             $error = new WP_Error('db_error', 'Could not start job phase. Error: ' . $wpdb->last_error);
-            oo_log('Error starting job phase: DB insert failed. ' . $wpdb->last_error . ' Data: ' . print_r($insert_data, true) . ' Formats: ' . print_r($formats, true), $error);
+            oo_log('Error starting job phase: DB insert failed. ' . $wpdb->last_error, $error);
             return $error;
         }
         oo_log('Job phase started successfully. Log ID: ' . $wpdb->insert_id, __METHOD__);
         return $wpdb->insert_id;
     }
 
-    public static function stop_job_phase( $employee_id, $job_number, $phase_id, $kpi_data_updates = array(), $notes = '' ) {
+    public static function stop_job_phase( $employee_id, $job_id, $stream_id, $phase_id, $kpi_data_updates = array(), $notes = '' ) {
         oo_log('Attempting to stop job phase.', __METHOD__);
-        oo_log(compact('employee_id', 'job_number', 'phase_id', 'kpi_data_updates', 'notes'), __METHOD__);
+        oo_log(compact('employee_id', 'job_id', 'stream_id', 'phase_id', 'kpi_data_updates', 'notes'), __METHOD__);
         self::init(); global $wpdb;
-        if (empty($employee_id) || empty($job_number) || empty($phase_id)) {
-            $error = new WP_Error('missing_fields', 'Employee, Job Number, and Phase are required to stop a job.');
+        if (empty($employee_id) || empty($job_id) || empty($stream_id) || empty($phase_id)) {
+            $error = new WP_Error('missing_fields', 'Employee, Job, Stream, and Phase are required to stop a job.');
             oo_log('Error stopping job: Missing fields.', $error);
             return $error;
         }
 
-        $log_to_update = self::get_open_job_log($employee_id, $job_number, $phase_id);
+        $log_to_update = self::get_open_job_log($employee_id, $job_id, $stream_id, $phase_id);
         if ( !$log_to_update ) {
             $error = new WP_Error('no_start_record', 'No matching \'started\' record found for this employee, job, and phase. Cannot stop.');
             oo_log('Error stopping job: No start record found.', $error);
@@ -677,24 +766,23 @@ class OO_DB { // Renamed class
     public static function get_job_logs( $args = array() ) {
         oo_log('Attempting to get job logs with args:', __METHOD__); oo_log($args, __METHOD__);
         self::init(); global $wpdb;
-        $defaults = array('employee_id' => null, 'job_number' => null, 'phase_id' => null, 'stream_type_id' => null, 'date_from' => null, 'date_to' => null, 'status' => null, 'orderby' => 'jl.start_time', 'order' => 'DESC', 'number' => 25, 'offset' => 0, 'search_general' => '');
+        $defaults = array('employee_id' => null, 'job_id' => null, 'stream_id' => null, 'date_from' => null, 'date_to' => null, 'status' => null, 'orderby' => 'jl.start_time', 'order' => 'DESC', 'number' => 25, 'offset' => 0, 'search_general' => '');
         $args = wp_parse_args($args, $defaults);
-        $sql_select = "SELECT jl.*, e.first_name, e.last_name, e.employee_number, p.phase_name, p.stream_type_id, st.stream_type_name, st.stream_type_slug";
-        $sql_from = " FROM " . self::$job_logs_table . " jl LEFT JOIN " . self::$employees_table . " e ON jl.employee_id = e.employee_id LEFT JOIN " . self::$phases_table . " p ON jl.phase_id = p.phase_id LEFT JOIN " . self::$stream_types_table . " st ON p.stream_type_id = st.stream_type_id";
+        $sql_select = "SELECT jl.*, e.first_name, e.last_name, e.employee_number, p.phase_name, p.stream_id, st.stream_name, st.stream_description";
+        $sql_from = " FROM " . self::$job_logs_table . " jl LEFT JOIN " . self::$employees_table . " e ON jl.employee_id = e.employee_id LEFT JOIN " . self::$phases_table . " p ON jl.phase_id = p.phase_id LEFT JOIN " . self::$streams_table . " st ON jl.stream_id = st.stream_id";
         $sql_base = $sql_select . $sql_from;
         $where_clauses = array(); $query_params = array();
         if ( !empty($args['employee_id']) ) { $where_clauses[] = "jl.employee_id = %d"; $query_params[] = $args['employee_id'];}
-        if ( !empty($args['job_number']) ) { $where_clauses[] = "jl.job_number = %s"; $query_params[] = sanitize_text_field($args['job_number']);}
-        if ( !empty($args['phase_id']) ) { $where_clauses[] = "jl.phase_id = %d"; $query_params[] = $args['phase_id'];}
-        if ( !empty($args['stream_type_id']) ) { $where_clauses[] = "p.stream_type_id = %d"; $query_params[] = intval($args['stream_type_id']);}
+        if ( !empty($args['job_id']) ) { $where_clauses[] = "jl.job_id = %d"; $query_params[] = $args['job_id'];}
+        if ( !empty($args['stream_id']) ) { $where_clauses[] = "jl.stream_id = %d"; $query_params[] = $args['stream_id'];}
         if ( !empty($args['date_from']) ) { $where_clauses[] = "jl.start_time >= %s"; $query_params[] = sanitize_text_field($args['date_from']) . ' 00:00:00';}
         if ( !empty($args['date_to']) ) { $date_to_end_of_day = sanitize_text_field($args['date_to']) . ' 23:59:59'; if (!empty($args['date_from'])) { $date_from_start_of_day = sanitize_text_field($args['date_from']) . ' 00:00:00'; $where_clauses[] = "( (jl.start_time <= %s AND (jl.end_time IS NULL OR jl.end_time >= %s)) OR (jl.start_time >= %s AND jl.start_time <= %s) )"; $query_params[] = $date_to_end_of_day; $query_params[] = $date_from_start_of_day; $query_params[] = $date_from_start_of_day; $query_params[] = $date_to_end_of_day; } else { $where_clauses[] = "jl.start_time <= %s"; $query_params[] = $date_to_end_of_day; }}
         if ( !empty($args['status']) ) { $where_clauses[] = "jl.status = %s"; $query_params[] = sanitize_text_field($args['status']);}
-        if ( !empty($args['search_general']) ) { $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search_general'])) . '%'; $where_clauses[] = "(jl.job_number LIKE %s OR e.first_name LIKE %s OR e.last_name LIKE %s OR e.employee_number LIKE %s OR p.phase_name LIKE %s OR jl.notes LIKE %s OR st.stream_type_name LIKE %s)"; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;}
+        if ( !empty($args['search_general']) ) { $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search_general'])) . '%'; $where_clauses[] = "(jl.notes LIKE %s OR e.first_name LIKE %s OR e.last_name LIKE %s OR e.employee_number LIKE %s OR st.stream_name LIKE %s)"; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;}
         $sql_where = ""; if ( !empty($where_clauses) ) { $sql_where = " WHERE " . implode(" AND ", $where_clauses);}
         $sql = $sql_base . $sql_where;
         if (!empty($query_params)){ $sql = $wpdb->prepare($sql, $query_params); }
-        $orderby_clause = ""; if (!empty($args['orderby'])) { $allowed_orderby = array('jl.start_time', 'jl.end_time', 'e.last_name', 'e.first_name', 'e.employee_number', 'jl.job_number', 'p.phase_name', 'st.stream_type_name', 'jl.status', 'jl.boxes_completed', 'jl.items_completed'); $orderby_input = $args['orderby']; $order_val = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC'; if ($orderby_input === 'e.last_name' || $orderby_input === 'e.first_name') { $orderby_clause = " ORDER BY e.last_name $order_val, e.first_name $order_val"; } elseif (in_array($orderby_input, $allowed_orderby)) { $orderby_clause = " ORDER BY $orderby_input $order_val"; } else { $orderby_clause = " ORDER BY jl.start_time $order_val"; }}
+        $orderby_clause = ""; if (!empty($args['orderby'])) { $allowed_orderby = array('jl.start_time', 'jl.end_time', 'e.last_name', 'e.first_name', 'e.employee_number', 'jl.job_id', 'p.phase_name', 'st.stream_name', 'jl.status', 'jl.boxes_completed', 'jl.items_completed'); $orderby_input = $args['orderby']; $order_val = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC'; if ($orderby_input === 'e.last_name' || $orderby_input === 'e.first_name') { $orderby_clause = " ORDER BY e.last_name $order_val, e.first_name $order_val"; } elseif (in_array($orderby_input, $allowed_orderby)) { $orderby_clause = " ORDER BY $orderby_input $order_val"; } else { $orderby_clause = " ORDER BY jl.start_time $order_val"; }}
         $sql .= $orderby_clause;
         $limit_clause = ""; if ( isset($args['number']) && $args['number'] > 0 ) { $limit_clause = sprintf(" LIMIT %d OFFSET %d", intval($args['number']), intval($args['offset']));}
         $sql .= $limit_clause;
@@ -706,20 +794,19 @@ class OO_DB { // Renamed class
     public static function get_job_logs_count( $args = array() ) {
         oo_log('Attempting to get job logs count with args:', __METHOD__); oo_log($args, __METHOD__);
         self::init(); global $wpdb;
-        $defaults = array('employee_id' => null, 'job_number' => null, 'phase_id' => null, 'stream_type_id' => null, 'date_from' => null, 'date_to' => null, 'status' => null, 'search_general' => '');
+        $defaults = array('employee_id' => null, 'job_id' => null, 'stream_id' => null, 'date_from' => null, 'date_to' => null, 'status' => null, 'search_general' => '');
         $args = wp_parse_args($args, $defaults);
         $sql_select = "SELECT COUNT(jl.log_id)";
-        $sql_from = " FROM " . self::$job_logs_table . " jl LEFT JOIN " . self::$employees_table . " e ON jl.employee_id = e.employee_id LEFT JOIN " . self::$phases_table . " p ON jl.phase_id = p.phase_id LEFT JOIN " . self::$stream_types_table . " st ON p.stream_type_id = st.stream_type_id";
+        $sql_from = " FROM " . self::$job_logs_table . " jl LEFT JOIN " . self::$employees_table . " e ON jl.employee_id = e.employee_id LEFT JOIN " . self::$phases_table . " p ON jl.phase_id = p.phase_id LEFT JOIN " . self::$streams_table . " st ON jl.stream_id = st.stream_id";
         $sql_base = $sql_select . $sql_from;
         $where_clauses = array(); $query_params = array();
         if ( !empty($args['employee_id']) ) { $where_clauses[] = "jl.employee_id = %d"; $query_params[] = $args['employee_id'];}
-        if ( !empty($args['job_number']) ) { $where_clauses[] = "jl.job_number = %s"; $query_params[] = sanitize_text_field($args['job_number']);}
-        if ( !empty($args['phase_id']) ) { $where_clauses[] = "jl.phase_id = %d"; $query_params[] = $args['phase_id'];}
-        if ( !empty($args['stream_type_id']) ) { $where_clauses[] = "p.stream_type_id = %d"; $query_params[] = intval($args['stream_type_id']);}
+        if ( !empty($args['job_id']) ) { $where_clauses[] = "jl.job_id = %d"; $query_params[] = $args['job_id'];}
+        if ( !empty($args['stream_id']) ) { $where_clauses[] = "jl.stream_id = %d"; $query_params[] = $args['stream_id'];}
         if ( !empty($args['date_from']) ) { $where_clauses[] = "jl.start_time >= %s"; $query_params[] = sanitize_text_field($args['date_from']) . ' 00:00:00';}
         if ( !empty($args['date_to']) ) { $date_to_end_of_day = sanitize_text_field($args['date_to']) . ' 23:59:59'; if (!empty($args['date_from'])) { $date_from_start_of_day = sanitize_text_field($args['date_from']) . ' 00:00:00'; $where_clauses[] = "( (jl.start_time <= %s AND (jl.end_time IS NULL OR jl.end_time >= %s)) OR (jl.start_time >= %s AND jl.start_time <= %s) )"; $query_params[] = $date_to_end_of_day; $query_params[] = $date_from_start_of_day; $query_params[] = $date_from_start_of_day; $query_params[] = $date_to_end_of_day; } else { $where_clauses[] = "jl.start_time <= %s"; $query_params[] = $date_to_end_of_day; }}
         if ( !empty($args['status']) ) { $where_clauses[] = "jl.status = %s"; $query_params[] = sanitize_text_field($args['status']);}
-        if ( !empty($args['search_general']) ) { $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search_general'])) . '%'; $where_clauses[] = "(jl.job_number LIKE %s OR e.first_name LIKE %s OR e.last_name LIKE %s OR e.employee_number LIKE %s OR p.phase_name LIKE %s OR jl.notes LIKE %s OR st.stream_type_name LIKE %s)"; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;}
+        if ( !empty($args['search_general']) ) { $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search_general'])) . '%'; $where_clauses[] = "(jl.notes LIKE %s OR e.first_name LIKE %s OR e.last_name LIKE %s OR e.employee_number LIKE %s OR st.stream_name LIKE %s)"; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;}
         $sql_where = ""; if ( !empty($where_clauses) ) { $sql_where = " WHERE " . implode(" AND ", $where_clauses);}
         $sql = $sql_base . $sql_where;
         if (!empty($query_params)){ $sql = $wpdb->prepare($sql, $query_params); }
@@ -728,11 +815,11 @@ class OO_DB { // Renamed class
         return $count;
     }
     
-    public static function get_open_job_log($employee_id, $job_number, $phase_id) { 
+    public static function get_open_job_log($employee_id, $job_id, $stream_id, $phase_id) { 
         oo_log('Attempting to get open job log.', __METHOD__);
-        oo_log(compact('employee_id', 'job_number', 'phase_id'), __METHOD__);
+        oo_log(compact('employee_id', 'job_id', 'stream_id', 'phase_id'), __METHOD__);
         self::init(); global $wpdb;
-        $result = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::$job_logs_table . " WHERE employee_id = %d AND job_number = %s AND phase_id = %d AND status = 'started' ORDER BY start_time DESC LIMIT 1", $employee_id, $job_number, $phase_id));
+        $result = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::$job_logs_table . " WHERE employee_id = %d AND job_id = %d AND stream_id = %d AND phase_id = %d AND status = 'started' ORDER BY start_time DESC LIMIT 1", $employee_id, $job_id, $stream_id, $phase_id));
         oo_log('Result for get_open_job_log: ', $result);
         return $result;
     }
@@ -743,7 +830,8 @@ class OO_DB { // Renamed class
         self::init(); global $wpdb;
         $update_data = array(); $update_formats = array();
         if (isset($data['employee_id'])) { $update_data['employee_id'] = intval($data['employee_id']); $update_formats[] = '%d'; }
-        if (isset($data['job_number'])) { $update_data['job_number'] = sanitize_text_field($data['job_number']); $update_formats[] = '%s'; }
+        if (isset($data['job_id'])) { $update_data['job_id'] = intval($data['job_id']); $update_formats[] = '%d'; }
+        if (isset($data['stream_id'])) { $update_data['stream_id'] = intval($data['stream_id']); $update_formats[] = '%d'; }
         if (isset($data['phase_id'])) { $update_data['phase_id'] = intval($data['phase_id']); $update_formats[] = '%d'; }
         if (isset($data['start_time'])) { $update_data['start_time'] = sanitize_text_field($data['start_time']); $update_formats[] = '%s'; }
         if (array_key_exists('end_time', $data)) { $update_data['end_time'] = is_null($data['end_time']) ? null : sanitize_text_field($data['end_time']); $update_formats[] = '%s'; }
