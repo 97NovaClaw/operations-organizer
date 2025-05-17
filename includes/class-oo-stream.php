@@ -376,5 +376,111 @@ class OO_Stream {
         }
     }
     
-    // TODO: Add ajax_get_stream, ajax_update_stream, ajax_toggle_stream_status
+    /**
+     * Handle AJAX request to get a stream's details.
+     */
+    public static function ajax_get_stream() {
+        oo_log('AJAX call received.', __METHOD__);
+        check_ajax_referer('oo_edit_stream_nonce', '_ajax_nonce_get_stream');
+
+        if (!current_user_can(oo_get_capability())) {
+            oo_log('AJAX Error: Permission denied.', __METHOD__);
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        $stream_id = isset($_POST['stream_id']) ? intval($_POST['stream_id']) : 0;
+        if ($stream_id <= 0) {
+            oo_log('AJAX Error: Invalid Stream ID.', __METHOD__);
+            wp_send_json_error(['message' => 'Invalid Stream ID.']);
+            return;
+        }
+
+        $stream = OO_DB::get_stream($stream_id);
+        if (!$stream) {
+            oo_log('AJAX Error: Stream not found.', __METHOD__);
+            wp_send_json_error(['message' => 'Stream not found.']);
+            return;
+        }
+
+        oo_log('AJAX Success: Stream data found and returned.', __METHOD__);
+        wp_send_json_success($stream);
+    }
+
+    /**
+     * Handle AJAX request to update a stream.
+     */
+    public static function ajax_update_stream() {
+        oo_log('AJAX call received.', __METHOD__);
+        oo_log($_POST, 'POST data for ' . __METHOD__);
+        check_ajax_referer('oo_edit_stream_nonce', 'oo_edit_stream_nonce');
+
+        if (!current_user_can(oo_get_capability())) {
+            oo_log('AJAX Error: Permission denied.', __METHOD__);
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        $stream_id = isset($_POST['edit_stream_id']) ? intval($_POST['edit_stream_id']) : 0;
+        $stream_name = isset($_POST['edit_stream_name']) ? sanitize_text_field($_POST['edit_stream_name']) : '';
+        $stream_description = isset($_POST['edit_stream_description']) ? sanitize_textarea_field($_POST['edit_stream_description']) : '';
+
+        if (empty($stream_id) || empty($stream_name)) {
+            oo_log('AJAX Error: Missing required field(s).', __METHOD__);
+            wp_send_json_error(['message' => 'Stream ID and Stream Name are required.']);
+            return;
+        }
+
+        $result = OO_DB::update_stream($stream_id, $stream_name, $stream_description);
+        if (is_wp_error($result)) {
+            oo_log('AJAX Error updating stream: ' . $result->get_error_message(), __METHOD__);
+            wp_send_json_error(['message' => 'Error: ' . $result->get_error_message()]);
+        } else {
+            oo_log('AJAX Success: Stream updated. ID: ' . $stream_id, __METHOD__);
+            wp_send_json_success(['message' => 'Stream updated successfully.']);
+        }
+    }
+
+    /**
+     * Handle AJAX request to toggle a stream's active status.
+     */
+    public static function ajax_toggle_stream_status() {
+        oo_log('AJAX call received.', __METHOD__);
+        oo_log($_POST, 'POST data for ' . __METHOD__);
+        check_ajax_referer('oo_toggle_status_nonce', '_ajax_nonce');
+
+        if (!current_user_can(oo_get_capability())) {
+            oo_log('AJAX Error: Permission denied.', __METHOD__);
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        $stream_id = isset($_POST['stream_id']) ? intval($_POST['stream_id']) : 0;
+        $is_active = isset($_POST['is_active']) ? (bool)$_POST['is_active'] : null;
+
+        if (empty($stream_id) || is_null($is_active)) {
+            oo_log('AJAX Error: Missing required field(s).', __METHOD__);
+            wp_send_json_error(['message' => 'Stream ID and active status are required.']);
+            return;
+        }
+
+        $stream = self::get_by_id($stream_id);
+        if (!$stream) {
+            oo_log('AJAX Error: Stream not found.', __METHOD__);
+            wp_send_json_error(['message' => 'Stream not found.']);
+            return;
+        }
+
+        $stream->set_active($is_active);
+        $result = $stream->save();
+
+        if (is_wp_error($result)) {
+            oo_log('AJAX Error toggling stream status: ' . $result->get_error_message(), __METHOD__);
+            wp_send_json_error(['message' => 'Error: ' . $result->get_error_message()]);
+        } else {
+            $status_text = $is_active ? 'activated' : 'deactivated';
+            oo_log('AJAX Success: Stream ' . $status_text . '. ID: ' . $stream_id, __METHOD__);
+            wp_send_json_success(['message' => 'Stream ' . $status_text . ' successfully.']);
+        }
+    }
 } 

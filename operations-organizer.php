@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.1.1
+ * Version:           1.2.0
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -72,8 +72,8 @@ if ( is_admin() ) {
         }
 
         if ( $is_oo_page ) {
-            wp_enqueue_style( 'oo-admin-styles', OO_PLUGIN_URL . 'admin/css/admin-styles.css', array(), '1.1.1' );
-            wp_enqueue_script( 'oo-admin-scripts', OO_PLUGIN_URL . 'admin/js/admin-scripts.js', array( 'jquery', 'jquery-ui-datepicker' ), '1.1.1', true );
+            wp_enqueue_style( 'oo-admin-styles', OO_PLUGIN_URL . 'admin/css/admin-styles.css', array(), '1.2.0' );
+            wp_enqueue_script( 'oo-admin-scripts', OO_PLUGIN_URL . 'admin/js/admin-scripts.js', array( 'jquery', 'jquery-ui-datepicker' ), '1.2.0', true );
             
             $localized_data = array(
                 'ajax_url'        => admin_url( 'admin-ajax.php' ),
@@ -84,6 +84,7 @@ if ( is_admin() ) {
                 'nonce_add_phase'     => wp_create_nonce('oo_add_phase_nonce'),
                 'nonce_edit_phase'    => wp_create_nonce('oo_edit_phase_nonce'),
                 'nonce_add_stream' => wp_create_nonce('oo_add_stream_nonce'), 
+                'nonce_edit_stream' => wp_create_nonce('oo_edit_stream_nonce'),
                 'nonce_edit_log'      => wp_create_nonce('oo_edit_log_nonce'),      
                 'nonce_delete_log'    => wp_create_nonce('oo_delete_log_nonce'),
                 'nonce_dashboard'     => wp_create_nonce('oo_dashboard_nonce'),
@@ -119,7 +120,9 @@ add_action('wp_ajax_oo_update_phase', array('OO_Phase', 'ajax_update_phase'));
 add_action('wp_ajax_oo_toggle_phase_status', array('OO_Phase', 'ajax_toggle_phase_status'));
 
 add_action('wp_ajax_oo_add_stream', array('OO_Stream', 'ajax_add_stream'));
-// TODO: Add AJAX handlers for get, update, toggle status for Streams
+add_action('wp_ajax_oo_get_stream', array('OO_Stream', 'ajax_get_stream'));
+add_action('wp_ajax_oo_update_stream', array('OO_Stream', 'ajax_update_stream'));
+add_action('wp_ajax_oo_toggle_stream_status', array('OO_Stream', 'ajax_toggle_stream_status'));
 
 add_action('wp_ajax_oo_get_dashboard_data', array('OO_Dashboard', 'ajax_get_dashboard_data'));
 add_action('wp_ajax_oo_get_job_log_details', array('OO_Dashboard', 'ajax_get_job_log_details'));
