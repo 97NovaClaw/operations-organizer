@@ -248,27 +248,80 @@ class OO_DB { // Renamed class
     // Methods for job_logs will need to handle new kpi_data field
 
     // --- Employee CRUD Methods ---
-    public static function add_employee( $employee_number, $first_name, $last_name ) {
-        oo_log('Attempting to add employee.', __METHOD__);
-        oo_log(array('employee_number' => $employee_number, 'first_name' => $first_name, 'last_name' => $last_name), __METHOD__);
-        self::init(); // Ensures self::$employees_table is set with new prefix
+    public static function add_employee( $args ) { // MODIFIED to accept array
+        oo_log('Attempting to add employee with args:', __METHOD__);
+        oo_log($args, __METHOD__);
+        self::init(); 
         global $wpdb;
-        if (empty($employee_number) || empty($first_name) || empty($last_name)) {
-            $error = new WP_Error('missing_fields', 'All fields (Employee Number, First Name, Last Name) are required.');
-            oo_log('Error adding employee: Missing fields.', $error);
-            return $error;
+
+        if ( empty( $args['first_name'] ) || empty( $args['last_name'] ) ) {
+            return new WP_Error('missing_name', 'First Name and Last Name are required.');
         }
-        $exists = $wpdb->get_var( $wpdb->prepare("SELECT employee_id FROM " . self::$employees_table . " WHERE employee_number = %s", $employee_number) );
-        if ($exists) {
-            $error = new WP_Error('employee_exists', 'Employee number already exists.');
-            oo_log('Error adding employee: Employee number exists.', $error);
-            return $error;
+        // Additional validation: e.g. either employee_number or wp_user_id should exist
+        if ( empty( $args['employee_number'] ) && empty( $args['wp_user_id'] ) ) {
+             // Depending on strictness, this could be an error or a warning.
+             // For now, allow it, but it's good to note.
         }
-        $result = $wpdb->insert(self::$employees_table, array('employee_number' => sanitize_text_field($employee_number), 'first_name' => sanitize_text_field($first_name), 'last_name' => sanitize_text_field($last_name), 'is_active' => 1, 'created_at' => current_time('mysql', 1)), array('%s', '%s', '%s', '%d', '%s'));
+        if ( !empty($args['employee_number']) ){
+            $exists = $wpdb->get_var( $wpdb->prepare("SELECT employee_id FROM " . self::$employees_table . " WHERE employee_number = %s", $args['employee_number']) );
+            if ($exists) {
+                return new WP_Error('employee_exists', 'Employee number already exists.');
+            }
+        }
+        if ( !empty($args['wp_user_id']) ){
+            $exists_wp = $wpdb->get_var( $wpdb->prepare("SELECT employee_id FROM " . self::$employees_table . " WHERE wp_user_id = %d", $args['wp_user_id']) );
+            if ($exists_wp) {
+                return new WP_Error('wp_user_id_exists', 'This WordPress User ID is already linked to an employee.');
+            }
+        }
+
+        $data = array(
+            'first_name' => sanitize_text_field( $args['first_name'] ),
+            'last_name' => sanitize_text_field( $args['last_name'] ),
+            'is_active' => isset($args['is_active']) ? intval($args['is_active']) : 1,
+            'created_at' => current_time('mysql', 1),
+            'updated_at' => current_time('mysql', 1) // Also set updated_at on creation
+        );
+        $formats = array('%s', '%s', '%d', '%s', '%s');
+
+        if ( !empty($args['wp_user_id']) ) { $data['wp_user_id'] = intval($args['wp_user_id']); $formats[] = '%d'; }
+        else { $data['wp_user_id'] = null; $formats[] = null; } // Explicitly set null if not provided
+        
+        if ( !empty($args['employee_number']) ) { $data['employee_number'] = sanitize_text_field($args['employee_number']); $formats[] = '%s'; }
+        else { $data['employee_number'] = null; $formats[] = null; }
+
+        if ( !empty($args['employee_pin']) ) { 
+            // Assuming PIN is already hashed when passed in $args
+            $data['employee_pin'] = $args['employee_pin']; 
+            $formats[] = '%s'; 
+        } else { $data['employee_pin'] = null; $formats[] = null; }
+
+        if ( !empty($args['job_title']) ) { $data['job_title'] = sanitize_text_field($args['job_title']); $formats[] = '%s'; }
+        else { $data['job_title'] = null; $formats[] = null; }
+        
+        // Clean up null formats as $wpdb->insert doesn't like null in format array
+        $final_data = array();
+        $final_formats = array();
+        $format_idx = 0;
+        foreach($data as $key => $value) {
+            if ($formats[$format_idx] !== null) {
+                $final_data[$key] = $value;
+                $final_formats[] = $formats[$format_idx];
+            } else if ($value !== null) { // If format was null, but value is not, this is an issue.
+                 // This case should ideally not happen if logic is correct for setting null formats
+            } else {
+                 // If format is null and value is null, we can just pass the key with null value to insert
+                 $final_data[$key] = null; 
+                 // $wpdb->insert will handle this if the column is nullable.
+            }
+            $format_idx++;
+        }
+
+        $result = $wpdb->insert(self::$employees_table, $final_data, $final_formats);
+
         if ($result === false) {
             $error = new WP_Error('db_error', 'Could not add employee. Error: ' . $wpdb->last_error);
-            oo_log('Error adding employee: DB insert failed.', $error);
-            oo_log('WPDB Last Error: ' . $wpdb->last_error, __METHOD__);
+            oo_log('Error adding employee: DB insert failed.', array('error' => $error, 'data' => $final_data, 'formats' => $final_formats) );
             return $error;
         }
         oo_log('Employee added successfully. ID: ' . $wpdb->insert_id, __METHOD__);
@@ -293,29 +346,73 @@ class OO_DB { // Renamed class
         return $result;
     }
 
-    public static function update_employee( $employee_id, $employee_number, $first_name, $last_name, $is_active = null ) {
-        oo_log('Attempting to update employee ID: ' . $employee_id, __METHOD__);
-        oo_log(compact('employee_id', 'employee_number', 'first_name', 'last_name', 'is_active'), __METHOD__);
+    public static function get_employee_by_wp_user_id( $wp_user_id ) {
+        oo_log('Attempting to get employee by WP User ID: ' . $wp_user_id, __METHOD__);
         self::init();
         global $wpdb;
-        if (empty($employee_number) || empty($first_name) || empty($last_name)) {
-            $error = new WP_Error('missing_fields', 'All fields (Employee Number, First Name, Last Name) are required.');
-            oo_log('Error updating employee: Missing fields.', $error);
-            return $error;
+        if (empty($wp_user_id) || !is_numeric($wp_user_id)) {
+            return null;
         }
-        $existing_employee = $wpdb->get_row( $wpdb->prepare("SELECT employee_id FROM " . self::$employees_table . " WHERE employee_number = %s AND employee_id != %d", $employee_number, $employee_id) );
-        if ($existing_employee) {
-            $error = new WP_Error('employee_number_exists', 'This employee number is already assigned to another employee.');
-            oo_log('Error updating employee: Employee number exists for another ID.', $error);
-            return $error;
+        $result = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$employees_table . " WHERE wp_user_id = %d", intval($wp_user_id) ) );
+        oo_log('Result for get_employee_by_wp_user_id: ', $result);
+        return $result;
+    }
+
+    public static function update_employee( $employee_id, $args ) { // MODIFIED to accept array
+        oo_log('Attempting to update employee ID: ' . $employee_id, __METHOD__);
+        oo_log($args, __METHOD__);
+        self::init();
+        global $wpdb;
+        $employee_id = intval($employee_id);
+
+        if ( empty($employee_id) ){
+            return new WP_Error('invalid_id', 'Invalid Employee ID for update.');
         }
-        $data = array('employee_number' => sanitize_text_field($employee_number), 'first_name' => sanitize_text_field($first_name), 'last_name' => sanitize_text_field($last_name));
-        $formats = array('%s', '%s', '%s');
-        if ( !is_null($is_active) ) { $data['is_active'] = intval($is_active); $formats[] = '%d'; }
+        if ( empty( $args['first_name'] ) || empty( $args['last_name'] ) ) {
+             return new WP_Error('missing_name', 'First Name and Last Name are required for update.');
+        }
+        
+        if ( !empty($args['employee_number']) ){
+            $existing_employee = $wpdb->get_row( $wpdb->prepare("SELECT employee_id FROM " . self::$employees_table . " WHERE employee_number = %s AND employee_id != %d", $args['employee_number'], $employee_id) );
+            if ($existing_employee) {
+                return new WP_Error('employee_number_exists', 'This employee number is already assigned to another employee.');
+            }
+        }
+        if ( !empty($args['wp_user_id']) ){
+            $existing_wp_link = $wpdb->get_row( $wpdb->prepare("SELECT employee_id FROM " . self::$employees_table . " WHERE wp_user_id = %d AND employee_id != %d", $args['wp_user_id'], $employee_id) );
+            if ($existing_wp_link) {
+                return new WP_Error('wp_user_id_exists', 'This WordPress User ID is already assigned to another employee.');
+            }
+        }
+
+        $data = array();
+        $formats = array();
+
+        if (isset($args['first_name'])) { $data['first_name'] = sanitize_text_field($args['first_name']); $formats[] = '%s'; }
+        if (isset($args['last_name'])) { $data['last_name'] = sanitize_text_field($args['last_name']); $formats[] = '%s'; }
+        
+        if (array_key_exists('employee_number', $args)) { $data['employee_number'] = $args['employee_number'] ? sanitize_text_field($args['employee_number']) : null; $formats[] = '%s'; }
+        if (array_key_exists('wp_user_id', $args)) { $data['wp_user_id'] = $args['wp_user_id'] ? intval($args['wp_user_id']) : null; $formats[] = '%d'; }
+        if (array_key_exists('employee_pin', $args)) { 
+            // Assuming PIN is already hashed or null to clear
+            $data['employee_pin'] = $args['employee_pin']; 
+            $formats[] = '%s'; 
+        }
+        if (array_key_exists('job_title', $args)) { $data['job_title'] = $args['job_title'] ? sanitize_text_field($args['job_title']) : null; $formats[] = '%s'; }
+        if (isset($args['is_active'])) { $data['is_active'] = intval($args['is_active']); $formats[] = '%d'; }
+
+        if (empty($data)) {
+            return new WP_Error('no_data', 'No data provided for update.');
+        }
+
+        $data['updated_at'] = current_time('mysql', 1);
+        $formats[] = '%s';
+
         $result = $wpdb->update(self::$employees_table, $data, array( 'employee_id' => $employee_id ), $formats, array( '%d' ));
+        
         if ($result === false) {
             $error = new WP_Error('db_error', 'Could not update employee. Error: ' . $wpdb->last_error);
-            oo_log('Error updating employee: DB update failed. ' . $wpdb->last_error, $error);
+            oo_log('Error updating employee: DB update failed. ' . $wpdb->last_error, array('error' => $error, 'data' => $data, 'id' => $employee_id));
             return $error;
         }
         oo_log('Employee updated successfully. ID: ' . $employee_id, __METHOD__);
@@ -370,6 +467,38 @@ class OO_DB { // Renamed class
         $count = $wpdb->get_var( $sql );
         oo_log('Employees count result: ' . $count . ' SQL: ' . $sql, __METHOD__);
         return $count;
+    }
+
+    /**
+     * Delete an employee.
+     * @param int $employee_id
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function delete_employee( $employee_id ) {
+        self::init(); global $wpdb;
+        $employee_id = intval($employee_id);
+        if ( $employee_id <= 0 ) {
+            return new WP_Error('invalid_employee_id', 'Invalid Employee ID for deletion.');
+        }
+
+        // Consider implications if employee_id is used in other tables (job_logs, expenses)
+        // The current schema uses ON DELETE RESTRICT or SET NULL for these relationships.
+        // Application logic in OO_Employee::delete() should check for active logs/assignments if strict deletion prevention is needed.
+
+        oo_log('Attempting to delete employee ID: ' . $employee_id, __METHOD__);
+        $result = $wpdb->delete( self::$employees_table, array( 'employee_id' => $employee_id ), array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error deleting employee ID ' . $employee_id . ': ' . $wpdb->last_error, __METHOD__);
+            return new WP_Error('db_delete_error', 'Could not delete employee: ' . $wpdb->last_error);
+        }
+        if ( $result === 0 ) {
+            // Not necessarily an error, could mean already deleted.
+            oo_log('Employee not found for deletion or no rows affected. ID: ' . $employee_id, __METHOD__);
+            return true; 
+        }
+        oo_log('Employee deleted successfully. ID: ' . $employee_id . ' Rows affected: ' . $result, __METHOD__);
+        return true;
     }
 
     // ... (Placeholders for Stream Type, Phase, and Job Log methods to be refactored/added next)
