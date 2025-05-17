@@ -17,6 +17,8 @@ class OO_Dashboard { // Renamed class
         // For now, let's get all phases and group them by stream type in the view, or filter later.
         $GLOBALS['phases'] = OO_DB::get_phases(array('is_active' => 1, 'orderby' => 'stream_id, order_in_stream'));
         $GLOBALS['streams'] = OO_DB::get_streams(array('is_active' => 1));
+        // For backward compatibility with dashboard-page.php that still uses stream_types
+        $GLOBALS['stream_types'] = $GLOBALS['streams'];
 
         include_once OO_PLUGIN_DIR . 'admin/views/dashboard-page.php';
     }
@@ -86,7 +88,7 @@ class OO_Dashboard { // Renamed class
             'start_time' => 'jl.start_time',
             'end_time' => 'jl.end_time',
             'duration' => null,
-            // KPI columns might become dynamic based on stream_type_id via kpi_fields_config
+            // KPI columns might become dynamic based on stream_id via kpi_fields_config
             'boxes_completed' => 'jl.boxes_completed', 
             'items_completed' => 'jl.items_completed',
             'kpi_data' => 'jl.kpi_data', // New general KPI data

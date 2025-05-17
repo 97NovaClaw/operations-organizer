@@ -325,4 +325,56 @@ class OO_Stream {
     public static function get_streams_count( $args = array() ) {
         return OO_DB::get_streams_count( $args );
     }
+
+    /**
+     * Display the Stream management page.
+     */
+    public static function display_stream_management_page() {
+        if ( ! current_user_can( oo_get_capability() ) ) {
+            wp_die( __( 'You do not have sufficient permissions to access this page.', 'operations-organizer' ) );
+        }
+
+        // Fetch streams for listing
+        // global $streams, $total_streams, ... etc. for view
+        $GLOBALS['streams'] = OO_DB::get_streams(array('number' => 20, 'offset' => 0 /* add pagination args */));
+        // $GLOBALS['total_streams'] = OO_DB::get_streams_count();
+
+        // TODO: Create admin/views/stream-management-page.php
+        // include_once OO_PLUGIN_DIR . 'admin/views/stream-management-page.php';
+        echo "<div class=\"wrap\"><h1>Stream Management (Placeholder)</h1><p>Functionality to list, add, edit streams and their configurations will be here.</p></div>";
+    }
+
+    /**
+     * Handle AJAX request to add a stream.
+     */
+    public static function ajax_add_stream() {
+        oo_log('AJAX call received.', __METHOD__);
+        oo_log($_POST, 'POST data for ' . __METHOD__);
+        check_ajax_referer('oo_add_stream_nonce', 'oo_add_stream_nonce'); 
+
+        if ( ! current_user_can( oo_get_capability() ) ) {
+            oo_log('AJAX Error: Permission denied.', __METHOD__);
+            wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
+        }
+
+        $name = isset($_POST['stream_name']) ? sanitize_text_field($_POST['stream_name']) : '';
+        $description = isset($_POST['stream_description']) ? sanitize_textarea_field($_POST['stream_description']) : '';
+
+        if (empty($name)) {
+            oo_log('AJAX Error: Stream Name is required.', $_POST);
+            wp_send_json_error( array( 'message' => 'Error: Stream Name is required.' ) ); return;
+        }
+
+        $result = OO_DB::add_stream($name, $description);
+
+        if (is_wp_error($result)) {
+            oo_log('AJAX Error adding stream: ' . $result->get_error_message(), __METHOD__);
+            wp_send_json_error( array( 'message' => 'Error: ' . $result->get_error_message() ) );
+        } else {
+            oo_log('AJAX Success: Stream added. ID: ' . $result, __METHOD__);
+            wp_send_json_success( array( 'message' => 'Stream added successfully.', 'stream_id' => $result ) );
+        }
+    }
+    
+    // TODO: Add ajax_get_stream, ajax_update_stream, ajax_toggle_stream_status
 } 

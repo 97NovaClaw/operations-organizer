@@ -55,11 +55,11 @@ global $employees, $phases;
             </select>
         </div>
         <div class="filter-item">
-            <label for="filter_stream_type_id"><?php esc_html_e('Stream Type:', 'operations-organizer');?></label>
-            <select id="filter_stream_type_id" name="filter_stream_type_id">
+            <label for="filter_stream_id"><?php esc_html_e('Stream Type:', 'operations-organizer');?></label>
+            <select id="filter_stream_id" name="filter_stream_id">
                 <option value=""><?php esc_html_e('All Stream Types', 'operations-organizer');?></option>
                 <?php foreach ($GLOBALS['stream_types'] as $st): ?>
-                    <option value="<?php echo esc_attr($st->stream_type_id); ?>"><?php echo esc_html($st->stream_type_name); ?></option>
+                    <option value="<?php echo esc_attr($st->stream_id); ?>"><?php echo esc_html($st->stream_name); ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
@@ -105,11 +105,11 @@ global $employees, $phases;
                         <th scope="row" style="width: 200px;">
                            <?php echo esc_html($phase->phase_name); ?>
                            <small style="display:block; color:#777;">(<?php 
-                           // Find stream type name for this phase
+                           // Find stream name for this phase
                            $stream_name = 'Unknown Stream';
                            foreach($GLOBALS['stream_types'] as $st) {
-                               if($st->stream_type_id == $phase->stream_type_id) {
-                                   $stream_name = $st->stream_type_name;
+                               if($st->stream_id == $phase->stream_id) {
+                                   $stream_name = $st->stream_name;
                                    break;
                                }
                            }
@@ -198,13 +198,13 @@ jQuery(document).ready(function($) {
                 d.filter_date_from = $('#filter_date_from').val();
                 d.filter_date_to = $('#filter_date_to').val();
                 d.filter_status = $('#filter_status').val();
-                d.filter_stream_type_id = $('#filter_stream_type_id').val();
+                d.filter_stream_id = $('#filter_stream_id').val();
             }
         },
         columns: [
             { data: 'employee_name' },
             { data: 'job_number' },
-            { data: 'stream_type_name' },
+            { data: 'stream_name' },
             { data: 'phase_name' },
             { data: 'start_time' },
             { data: 'end_time' },
@@ -284,7 +284,7 @@ jQuery(document).ready(function($) {
         exportParams.filter_date_from = $('#filter_date_from').val();
         export_params.filter_date_to = $('#filter_date_to').val();
         exportParams.filter_status = $('#filter_status').val();
-        exportParams.filter_stream_type_id = $('#filter_stream_type_id').val();
+        exportParams.filter_stream_id = $('#filter_stream_id').val();
 
         // Remove DataTables specific parameters not needed for our AJAX handler or that might conflict
         delete exportParams.draw;
@@ -311,7 +311,7 @@ jQuery(document).ready(function($) {
                     var csvRow = [
                         '"' + row.employee_name.replace(/"/g, '""') + '"',
                         '"' + row.job_number.replace(/"/g, '""') + '"',
-                        '"' + row.stream_type_name.replace(/"/g, '""') + '"',
+                        '"' + row.stream_name.replace(/"/g, '""') + '"',
                         '"' + row.phase_name.replace(/"/g, '""') + '"',
                         '"' + row.start_time.replace(/"/g, '""') + '"',
                         '"' + (row.end_time !== 'N/A' ? row.end_time.replace(/"/g, '""') : 'N/A') + '"',

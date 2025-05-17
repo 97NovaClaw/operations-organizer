@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.1.0
+ * Version:           1.1.1
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -29,13 +29,10 @@ function oo_activate_plugin() {
     require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php'; // New class name
     OO_DB::create_tables(); // New class name
     // Optionally, add a default 'Content' stream type if it doesn't exist
-    if (class_exists('OO_DB') && method_exists('OO_DB', 'get_stream_type_by_slug')) {
-        $content_stream = OO_DB::get_stream_type_by_slug('content');
+    if (class_exists('OO_DB') && method_exists('OO_DB', 'get_stream_by_name')) {
+        $content_stream = OO_DB::get_stream_by_name('Content');
         if (!$content_stream) {
-            OO_DB::add_stream_type('content', 'Content', wp_json_encode(array(
-                array('field_name' => 'boxes_completed', 'field_label' => 'Boxes Completed', 'field_type' => 'number'),
-                array('field_name' => 'items_completed', 'field_label' => 'Items Completed', 'field_type' => 'number')
-            )));
+            OO_DB::add_stream('Content', 'Default content stream');
         }
     }
 }
@@ -44,7 +41,7 @@ function oo_activate_plugin() {
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
 require_once OO_PLUGIN_DIR . 'includes/class-oo-employee.php';
 require_once OO_PLUGIN_DIR . 'includes/class-oo-phase.php';
-require_once OO_PLUGIN_DIR . 'includes/class-oo-stream-type.php'; // New class for Stream Types
+require_once OO_PLUGIN_DIR . 'includes/class-oo-stream.php'; // Renamed class for Streams
 require_once OO_PLUGIN_DIR . 'includes/class-oo-admin-pages.php';
 require_once OO_PLUGIN_DIR . 'includes/class-oo-dashboard.php';
 require_once OO_PLUGIN_DIR . 'includes/functions.php'; // Functions will also be prefixed
@@ -75,8 +72,8 @@ if ( is_admin() ) {
         }
 
         if ( $is_oo_page ) {
-            wp_enqueue_style( 'oo-admin-styles', OO_PLUGIN_URL . 'admin/css/admin-styles.css', array(), '1.1.0' );
-            wp_enqueue_script( 'oo-admin-scripts', OO_PLUGIN_URL . 'admin/js/admin-scripts.js', array( 'jquery', 'jquery-ui-datepicker' ), '1.1.0', true );
+            wp_enqueue_style( 'oo-admin-styles', OO_PLUGIN_URL . 'admin/css/admin-styles.css', array(), '1.1.1' );
+            wp_enqueue_script( 'oo-admin-scripts', OO_PLUGIN_URL . 'admin/js/admin-scripts.js', array( 'jquery', 'jquery-ui-datepicker' ), '1.1.1', true );
             
             $localized_data = array(
                 'ajax_url'        => admin_url( 'admin-ajax.php' ),
@@ -86,7 +83,7 @@ if ( is_admin() ) {
                 'nonce_toggle_status' => wp_create_nonce('oo_toggle_status_nonce'),
                 'nonce_add_phase'     => wp_create_nonce('oo_add_phase_nonce'),
                 'nonce_edit_phase'    => wp_create_nonce('oo_edit_phase_nonce'),
-                'nonce_add_stream_type' => wp_create_nonce('oo_add_stream_type_nonce'), 
+                'nonce_add_stream' => wp_create_nonce('oo_add_stream_nonce'), 
                 'nonce_edit_log'      => wp_create_nonce('oo_edit_log_nonce'),      
                 'nonce_delete_log'    => wp_create_nonce('oo_delete_log_nonce'),
                 'nonce_dashboard'     => wp_create_nonce('oo_dashboard_nonce'),
@@ -121,13 +118,12 @@ add_action('wp_ajax_oo_get_phase', array('OO_Phase', 'ajax_get_phase'));
 add_action('wp_ajax_oo_update_phase', array('OO_Phase', 'ajax_update_phase'));
 add_action('wp_ajax_oo_toggle_phase_status', array('OO_Phase', 'ajax_toggle_phase_status'));
 
-add_action('wp_ajax_oo_add_stream_type', array('OO_Stream_Type', 'ajax_add_stream_type'));
-// TODO: Add AJAX handlers for get, update, toggle status for Stream Types
+add_action('wp_ajax_oo_add_stream', array('OO_Stream', 'ajax_add_stream'));
+// TODO: Add AJAX handlers for get, update, toggle status for Streams
 
 add_action('wp_ajax_oo_get_dashboard_data', array('OO_Dashboard', 'ajax_get_dashboard_data'));
 add_action('wp_ajax_oo_get_job_log_details', array('OO_Dashboard', 'ajax_get_job_log_details'));
 add_action('wp_ajax_oo_update_job_log', array('OO_Dashboard', 'ajax_update_job_log'));
 add_action('wp_ajax_oo_delete_job_log', array('OO_Dashboard', 'ajax_delete_job_log'));
 
-// TODO: Create class OO_Stream_Type and its AJAX handlers
 // TODO: Update admin menu registration with new structure and OO_Admin_Menus class 

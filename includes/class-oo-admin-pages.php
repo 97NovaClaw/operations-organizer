@@ -35,7 +35,14 @@ class OO_Admin_Pages { // Renamed class
         );
         
         // TODO: Add Menu for Stream Types
-        // $this->admin_page_hooks[] = add_submenu_page(... for OO_Stream_Type::display_stream_type_management_page ...);
+        $this->admin_page_hooks[] = add_submenu_page(
+            $main_menu_slug, 
+            __( 'Manage Streams', 'operations-organizer' ),
+            __( 'Streams', 'operations-organizer' ),
+            oo_get_capability(), 
+            'oo_streams',
+            array( 'OO_Stream', 'display_stream_management_page' )
+        );
 
         $this->admin_page_hooks[] = add_submenu_page(
             $main_menu_slug, 
