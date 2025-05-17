@@ -282,7 +282,7 @@ jQuery(document).ready(function($) {
         exportParams.filter_job_number = $('#filter_job_number').val();
         exportParams.filter_phase_id = $('#filter_phase_id').val();
         exportParams.filter_date_from = $('#filter_date_from').val();
-        export_params.filter_date_to = $('#filter_date_to').val();
+        exportParams.filter_date_to = $('#filter_date_to').val();
         exportParams.filter_status = $('#filter_status').val();
         exportParams.filter_stream_id = $('#filter_stream_id').val();
 

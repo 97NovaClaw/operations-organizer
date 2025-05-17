@@ -10,56 +10,55 @@ class OO_Admin_Pages { // Renamed class
     private $admin_page_hooks = array();
 
     public function add_admin_menu_pages() {
-        // TODO: Redesign this entirely for Jobs, Stream Types, Content Stream KPI (Phases & Dashboard)
-        // For now, let's keep the structure similar but with new slugs and class names.
-
         $main_menu_slug = 'oo_dashboard';
 
         $this->admin_page_hooks[] = add_menu_page(
-            __( 'Operations Organizer', 'operations-organizer' ), // New text domain
+            __( 'Operations Organizer', 'operations-organizer' ),
             __( 'Operations', 'operations-organizer' ),
             oo_get_capability(), 
             $main_menu_slug,
-            array( 'OO_Dashboard', 'display_dashboard_page' ), // New class name
+            array( 'OO_Dashboard', 'display_dashboard_page' ),
             'dashicons-analytics', 
             25 
         );
 
+        // Add Jobs management page
+        $this->admin_page_hooks[] = add_submenu_page(
+            $main_menu_slug,
+            __( 'Manage Jobs', 'operations-organizer' ),
+            __( 'Jobs', 'operations-organizer' ),
+            oo_get_capability(),
+            'oo_jobs',
+            array( 'OO_Job', 'display_job_management_page' )
+        );
+        
+        // Employees management page
         $this->admin_page_hooks[] = add_submenu_page(
             $main_menu_slug, 
             __( 'Manage Employees', 'operations-organizer' ),
             __( 'Employees', 'operations-organizer' ),
             oo_get_capability(), 
-            'oo_employees', // New slug
-            array( 'OO_Employee', 'display_employee_management_page' ) // New class name
+            'oo_employees',
+            array( 'OO_Employee', 'display_employee_management_page' )
         );
         
-        // TODO: Add Menu for Stream Types
+        // Phases management page (not specific to content stream)
         $this->admin_page_hooks[] = add_submenu_page(
             $main_menu_slug, 
-            __( 'Manage Streams', 'operations-organizer' ),
-            __( 'Streams', 'operations-organizer' ),
+            __( 'Manage Phases', 'operations-organizer' ),
+            __( 'Phases', 'operations-organizer' ),
             oo_get_capability(), 
-            'oo_streams',
-            array( 'OO_Stream', 'display_stream_management_page' )
-        );
-
-        $this->admin_page_hooks[] = add_submenu_page(
-            $main_menu_slug, 
-            __( 'Manage Phases (Content Stream)', 'operations-organizer' ), // Clarify this is for Content for now
-            __( 'Content Phases', 'operations-organizer' ),
-            oo_get_capability(), 
-            'oo_phases', // New slug
-            array( 'OO_Phase', 'display_phase_management_page' ) // New class name
+            'oo_phases',
+            array( 'OO_Phase', 'display_phase_management_page' )
         );
         
-        // Hidden pages for Start/Stop forms - these will need stream_type context eventually
+        // Hidden pages for Start/Stop forms
         $this->admin_page_hooks[] = add_submenu_page(
             null, 
             __( 'Start Job Phase', 'operations-organizer' ),
             __( 'Start Job Phase', 'operations-organizer' ),
             oo_get_form_access_capability(), 
-            'oo_start_job', // New slug
+            'oo_start_job',
             array( $this, 'display_start_job_form_page' )
         );
 
@@ -68,7 +67,7 @@ class OO_Admin_Pages { // Renamed class
             __( 'Stop Job Phase', 'operations-organizer' ),
             __( 'Stop Job Phase', 'operations-organizer' ),
             oo_get_form_access_capability(), 
-            'oo_stop_job', // New slug
+            'oo_stop_job',
             array( $this, 'display_stop_job_form_page' )
         );
     }

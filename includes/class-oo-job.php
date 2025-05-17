@@ -404,5 +404,112 @@ class OO_Job {
         return OO_DB::get_jobs_count( $args );
     }
 
+    /**
+     * Display the Job management page.
+     */
+    public static function display_job_management_page() {
+        if (!current_user_can(oo_get_capability())) {
+            wp_die(__('You do not have sufficient permissions to access this page.', 'operations-organizer'));
+        }
+
+        // Process form submission for adding new job
+        if (isset($_POST['submit_add_job']) && isset($_POST['oo_add_job_nonce']) && wp_verify_nonce($_POST['oo_add_job_nonce'], 'oo_add_job_nonce')) {
+            $job_data = array(
+                'job_number' => isset($_POST['job_number']) ? sanitize_text_field($_POST['job_number']) : '',
+                'client_name' => isset($_POST['client_name']) ? sanitize_text_field($_POST['client_name']) : '',
+                'client_contact' => isset($_POST['client_contact']) ? sanitize_textarea_field($_POST['client_contact']) : '',
+                'start_date' => isset($_POST['start_date']) ? oo_sanitize_date($_POST['start_date']) : null,
+                'due_date' => isset($_POST['due_date']) ? oo_sanitize_date($_POST['due_date']) : null,
+                'overall_status' => isset($_POST['overall_status']) ? sanitize_text_field($_POST['overall_status']) : 'Pending',
+                'notes' => isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : '',
+            );
+
+            $job = new self();
+            $job->set_job_number($job_data['job_number']);
+            $job->set_client_name($job_data['client_name']);
+            $job->set_client_contact($job_data['client_contact']);
+            $job->set_start_date($job_data['start_date']);
+            $job->set_due_date($job_data['due_date']);
+            $job->set_overall_status($job_data['overall_status']);
+            $job->set_notes($job_data['notes']);
+
+            $result = $job->save();
+
+            if (is_wp_error($result)) {
+                $GLOBALS['oo_job_error'] = $result->get_error_message();
+            } else {
+                $job_id = $result;
+                
+                // Associate streams with the job based on checkboxes
+                $streams = array(
+                    'soft_content' => isset($_POST['stream_soft_content']),
+                    'electronics' => isset($_POST['stream_electronics']),
+                    'art' => isset($_POST['stream_art']),
+                    'content' => isset($_POST['stream_content']),
+                );
+                
+                foreach ($streams as $stream_name => $is_selected) {
+                    if ($is_selected) {
+                        // Get stream by name or create it if it doesn't exist
+                        $stream = OO_Stream::get_by_name($stream_name);
+                        if (!$stream) {
+                            $stream = new OO_Stream();
+                            $stream->set_name($stream_name);
+                            $stream->set_description(ucfirst(str_replace('_', ' ', $stream_name)) . ' Stream');
+                            $stream->save();
+                        }
+                        
+                        // Create job_stream association
+                        $job_stream_data = array(
+                            'job_id' => $job_id,
+                            'stream_id' => $stream->get_id(),
+                            'status' => 'pending',
+                        );
+                        
+                        OO_DB::add_job_stream($job_stream_data);
+                    }
+                }
+                
+                $GLOBALS['oo_job_success'] = __('Job added successfully.', 'operations-organizer');
+            }
+        }
+
+        // Prepare job data for display
+        $current_page = isset($_GET['paged']) ? intval($_GET['paged']) : 1;
+        $per_page = 20;
+        $offset = ($current_page - 1) * $per_page;
+        $search_term = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+        $status_filter = isset($_GET['status_filter']) ? sanitize_text_field($_GET['status_filter']) : '';
+
+        $args = array(
+            'number' => $per_page,
+            'offset' => $offset,
+            'orderby' => isset($_GET['orderby']) ? sanitize_sql_orderby($_GET['orderby']) : 'created_at',
+            'order' => isset($_GET['order']) && strtoupper($_GET['order']) === 'ASC' ? 'ASC' : 'DESC',
+        );
+
+        if ($search_term) {
+            $args['search'] = $search_term;
+        }
+
+        if ($status_filter) {
+            $args['overall_status'] = $status_filter;
+        }
+
+        $jobs = OO_DB::get_jobs($args);
+        $total_jobs = OO_DB::get_jobs_count($args);
+
+        // Pass data to the view
+        $GLOBALS['jobs'] = $jobs;
+        $GLOBALS['total_jobs'] = $total_jobs;
+        $GLOBALS['current_page'] = $current_page;
+        $GLOBALS['per_page'] = $per_page;
+        $GLOBALS['search_term'] = $search_term;
+        $GLOBALS['status_filter'] = $status_filter;
+
+        // Include the view
+        include_once OO_PLUGIN_DIR . 'admin/views/job-management-page.php';
+    }
+
     // TODO: Add more methods as needed, e.g., for validation, specific data retrieval.
 } 

@@ -233,4 +233,186 @@ class OO_Employee { // Renamed class
     }
     
     // TODO: Method for verifying PIN: public function verify_pin($raw_pin) { return wp_check_password($raw_pin, $this->employee_pin); }
+
+    /**
+     * Display the Employee management page.
+     */
+    public static function display_employee_management_page() {
+        if (!current_user_can(oo_get_capability())) {
+            wp_die(__('You do not have sufficient permissions to access this page.', 'operations-organizer'));
+        }
+
+        // Prepare employee data and pagination
+        $current_page = isset($_GET['paged']) ? intval($_GET['paged']) : 1;
+        $per_page = 20;
+        $offset = ($current_page - 1) * $per_page;
+        $search_term = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+        $active_filter = isset($_GET['status_filter']) ? sanitize_text_field($_GET['status_filter']) : 'all';
+
+        $args = array(
+            'number' => $per_page,
+            'offset' => $offset,
+            'orderby' => isset($_GET['orderby']) ? sanitize_sql_orderby($_GET['orderby']) : 'last_name',
+            'order' => isset($_GET['order']) && strtoupper($_GET['order']) === 'DESC' ? 'DESC' : 'ASC',
+        );
+
+        if ($search_term) {
+            $args['search'] = $search_term;
+        }
+
+        if ($active_filter === 'active') {
+            $args['is_active'] = 1;
+        } elseif ($active_filter === 'inactive') {
+            $args['is_active'] = 0;
+        }
+
+        $employees = OO_DB::get_employees($args);
+        $total_employees = OO_DB::get_employees_count($args);
+
+        // Pass data to the view
+        $GLOBALS['employees'] = $employees;
+        $GLOBALS['total_employees'] = $total_employees;
+        $GLOBALS['current_page'] = $current_page;
+        $GLOBALS['per_page'] = $per_page;
+        $GLOBALS['search_term'] = $search_term;
+        $GLOBALS['active_filter'] = $active_filter;
+        $GLOBALS['orderby'] = isset($_GET['orderby']) ? $_GET['orderby'] : 'last_name';
+        $GLOBALS['order'] = isset($_GET['order']) ? $_GET['order'] : 'ASC';
+
+        // Include the view
+        include_once OO_PLUGIN_DIR . 'admin/views/employee-management-page.php';
+    }
+
+    // AJAX methods for employee management
+    public static function ajax_add_employee() {
+        check_ajax_referer('oo_add_employee_nonce', 'oo_add_employee_nonce');
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        $employee_number = isset($_POST['employee_number']) ? sanitize_text_field($_POST['employee_number']) : '';
+        $first_name = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
+        $last_name = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
+        $job_title = isset($_POST['job_title']) ? sanitize_text_field($_POST['job_title']) : '';
+        
+        // Optional pin (should be hashed for storage)
+        $employee_pin = isset($_POST['employee_pin']) ? sanitize_text_field($_POST['employee_pin']) : '';
+        if (!empty($employee_pin)) {
+            $employee_pin = wp_hash_password($employee_pin);
+        }
+
+        if (empty($employee_number) || empty($first_name) || empty($last_name)) {
+            wp_send_json_error(['message' => 'Employee number, first name, and last name are required.']);
+            return;
+        }
+
+        $data = array(
+            'employee_number' => $employee_number,
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'job_title' => $job_title,
+            'employee_pin' => $employee_pin,
+        );
+
+        $result = OO_DB::add_employee($data);
+        if (is_wp_error($result)) {
+            wp_send_json_error(['message' => 'Error: ' . $result->get_error_message()]);
+        } else {
+            wp_send_json_success(['message' => 'Employee added successfully.', 'employee_id' => $result]);
+        }
+    }
+
+    public static function ajax_get_employee() {
+        check_ajax_referer('oo_edit_employee_nonce', '_ajax_nonce_get_employee');
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        $employee_id = isset($_POST['employee_id']) ? intval($_POST['employee_id']) : 0;
+        if ($employee_id <= 0) {
+            wp_send_json_error(['message' => 'Invalid Employee ID.']);
+            return;
+        }
+
+        $employee = OO_DB::get_employee($employee_id);
+        if (!$employee) {
+            wp_send_json_error(['message' => 'Employee not found.']);
+            return;
+        }
+
+        // Don't return the PIN hash
+        unset($employee->employee_pin);
+        
+        wp_send_json_success($employee);
+    }
+
+    public static function ajax_update_employee() {
+        check_ajax_referer('oo_edit_employee_nonce', 'oo_edit_employee_nonce');
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        $employee_id = isset($_POST['edit_employee_id']) ? intval($_POST['edit_employee_id']) : 0;
+        if ($employee_id <= 0) {
+            wp_send_json_error(['message' => 'Invalid Employee ID.']);
+            return;
+        }
+
+        $data = array(
+            'employee_number' => isset($_POST['edit_employee_number']) ? sanitize_text_field($_POST['edit_employee_number']) : '',
+            'first_name' => isset($_POST['edit_first_name']) ? sanitize_text_field($_POST['edit_first_name']) : '',
+            'last_name' => isset($_POST['edit_last_name']) ? sanitize_text_field($_POST['edit_last_name']) : '',
+            'job_title' => isset($_POST['edit_job_title']) ? sanitize_text_field($_POST['edit_job_title']) : '',
+        );
+
+        // Only update PIN if provided
+        if (isset($_POST['edit_employee_pin']) && !empty($_POST['edit_employee_pin'])) {
+            $data['employee_pin'] = wp_hash_password(sanitize_text_field($_POST['edit_employee_pin']));
+        }
+
+        if (empty($data['employee_number']) || empty($data['first_name']) || empty($data['last_name'])) {
+            wp_send_json_error(['message' => 'Employee number, first name, and last name are required.']);
+            return;
+        }
+
+        $result = OO_DB::update_employee($employee_id, $data);
+        if (is_wp_error($result)) {
+            wp_send_json_error(['message' => 'Error: ' . $result->get_error_message()]);
+        } else {
+            wp_send_json_success(['message' => 'Employee updated successfully.']);
+        }
+    }
+
+    public static function ajax_toggle_employee_status() {
+        check_ajax_referer('oo_toggle_status_nonce', '_ajax_nonce');
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        $employee_id = isset($_POST['employee_id']) ? intval($_POST['employee_id']) : 0;
+        $is_active = isset($_POST['is_active']) ? (bool)$_POST['is_active'] : null;
+
+        if ($employee_id <= 0 || is_null($is_active)) {
+            wp_send_json_error(['message' => 'Invalid parameters.']);
+            return;
+        }
+
+        $employee = self::get_by_id($employee_id);
+        if (!$employee) {
+            wp_send_json_error(['message' => 'Employee not found.']);
+            return;
+        }
+
+        $result = $employee->toggle_status($is_active);
+        if (is_wp_error($result)) {
+            wp_send_json_error(['message' => 'Error: ' . $result->get_error_message()]);
+        } else {
+            $status_text = $is_active ? 'activated' : 'deactivated';
+            wp_send_json_success(['message' => 'Employee ' . $status_text . ' successfully.']);
+        }
+    }
 } 
