@@ -15,8 +15,8 @@ class OO_Dashboard { // Renamed class
         $GLOBALS['employees'] = OO_DB::get_employees(array('is_active' => 1, 'orderby' => 'last_name', 'order' => 'ASC', 'number' => -1));
         // For the Quick Actions, we might want all stream types, or let user select a stream type first, then its phases.
         // For now, let's get all phases and group them by stream type in the view, or filter later.
-        $GLOBALS['phases'] = OO_DB::get_phases(array('is_active' => 1, 'orderby' => 'stream_type_id, sort_order')); 
-        $GLOBALS['stream_types'] = OO_DB::get_stream_types(array('is_active' => 1)); // For phase management context
+        $GLOBALS['phases'] = OO_DB::get_phases(array('is_active' => 1, 'orderby' => 'stream_id, order_in_stream'));
+        $GLOBALS['streams'] = OO_DB::get_streams(array('is_active' => 1));
 
         include_once OO_PLUGIN_DIR . 'admin/views/dashboard-page.php';
     }
@@ -71,7 +71,7 @@ class OO_Dashboard { // Renamed class
         $filter_employee_id = isset($_POST['filter_employee_id']) && !empty($_POST['filter_employee_id']) ? intval($_POST['filter_employee_id']) : null;
         $filter_job_number = isset($_POST['filter_job_number']) && !empty($_POST['filter_job_number']) ? sanitize_text_field($_POST['filter_job_number']) : null;
         $filter_phase_id = isset($_POST['filter_phase_id']) && !empty($_POST['filter_phase_id']) ? intval($_POST['filter_phase_id']) : null;
-        $filter_stream_type_id = isset($_POST['filter_stream_type_id']) && !empty($_POST['filter_stream_type_id']) ? intval($_POST['filter_stream_type_id']) : null; // New filter
+        $filter_stream_id = isset($_POST['filter_stream_id']) && !empty($_POST['filter_stream_id']) ? intval($_POST['filter_stream_id']) : null;
         $filter_date_from = isset($_POST['filter_date_from']) && !empty($_POST['filter_date_from']) ? sanitize_text_field($_POST['filter_date_from']) : null;
         $filter_date_to = isset($_POST['filter_date_to']) && !empty($_POST['filter_date_to']) ? sanitize_text_field($_POST['filter_date_to']) : null;
         $filter_status = isset($_POST['filter_status']) && !empty($_POST['filter_status']) ? sanitize_text_field($_POST['filter_status']) : null;
@@ -81,7 +81,7 @@ class OO_Dashboard { // Renamed class
         $columns = [
             'employee_name' => 'e.last_name',
             'job_number' => 'jl.job_number',
-            'stream_type_name' => 'st.stream_type_name', // New column
+            'stream_name' => 'st.stream_name',
             'phase_name' => 'p.phase_name',
             'start_time' => 'jl.start_time',
             'end_time' => 'jl.end_time',
@@ -115,7 +115,7 @@ class OO_Dashboard { // Renamed class
             'employee_id'    => $filter_employee_id,
             'job_number'     => $filter_job_number,
             'phase_id'       => $filter_phase_id,
-            'stream_type_id' => $filter_stream_type_id, // New arg for DB query
+            'stream_id'      => $filter_stream_id,
             'date_from'      => $filter_date_from,
             'date_to'        => $filter_date_to,
             'status'         => $filter_status,
@@ -168,7 +168,7 @@ class OO_Dashboard { // Renamed class
                 'log_id'           => $log->log_id,
                 'employee_name'    => $employee_name,
                 'job_number'       => esc_html($log->job_number),
-                'stream_type_name' => isset($log->stream_type_name) ? esc_html($log->stream_type_name) : __('N/A', 'operations-organizer'),
+                'stream_name' => isset($log->stream_name) ? esc_html($log->stream_name) : __('N/A', 'operations-organizer'),
                 'phase_name'       => esc_html($log->phase_name),
                 'start_time'       => esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), strtotime($log->start_time))),
                 'end_time'         => $log->end_time ? esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), strtotime($log->end_time))) : 'N/A',
@@ -239,8 +239,19 @@ class OO_Dashboard { // Renamed class
         }
         $data_to_update = array();
         if (isset($_POST['edit_log_employee_id'])) $data_to_update['employee_id'] = intval($_POST['edit_log_employee_id']);
-        if (isset($_POST['edit_log_job_number'])) $data_to_update['job_number'] = sanitize_text_field($_POST['edit_log_job_number']);
+        if (isset($_POST['edit_log_job_id'])) {
+            $data_to_update['job_id'] = intval($_POST['edit_log_job_id']);
+        } elseif (isset($_POST['edit_log_job_number'])) {
+            $job = OO_Job::get_by_job_number(sanitize_text_field($_POST['edit_log_job_number']));
+            if ($job) {
+                $data_to_update['job_id'] = $job->get_id();
+            } else {
+                 oo_log('AJAX Error: Job number not found for update: ' . $_POST['edit_log_job_number'], __METHOD__);
+                 // Optionally send error, or just don't update job_id if not found
+            }
+        }
         if (isset($_POST['edit_log_phase_id'])) $data_to_update['phase_id'] = intval($_POST['edit_log_phase_id']);
+        if (isset($_POST['edit_log_stream_id'])) $data_to_update['stream_id'] = intval($_POST['edit_log_stream_id']);
         if (isset($_POST['edit_log_start_time']) && !empty($_POST['edit_log_start_time'])) {
             try { $start_time_dt = new DateTime($_POST['edit_log_start_time'], wp_timezone()); $data_to_update['start_time'] = $start_time_dt->format('Y-m-d H:i:s'); }
             catch (Exception $e) { oo_log('AJAX Error: Invalid start_time format: ' . $_POST['edit_log_start_time'], __METHOD__); wp_send_json_error(['message' => 'Invalid Start Time format.']); return; }
@@ -270,7 +281,7 @@ class OO_Dashboard { // Renamed class
 
         if (isset($_POST['edit_log_status'])) $data_to_update['status'] = sanitize_text_field($_POST['edit_log_status']);
         if (isset($_POST['edit_log_notes'])) $data_to_update['notes'] = sanitize_textarea_field($_POST['edit_log_notes']);
-        if (empty($data_to_update['employee_id']) || empty($data_to_update['job_number']) || empty($data_to_update['phase_id']) || empty($data_to_update['start_time']) || empty($data_to_update['status'])) {
+        if (empty($data_to_update['employee_id']) || empty($data_to_update['job_id']) || empty($data_to_update['phase_id']) || empty($data_to_update['start_time']) || empty($data_to_update['status'])) {
             oo_log('AJAX Error: Missing required fields for log update.', $data_to_update);
             wp_send_json_error(['message' => 'Missing required fields for log update (Employee, Job, Phase, Start Time, Status).']); return;
         }
