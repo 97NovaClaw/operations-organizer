@@ -501,6 +501,43 @@ class OO_DB { // Renamed class
         return $count;
     }
 
+    /**
+     * Delete a stream type.
+     * Note: This does not automatically handle related phases or job_streams.
+     * Foreign key constraints (ON DELETE CASCADE for phases, ON DELETE RESTRICT for job_streams)
+     * should be considered at the application level before calling this.
+     *
+     * @param int $stream_id The ID of the stream to delete.
+     * @return bool|WP_Error True on success, false or WP_Error on failure.
+     */
+    public static function delete_stream( $stream_id ) {
+        self::init(); global $wpdb;
+        $stream_id = intval($stream_id);
+        if ($stream_id <= 0) {
+            return new WP_Error('invalid_stream_id', 'Invalid Stream ID for deletion.');
+        }
+
+        oo_log('Attempting to delete stream ID: ' . $stream_id, __METHOD__);
+
+        // The OO_Stream class should perform checks (e.g., if stream is used in job_streams)
+        // before calling this method due to ON DELETE RESTRICT on wp_oo_job_streams.
+        // Phases linked to this stream will be deleted automatically due to ON DELETE CASCADE.
+
+        $result = $wpdb->delete(self::$streams_table, array('stream_id' => $stream_id), array('%d'));
+
+        if ($result === false) {
+            oo_log('Error deleting stream ID ' . $stream_id . ': ' . $wpdb->last_error, __METHOD__);
+            return new WP_Error('db_delete_error', 'Could not delete stream: ' . $wpdb->last_error);
+        }
+        if ($result === 0) {
+            // This might not be an error; could mean the stream was already deleted.
+            oo_log('Stream not found for deletion or no rows affected. ID: ' . $stream_id, __METHOD__);
+            return true; 
+        }
+        oo_log('Stream deleted successfully. ID: ' . $stream_id, __METHOD__);
+        return true;
+    }
+
     // --- Phase CRUD Methods ---
     public static function add_phase( $stream_id, $phase_name, $phase_description = '', $order_in_stream = 0, $phase_type = null, $default_kpi_units = null, $is_active = 1 ) {
         oo_log('Attempting to add phase.', __METHOD__);
