@@ -654,11 +654,11 @@ class OO_DB { // Renamed class
 
         $result = $wpdb->delete(self::$streams_table, array('stream_id' => $stream_id), array('%d'));
 
-        if ($result === false) {
+        if ( $result === false ) {
             oo_log('Error deleting stream ID ' . $stream_id . ': ' . $wpdb->last_error, __METHOD__);
             return new WP_Error('db_delete_error', 'Could not delete stream: ' . $wpdb->last_error);
         }
-        if ($result === 0) {
+        if ( $result === 0 ) {
             // This might not be an error; could mean the stream was already deleted.
             oo_log('Stream not found for deletion or no rows affected. ID: ' . $stream_id, __METHOD__);
             return true; 
@@ -797,11 +797,42 @@ class OO_DB { // Renamed class
         if ( !empty($args['stream_id']) ) { $where_clauses[] = "stream_id = %d"; $query_params[] = intval($args['stream_id']);}
         if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
         if ( !empty($args['search']) ) { $search_term = '%' . $wpdb->esc_like($args['search']) . '%'; $where_clauses[] = "(phase_name LIKE %s OR phase_description LIKE %s OR phase_type LIKE %s)"; $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;}
-        if ( !empty($where_clauses) ) { $sql .= " WHERE " . implode(" AND ", $where_clauses);}
+        if ( !empty($where_clauses) ) { $sql .= " WHERE " . implode(" AND ", $where_clauses);} 
         if (!empty($query_params)){ $sql = $wpdb->prepare($sql, $query_params); }
         $count = $wpdb->get_var( $sql );
         oo_log('Phases count result: ' . $count . ' SQL: ' . $sql, __METHOD__);
         return $count;
+    }
+
+    /**
+     * Delete a phase.
+     * Note: Related job_logs have ON DELETE RESTRICT.
+     * Application logic should check for usage before calling this.
+     * @param int $phase_id
+     * @return bool|WP_Error True on success, false or WP_Error on failure.
+     */
+    public static function delete_phase( $phase_id ) {
+        self::init(); global $wpdb;
+        $phase_id = intval($phase_id);
+        if ( $phase_id <= 0 ) {
+            return new WP_Error('invalid_phase_id', 'Invalid Phase ID for deletion.');
+        }
+
+        oo_log('Attempting to delete phase ID: ' . $phase_id, __METHOD__);
+
+        // OO_Phase::delete() should check for usage in job_logs first.
+        $result = $wpdb->delete( self::$phases_table, array( 'phase_id' => $phase_id ), array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error deleting phase ID ' . $phase_id . ': ' . $wpdb->last_error, __METHOD__);
+            return new WP_Error('db_delete_error', 'Could not delete phase: ' . $wpdb->last_error);
+        }
+        if ( $result === 0 ) {
+            oo_log('Phase not found for deletion or no rows affected. ID: ' . $phase_id, __METHOD__);
+            return true; 
+        }
+        oo_log('Phase deleted successfully. ID: ' . $phase_id . ' Rows affected: ' . $result, __METHOD__);
+        return true;
     }
 
     // --- Job Log CRUD Methods ---
