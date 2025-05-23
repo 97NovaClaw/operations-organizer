@@ -102,14 +102,8 @@ class OO_Dashboard { // Renamed class
         $filter_status = isset($_POST['filter_status']) && !empty($_POST['filter_status']) ? sanitize_text_field($_POST['filter_status']) : null;
         $selected_kpi_keys = isset($_POST['selected_kpi_keys']) && is_array($_POST['selected_kpi_keys']) ? array_map('sanitize_key', $_POST['selected_kpi_keys']) : array();
 
-        // Add default legacy KPI keys if they aren't already selected, to ensure their data is available for calculation
-        // (e.g. time_per_box). These won't necessarily be displayed as separate columns unless selected by the user.
-        if (!in_array('boxes_completed', $selected_kpi_keys)) {
-            // $selected_kpi_keys[] = 'boxes_completed'; // We will fetch these directly from the log object if needed for calcs
-        }
-        if (!in_array('items_completed', $selected_kpi_keys)) {
-            // $selected_kpi_keys[] = 'items_completed';
-        }
+        // Legacy KPI keys are no longer forced into selection.
+        // If 'boxes_completed' or 'items_completed' are needed, they should be selected as dynamic KPIs.
         oo_log('Selected KPI keys for processing: ', $selected_kpi_keys);
         
         // Check if we have explicit order parameter, useful when tabs enforce specific ordering
@@ -130,13 +124,7 @@ class OO_Dashboard { // Renamed class
                 'end_time' => 'jl.end_time',
                 'duration' => null,
                 // KPI columns might become dynamic based on stream_id via kpi_fields_config
-                'boxes_completed' => 'jl.boxes_completed', 
-                'items_completed' => 'jl.items_completed',
                 'kpi_data' => 'jl.kpi_data', // New general KPI data
-                'time_per_box' => null,
-                'time_per_item' => null,
-                'boxes_per_hour' => null,
-                'items_per_hour' => null,
                 'status' => 'jl.status',
                 'notes' => 'jl.notes'
             ];
@@ -184,27 +172,30 @@ class OO_Dashboard { // Renamed class
             if (!is_array($kpis_from_json)) $kpis_from_json = array();
 
             // Initialize with default values from direct columns (for backward compatibility during transition)
-            $current_kpi_values = [
-                'boxes_completed' => !is_null($log->boxes_completed) ? intval($log->boxes_completed) : (isset($kpis_from_json['boxes_completed']) ? intval($kpis_from_json['boxes_completed']) : 0),
-                'items_completed' => !is_null($log->items_completed) ? intval($log->items_completed) : (isset($kpis_from_json['items_completed']) ? intval($kpis_from_json['items_completed']) : 0)
-            ];
+            // $current_kpi_values = [
+            //     'boxes_completed' => !is_null($log->boxes_completed) ? intval($log->boxes_completed) : (isset($kpis_from_json['boxes_completed']) ? intval($kpis_from_json['boxes_completed']) : 0),
+            //     'items_completed' => !is_null($log->items_completed) ? intval($log->items_completed) : (isset($kpis_from_json['items_completed']) ? intval($kpis_from_json['items_completed']) : 0)
+            // ];
             // Merge JSON data over these defaults (JSON is source of truth for custom KPIs)
-            $current_kpi_values = array_merge($current_kpi_values, $kpis_from_json);
+            // $current_kpi_values = array_merge($current_kpi_values, $kpis_from_json);
 
-            $boxes_completed = intval($current_kpi_values['boxes_completed']);
-            $items_completed = intval($current_kpi_values['items_completed']);
+            // All KPIs, including potential 'boxes_completed' and 'items_completed', should come from kpi_data (JSON)
+            $current_kpi_values = $kpis_from_json;
+
+            $boxes_completed = isset($current_kpi_values['boxes_completed']) ? intval($current_kpi_values['boxes_completed']) : 0;
+            $items_completed = isset($current_kpi_values['items_completed']) ? intval($current_kpi_values['items_completed']) : 0;
 
             // Generic KPI display (example - could be more complex)
             $kpi_display_array = array();
-            if ($boxes_completed > 0) $kpi_display_array[] = "Boxes: $boxes_completed";
-            if ($items_completed > 0) $kpi_display_array[] = "Items: $items_completed";
+            // if ($boxes_completed > 0) $kpi_display_array[] = "Boxes: $boxes_completed"; // Removed legacy
+            // if ($items_completed > 0) $kpi_display_array[] = "Items: $items_completed"; // Removed legacy
             // Loop through other items in $kpis if defined by stream_type kpi_config
             // This part will need significant work once kpi_fields_config is used
 
-            $time_per_box_seconds = ($boxes_completed > 0 && $duration_seconds > 0) ? round($duration_seconds / $boxes_completed) : 0; 
-            $time_per_item_seconds = ($items_completed > 0 && $duration_seconds > 0) ? round($duration_seconds / $items_completed) : 0; 
-            $boxes_per_hour = ($duration_hours > 0 && $boxes_completed > 0) ? round($boxes_completed / $duration_hours, 2) : 0;
-            $items_per_hour = ($duration_hours > 0 && $items_completed > 0) ? round($items_completed / $duration_hours, 2) : 0;
+            // $time_per_box_seconds = ($boxes_completed > 0 && $duration_seconds > 0) ? round($duration_seconds / $boxes_completed) : 0; 
+            // $time_per_item_seconds = ($items_completed > 0 && $duration_seconds > 0) ? round($duration_seconds / $items_completed) : 0; 
+            // $boxes_per_hour = ($duration_hours > 0 && $boxes_completed > 0) ? round($boxes_completed / $duration_hours, 2) : 0;
+            // $items_per_hour = ($duration_hours > 0 && $items_completed > 0) ? round($items_completed / $duration_hours, 2) : 0;
 
             $employee_name = esc_html($log->first_name . ' ' . $log->last_name);
             $status_badge = ''; // (status badge logic remains same)
@@ -257,13 +248,12 @@ class OO_Dashboard { // Renamed class
                 'start_time'       => esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), strtotime($log->start_time))),
                 'end_time'         => $log->end_time ? esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), strtotime($log->end_time))) : 'N/A',
                 'duration'         => $duration_display,
-                // 'boxes_completed'  => $boxes_completed, // Will be handled by dynamic kpi_ columns if selected
-                // 'items_completed'  => $items_completed, // Will be handled by dynamic kpi_ columns if selected
-                'kpi_data'         => !empty($kpi_display_array) ? implode(', ', $kpi_display_array) : ( !empty($log->kpi_data) && $log->kpi_data !=='null' && $log->kpi_data !=='[]' ? esc_html($log->kpi_data) : 'N/A'), // Simple display of kpi_data for now
-                'time_per_box'     => $time_per_box_seconds > 0 ? sprintf('%02dh %02dm %02ds', floor($time_per_box_seconds/3600), floor(($time_per_box_seconds%3600)/60), ($time_per_box_seconds%60)) : 'N/A',
-                'time_per_item'    => $time_per_item_seconds > 0 ? sprintf('%02dh %02dm %02ds', floor($time_per_item_seconds/3600), floor(($time_per_item_seconds%3600)/60), ($time_per_item_seconds%60)) : 'N/A',
-                'boxes_per_hour'   => $boxes_per_hour,
-                'items_per_hour'   => $items_per_hour,
+                // 'kpi_data'         => !empty($kpi_display_array) ? implode(', ', $kpi_display_array) : ( !empty($log->kpi_data) && $log->kpi_data !=='null' && $log->kpi_data !=='[]' ? esc_html($log->kpi_data) : 'N/A'), // Simple display of kpi_data for now - now handled by dynamic columns or direct kpi_data column
+                'kpi_data'         => ( !empty($log->kpi_data) && $log->kpi_data !=='null' && $log->kpi_data !=='[]' ? esc_html($log->kpi_data) : 'N/A'),
+                // 'time_per_box'     => $time_per_box_seconds > 0 ? sprintf('%02dh %02dm %02ds', floor($time_per_box_seconds/3600), floor(($time_per_box_seconds%3600)/60), ($time_per_box_seconds%60)) : 'N/A',
+                // 'time_per_item'    => $time_per_item_seconds > 0 ? sprintf('%02dh %02dm %02ds', floor($time_per_item_seconds/3600), floor(($time_per_item_seconds%3600)/60), ($time_per_item_seconds%60)) : 'N/A',
+                // 'boxes_per_hour'   => $boxes_per_hour,
+                // 'items_per_hour'   => $items_per_hour,
                 'status'           => $status_badge,
                 'notes'            => nl2br(esc_html($log->notes)),
             );
@@ -276,12 +266,12 @@ class OO_Dashboard { // Renamed class
             // Ensure legacy 'boxes_completed' and 'items_completed' are available if not in selected_kpi_keys but needed by other parts of JS
             // (e.g. if hardcoded columns for these are still present, or for calculations)
             // This ensures they are in the data object sent to datatables, even if not explicitly selected as a kpi_ column.
-            if (!isset($row_data['kpi_boxes_completed']) && !in_array('boxes_completed', $selected_kpi_keys)) {
-                 $row_data['boxes_completed'] = $boxes_completed; 
-            }
-            if (!isset($row_data['kpi_items_completed']) && !in_array('items_completed', $selected_kpi_keys)) {
-                 $row_data['items_completed'] = $items_completed; 
-            }
+            // if (!isset($row_data['kpi_boxes_completed']) && !in_array('boxes_completed', $selected_kpi_keys)) {
+            //      $row_data['boxes_completed'] = $boxes_completed; 
+            // }
+            // if (!isset($row_data['kpi_items_completed']) && !in_array('items_completed', $selected_kpi_keys)) {
+            //      $row_data['items_completed'] = $items_completed; 
+            // }
 
             $data[] = $row_data;
         }
@@ -465,20 +455,28 @@ class OO_Dashboard { // Renamed class
         
         // Handle boxes_completed
         if (isset($_POST['edit_log_boxes_completed'])) {
-            $boxes_completed = !empty($_POST['edit_log_boxes_completed']) || $_POST['edit_log_boxes_completed'] === '0' ? 
+            $boxes_completed_value = !empty($_POST['edit_log_boxes_completed']) || $_POST['edit_log_boxes_completed'] === '0' ? 
                 intval($_POST['edit_log_boxes_completed']) : null;
             
-            $data_to_update['boxes_completed'] = $boxes_completed;
-            $kpi_data['boxes_completed'] = $boxes_completed;
+            // $data_to_update['boxes_completed'] = $boxes_completed_value; // Do not update dedicated column
+            if (!is_null($boxes_completed_value)) { // Only add to kpi_data if a value is provided
+                $kpi_data['boxes_completed'] = $boxes_completed_value;
+            } else {
+                unset($kpi_data['boxes_completed']); // Remove if cleared
+            }
         }
         
         // Handle items_completed
         if (isset($_POST['edit_log_items_completed'])) {
-            $items_completed = !empty($_POST['edit_log_items_completed']) || $_POST['edit_log_items_completed'] === '0' ? 
+            $items_completed_value = !empty($_POST['edit_log_items_completed']) || $_POST['edit_log_items_completed'] === '0' ? 
                 intval($_POST['edit_log_items_completed']) : null;
             
-            $data_to_update['items_completed'] = $items_completed;
-            $kpi_data['items_completed'] = $items_completed;
+            // $data_to_update['items_completed'] = $items_completed_value; // Do not update dedicated column
+            if (!is_null($items_completed_value)) { // Only add to kpi_data if a value is provided
+                $kpi_data['items_completed'] = $items_completed_value;
+            } else {
+                unset($kpi_data['items_completed']); // Remove if cleared
+            }
         }
         
         // Update KPI data if we have changes

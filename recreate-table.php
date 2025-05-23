@@ -74,10 +74,8 @@ $sql_job_logs = "CREATE TABLE $job_logs_table (
     phase_id INT UNSIGNED NOT NULL,
     employee_id BIGINT UNSIGNED NOT NULL,
     start_time DATETIME NOT NULL,
-    stop_time DATETIME NULL,
+    end_time DATETIME NULL,
     duration_minutes INT UNSIGNED NULL,
-    boxes_completed INT UNSIGNED NULL,
-    items_completed INT UNSIGNED NULL,
     kpi_data JSON NULL,
     notes TEXT NULL,
     log_date DATE NOT NULL,
@@ -90,7 +88,7 @@ $sql_job_logs = "CREATE TABLE $job_logs_table (
     INDEX idx_phase_id (phase_id),
     INDEX idx_employee_id (employee_id),
     INDEX idx_start_time (start_time),
-    INDEX idx_stop_time (stop_time),
+    INDEX idx_end_time (end_time),
     INDEX idx_log_date (log_date),
     INDEX idx_status (status)
 ) $charset_collate;";

@@ -84,12 +84,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <th><?php esc_html_e('Start Time', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('End Time', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('Duration', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('Boxes', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('Items', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('Time/Box', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('Time/Item', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('Boxes/Hr', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('Items/Hr', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('Notes', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('KPI Data', 'operations-organizer'); ?></th>
@@ -108,12 +102,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <th><?php esc_html_e('Start Time', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('End Time', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('Duration', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('Boxes', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('Items', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('Time/Box', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('Time/Item', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('Boxes/Hr', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('Items/Hr', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('Notes', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('KPI Data', 'operations-organizer'); ?></th>
@@ -157,12 +145,6 @@ jQuery(document).ready(function($) {
             { data: 'start_time' },
             { data: 'end_time' },
             { data: 'duration', orderable: false }, 
-            { data: 'boxes_completed' },
-            { data: 'items_completed' },
-            { data: 'time_per_box', orderable: false },
-            { data: 'time_per_item', orderable: false },
-            { data: 'boxes_per_hour', orderable: false },
-            { data: 'items_per_hour', orderable: false },
             { data: 'status' },
             { data: 'notes', orderable: false, render: function(data, type, row) {
                 var escData = $('<div>').text(data).html(); 
@@ -246,8 +228,8 @@ jQuery(document).ready(function($) {
                 var csvData = [];
                 var headers = [
                     "Employee Name", "Job No.", "Stream Type", "Phase", 
-                    "Start Time", "End Time", "Duration", "Boxes Completed", "Items Completed",
-                    "Time/Box", "Time/Item", "Boxes/Hr", "Items/Hr", "Status", "Notes", "KPI Data"
+                    "Start Time", "End Time", "Duration", 
+                    "Status", "Notes", "KPI Data"
                 ];
                 csvData.push(headers.join(','));
 
@@ -264,12 +246,6 @@ jQuery(document).ready(function($) {
                         '"' + row.start_time.replace(/"/g, '""') + '"',
                         '"' + (row.end_time !== 'N/A' ? row.end_time.replace(/"/g, '""') : 'N/A') + '"',
                         '"' + row.duration.replace(/"/g, '""') + '"',
-                        row.boxes_completed,
-                        row.items_completed,
-                        '"' + (row.time_per_box !== 'N/A' ? row.time_per_box.replace(/"/g, '""') : 'N/A') + '"', 
-                        '"' + (row.time_per_item !== 'N/A' ? row.time_per_item.replace(/"/g, '""') : 'N/A') + '"',
-                        row.boxes_per_hour,
-                        row.items_per_hour,
                         '"' + statusText + '"',
                         '"' + notesText + '"',
                         '"' + kpiDataText + '"'
@@ -330,8 +306,6 @@ jQuery(document).ready(function($) {
                     $('#oo-edit-log-form').find('#edit_log_phase_id').val(log.phase_id);
                     $('#oo-edit-log-form').find('#edit_log_start_time').val(log.start_time); 
                     $('#oo-edit-log-form').find('#edit_log_end_time').val(log.end_time);     
-                    $('#oo-edit-log-form').find('#edit_log_boxes_completed').val(log.boxes_completed !== null ? log.boxes_completed : 0);
-                    $('#oo-edit-log-form').find('#edit_log_items_completed').val(log.items_completed !== null ? log.items_completed : 0);
                     $('#oo-edit-log-form').find('#edit_log_status').val(log.status);
                     $('#oo-edit-log-form').find('#edit_log_notes').val(log.notes);
                     $('#oo-edit-log-form').find('#edit_log_kpi_data').val( (typeof log.kpi_data === 'string') ? log.kpi_data : JSON.stringify(log.kpi_data || {}) );

@@ -180,12 +180,6 @@ foreach ($phases as $phase) {
                     <th><?php esc_html_e('Start Time', 'operations-organizer'); ?></th>
                     <th><?php esc_html_e('End Time', 'operations-organizer'); ?></th>
                     <th><?php esc_html_e('Duration', 'operations-organizer'); ?></th>
-                    <th><?php esc_html_e('Boxes', 'operations-organizer'); ?></th>
-                    <th><?php esc_html_e('Items', 'operations-organizer'); ?></th>
-                    <th><?php esc_html_e('Time/Box', 'operations-organizer'); ?></th>
-                    <th><?php esc_html_e('Time/Item', 'operations-organizer'); ?></th>
-                    <th><?php esc_html_e('Boxes/Hr', 'operations-organizer'); ?></th>
-                    <th><?php esc_html_e('Items/Hr', 'operations-organizer'); ?></th>
                     <th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
                     <th><?php esc_html_e('Notes', 'operations-organizer'); ?></th>
                     <th><?php esc_html_e('KPI Data', 'operations-organizer'); ?></th>
@@ -226,16 +220,6 @@ foreach ($phases as $phase) {
                         <div class="form-description" style="color: #d63638; display: none;" id="job_number_warning">
                             <?php esc_html_e('Warning: Changing the job number may affect related records. Only change if absolutely necessary.', 'operations-organizer'); ?>
                         </div>
-                    </div>
-                    
-                    <div class="form-field">
-                        <label for="edit_log_boxes_completed"><?php esc_html_e('Boxes Completed', 'operations-organizer'); ?></label>
-                        <input type="number" id="edit_log_boxes_completed" name="edit_log_boxes_completed" min="0">
-                    </div>
-                    
-                    <div class="form-field">
-                        <label for="edit_log_items_completed"><?php esc_html_e('Items Completed', 'operations-organizer'); ?></label>
-                        <input type="number" id="edit_log_items_completed" name="edit_log_items_completed" min="0">
                     </div>
                     
                     <div class="form-field">
@@ -560,11 +544,8 @@ jQuery(document).ready(function($) {
     }
 
     // Store selected KPI keys globally for DataTable AJAX call
-    window.contentSelectedKpiKeys = ['boxes_completed', 'items_completed']; // Default selected KPIs
-    window.contentSelectedKpiObjects = [
-        { key: 'boxes_completed', name: '<?php echo esc_js(__("Boxes Completed", "operations-organizer")); ?>' },
-        { key: 'items_completed', name: '<?php echo esc_js(__("Items Completed", "operations-organizer")); ?>' }
-    ]; // Default selected KPI objects for titles
+    window.contentSelectedKpiKeys = []; // Default selected KPIs (empty)
+    window.contentSelectedKpiObjects = []; // Default selected KPI objects for titles (empty)
 
     function getInitialContentColumns() {
         // Define base columns that are always present
@@ -576,22 +557,6 @@ jQuery(document).ready(function($) {
             { data: "start_time", title: "<?php esc_html_e('Start Time', 'operations-organizer'); ?>" },
             { data: "end_time", title: "<?php esc_html_e('End Time', 'operations-organizer'); ?>" },
             { data: "duration", title: "<?php esc_html_e('Duration', 'operations-organizer'); ?>" },
-            // { data: "boxes_completed", title: "<?php esc_html_e('Boxes', 'operations-organizer'); ?>" }, // Will be dynamic if selected
-            // { data: "items_completed", title: "<?php esc_html_e('Items', 'operations-organizer'); ?>" }, // Will be dynamic if selected
-            { data: "time_per_box", title: "<?php esc_html_e('Time/Box', 'operations-organizer'); ?>" },
-            { data: "time_per_item", title: "<?php esc_html_e('Time/Item', 'operations-organizer'); ?>" },
-            { 
-                data: null, title: "<?php esc_html_e('Boxes/Hr', 'operations-organizer'); ?>",
-                render: function(data, type, row) {
-                    return row.boxes_per_hour || row.boxes_per_hr || 'N/A';
-                }
-            },
-            { 
-                data: null, title: "<?php esc_html_e('Items/Hr', 'operations-organizer'); ?>",
-                render: function(data, type, row) {
-                    return row.items_per_hour || row.items_per_hr || 'N/A';
-                }
-            },
             { 
                 data: "status", title: "<?php esc_html_e('Status', 'operations-organizer'); ?>",
                 render: function(data, type, row) {
@@ -768,8 +733,6 @@ jQuery(document).ready(function($) {
                     $('#edit_log_phase_id').val(logData.phase_id || '');
                     $('#edit_log_start_time').val(logData.start_time || '');
                     $('#edit_log_status').val(logData.status || 'started');
-                    $('#edit_log_boxes_completed').val(logData.boxes_completed || '');
-                    $('#edit_log_items_completed').val(logData.items_completed || '');
                     $('#edit_log_notes').val(logData.notes || '');
                     
                     // Reset job number edit checkbox
