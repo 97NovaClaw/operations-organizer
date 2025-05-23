@@ -15,10 +15,10 @@ class OO_Phase {
     public $phase_id;
     public $stream_id;
     public $phase_name;
-    public $phase_slug;
     public $phase_description;
     public $order_in_stream;
-    public $includes_kpi;
+    public $phase_type;
+    public $default_kpi_units;
     public $is_active;
     public $created_at;
     public $updated_at;
@@ -57,11 +57,11 @@ class OO_Phase {
         $this->phase_id = isset( $data->phase_id ) ? intval( $data->phase_id ) : null;
         $this->stream_id = isset( $data->stream_id ) ? intval( $data->stream_id ) : null;
         $this->phase_name = isset( $data->phase_name ) ? $data->phase_name : null;
-        $this->phase_slug = isset( $data->phase_slug ) ? $data->phase_slug : null;
         $this->phase_description = isset( $data->phase_description ) ? $data->phase_description : null;
-        $this->order_in_stream = isset( $data->order_in_stream ) ? intval( $data->order_in_stream ) : null;
-        $this->includes_kpi = isset( $data->includes_kpi ) ? intval( $data->includes_kpi ) : 1;
-        $this->is_active = isset( $data->is_active ) ? intval( $data->is_active ) : 1;
+        $this->order_in_stream = isset( $data->order_in_stream ) ? intval( $data->order_in_stream ) : 0;
+        $this->phase_type = isset( $data->phase_type ) ? $data->phase_type : null;
+        $this->default_kpi_units = isset( $data->default_kpi_units ) ? $data->default_kpi_units : null;
+        $this->is_active = isset( $data->is_active ) ? (bool) $data->is_active : true;
         $this->created_at = isset( $data->created_at ) ? $data->created_at : null;
         $this->updated_at = isset( $data->updated_at ) ? $data->updated_at : null;
     }
@@ -69,23 +69,23 @@ class OO_Phase {
     // Getters
     public function get_id() { return $this->phase_id; }
     public function get_stream_id() { return $this->stream_id; }
-    public function get_phase_name() { return $this->phase_name; }
-    public function get_phase_slug() { return $this->phase_slug; }
-    public function get_phase_description() { return $this->phase_description; }
+    public function get_name() { return $this->phase_name; }
+    public function get_description() { return $this->phase_description; }
     public function get_order_in_stream() { return $this->order_in_stream; }
-    public function get_includes_kpi() { return $this->includes_kpi; }
-    public function get_is_active() { return $this->is_active; }
+    public function get_phase_type() { return $this->phase_type; }
+    public function get_default_kpi_units() { return $this->default_kpi_units; }
+    public function is_active() { return (bool) $this->is_active; }
     public function get_created_at() { return $this->created_at; }
     public function get_updated_at() { return $this->updated_at; }
 
     // Setters
     public function set_stream_id( $id ) { $this->stream_id = intval( $id ); }
-    public function set_phase_name( $name ) { $this->phase_name = sanitize_text_field( $name ); }
-    public function set_phase_slug( $slug ) { $this->phase_slug = sanitize_title( $slug ); }
-    public function set_phase_description( $desc ) { $this->phase_description = $desc ? sanitize_textarea_field( $desc ) : null; }
+    public function set_name( $name ) { $this->phase_name = sanitize_text_field( $name ); }
+    public function set_description( $desc ) { $this->phase_description = $desc ? sanitize_textarea_field( $desc ) : null; }
     public function set_order_in_stream( $order ) { $this->order_in_stream = intval( $order ); }
-    public function set_includes_kpi( $includes_kpi ) { $this->includes_kpi = intval( $includes_kpi ); }
-    public function set_is_active( $is_active ) { $this->is_active = intval( $is_active ); }
+    public function set_phase_type( $type ) { $this->phase_type = $type ? sanitize_text_field( $type ) : null; }
+    public function set_default_kpi_units( $units ) { $this->default_kpi_units = $units ? sanitize_text_field( $units ) : null; }
+    public function set_active( $is_active ) { $this->is_active = (bool) $is_active; }
 
     public function exists() {
         return !empty($this->phase_id) && !empty($this->created_at);
@@ -101,11 +101,11 @@ class OO_Phase {
                 $this->phase_id,
                 $this->stream_id,
                 $this->phase_name,
-                $this->phase_slug,
                 $this->phase_description,
                 $this->order_in_stream,
-                $this->is_active,
-                $this->includes_kpi
+                $this->phase_type,
+                $this->default_kpi_units,
+                $this->is_active ? 1 : 0
             );
             if ( is_wp_error( $result ) ) {
                 return $result;
@@ -116,11 +116,11 @@ class OO_Phase {
             $new_id = OO_DB::add_phase(
                 $this->stream_id,
                 $this->phase_name,
-                $this->phase_slug,
                 $this->phase_description,
                 $this->order_in_stream,
-                1, // is_active
-                $this->includes_kpi
+                $this->phase_type,
+                $this->default_kpi_units,
+                $this->is_active ? 1 : 0
             );
             if ( is_wp_error( $new_id ) ) {
                 return $new_id;
@@ -318,20 +318,22 @@ class OO_Phase {
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
         }
 
-        $stream_id = isset( $_POST['stream_type_id'] ) ? intval( $_POST['stream_type_id'] ) : 0;
+        $stream_id = isset( $_POST['stream_type_id'] ) ? intval( $_POST['stream_type_id'] ) : 0; // Updated field name
         $phase_name = isset( $_POST['phase_name'] ) ? sanitize_text_field( trim($_POST['phase_name']) ) : '';
-        $phase_slug = isset( $_POST['phase_slug'] ) ? sanitize_title( trim($_POST['phase_slug']) ) : '';
+        $phase_slug = isset( $_POST['phase_slug'] ) ? sanitize_title( trim($_POST['phase_slug']) ) : ''; // Read phase_slug from POST
         $phase_description = isset( $_POST['phase_description'] ) ? sanitize_textarea_field( trim($_POST['phase_description']) ) : '';
         $sort_order = isset( $_POST['sort_order'] ) ? intval( $_POST['sort_order'] ) : 0;
-        $includes_kpi = isset( $_POST['includes_kpi'] ) ? 1 : 0;
+        $phase_type = isset( $_POST['phase_type'] ) ? sanitize_text_field( trim($_POST['phase_type']) ) : null;
+        $default_kpi_units = isset( $_POST['default_kpi_units'] ) ? sanitize_text_field( trim($_POST['default_kpi_units']) ) : null;
+        $includes_kpi = isset( $_POST['includes_kpi'] ) ? 1 : 0; // Parse checkbox value
 
         if ( empty($stream_id) || empty($phase_name) ) {
             oo_log('AJAX Error: Stream and Phase Name are required.', $_POST);
             wp_send_json_error( array( 'message' => 'Error: Stream and Phase Name are required.' ) ); return;
         }
 
-        // Call OO_DB::add_phase with cleaned parameters (no legacy phase_type or default_kpi_units)
-        $result = OO_DB::add_phase( $stream_id, $phase_name, $phase_slug, $phase_description, $sort_order, 1, $includes_kpi );
+        // Call to OO_DB::add_phase updated with new parameters, including phase_slug
+        $result = OO_DB::add_phase( $stream_id, $phase_name, $phase_slug, $phase_description, $sort_order, $phase_type, $default_kpi_units, 1, $includes_kpi );
 
         if ( is_wp_error( $result ) ) {
             oo_log('AJAX Error adding phase: ' . $result->get_error_message(), __METHOD__);
@@ -366,6 +368,7 @@ class OO_Phase {
     }
 
     public static function ajax_update_phase() {
+        global $wpdb;
         oo_log('AJAX call received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
         check_ajax_referer('oo_edit_phase_nonce', 'oo_edit_phase_nonce');
@@ -374,23 +377,75 @@ class OO_Phase {
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
         }
         $phase_id = isset( $_POST['edit_phase_id'] ) ? intval( $_POST['edit_phase_id'] ) : 0;
-        $stream_id = isset( $_POST['edit_stream_type_id'] ) ? intval( $_POST['edit_stream_type_id'] ) : 0;
+        $stream_id = isset( $_POST['edit_stream_type_id'] ) ? intval( $_POST['edit_stream_type_id'] ) : 0; // Updated field name
         $phase_name = isset( $_POST['edit_phase_name'] ) ? sanitize_text_field( trim($_POST['edit_phase_name']) ) : '';
-        $phase_slug = isset( $_POST['edit_phase_slug'] ) ? sanitize_title( trim($_POST['edit_phase_slug']) ) : '';
+        $phase_slug = isset( $_POST['edit_phase_slug'] ) ? sanitize_title( trim($_POST['edit_phase_slug']) ) : ''; // Read phase_slug from POST
         $phase_description = isset( $_POST['edit_phase_description'] ) ? sanitize_textarea_field( trim($_POST['edit_phase_description']) ) : '';
         $sort_order = isset( $_POST['edit_sort_order'] ) ? intval( $_POST['edit_sort_order'] ) : null;
+        $phase_type = isset( $_POST['edit_phase_type'] ) ? sanitize_text_field( trim($_POST['edit_phase_type']) ) : null;
+        $default_kpi_units = isset( $_POST['edit_default_kpi_units'] ) ? sanitize_text_field( trim($_POST['edit_default_kpi_units']) ) : null;
         $is_active = isset( $_POST['edit_is_active'] ) ? intval( $_POST['edit_is_active'] ) : null;
+        
+        // Fix for includes_kpi checkbox - explicitly set to 0 if not present in $_POST
         $includes_kpi = isset( $_POST['edit_includes_kpi'] ) ? 1 : 0;
         
         oo_log('Processing phase update with includes_kpi value: ' . $includes_kpi, __METHOD__);
+        
+        // Emergency direct debugging: Check column existence and structure 
+        $phases_table = $wpdb->prefix . 'oo_phases';
+        $columns = $wpdb->get_results("SHOW COLUMNS FROM $phases_table");
+        $column_info = array_map(function($col) { return ['Field' => $col->Field, 'Type' => $col->Type, 'Null' => $col->Null]; }, $columns);
+        oo_log('Phase table structure: ', $column_info);
+        
+        // Try to verify if includes_kpi column physically exists
+        $includes_kpi_column = array_filter($columns, function($col) { return $col->Field === 'includes_kpi'; });
+        if (empty($includes_kpi_column)) {
+            oo_log('CRITICAL: includes_kpi column does not exist in the database table!', __METHOD__);
+            
+            // Try to add it if missing
+            $add_column_result = $wpdb->query("ALTER TABLE {$phases_table} ADD COLUMN `includes_kpi` BOOLEAN NOT NULL DEFAULT 1");
+            if ($add_column_result === false) {
+                oo_log('Failed to add missing includes_kpi column: ' . $wpdb->last_error, __METHOD__);
+            } else {
+                oo_log('Successfully added missing includes_kpi column to phases table', __METHOD__);
+            }
+        }
 
         if ( $phase_id <= 0 || empty($stream_id) || empty($phase_name) ) {
             oo_log('AJAX Error: Phase ID, Stream and Name are required.', $_POST);
             wp_send_json_error( array( 'message' => 'Error: Phase ID, Stream and Name are required.' ) ); return;
         }
         
-        // Call OO_DB::update_phase with cleaned parameters (no legacy phase_type or default_kpi_units)
-        $result = OO_DB::update_phase( $phase_id, $stream_id, $phase_name, $phase_slug, $phase_description, $sort_order, $is_active, $includes_kpi );
+        // Get current phase before updating to verify changes
+        $before_phase = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$phases_table} WHERE phase_id = %d", $phase_id));
+        oo_log('Current phase values BEFORE update: ', $before_phase);
+        
+        // Call to OO_DB::update_phase updated with new parameters, including phase_slug
+        $result = OO_DB::update_phase( $phase_id, $stream_id, $phase_name, $phase_slug, $phase_description, $sort_order, $phase_type, $default_kpi_units, $is_active, $includes_kpi );
+        
+        // Get phase AFTER updating to verify changes
+        $after_phase = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$phases_table} WHERE phase_id = %d", $phase_id));
+        oo_log('Current phase values AFTER update: ', $after_phase);
+        
+        // If includes_kpi didn't update correctly, try a direct SQL update as last resort
+        if (isset($after_phase->includes_kpi) && (int)$after_phase->includes_kpi !== $includes_kpi) {
+            oo_log('includes_kpi did not update correctly. Attempting direct SQL update.', __METHOD__);
+            $direct_update = $wpdb->query($wpdb->prepare(
+                "UPDATE {$phases_table} SET includes_kpi = %d WHERE phase_id = %d",
+                $includes_kpi,
+                $phase_id
+            ));
+            if ($direct_update !== false) {
+                oo_log('Direct SQL update of includes_kpi successful', __METHOD__);
+                $after_direct_update = $wpdb->get_row($wpdb->prepare(
+                    "SELECT phase_id, includes_kpi FROM {$phases_table} WHERE phase_id = %d", 
+                    $phase_id
+                ));
+                oo_log('Phase includes_kpi after direct update: ' . $after_direct_update->includes_kpi, __METHOD__);
+            } else {
+                oo_log('Direct SQL update failed: ' . $wpdb->last_error, __METHOD__);
+            }
+        }
         
         if ( is_wp_error( $result ) ) {
             oo_log('AJAX Error updating phase: ' . $result->get_error_message(), __METHOD__);
