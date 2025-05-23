@@ -1,0 +1,38 @@
+# WordPress specific
+wp-content/
+wp-includes/
+wp-admin/
+index.php
+license.txt
+readme.html
+wp-activate.php
+wp-blog-header.php
+wp-comments-post.php
+wp-config-sample.php
+wp-config.php
+wp-cron.php
+wp-links-opml.php
+wp-load.php
+wp-login.php
+wp-mail.php
+wp-settings.php
+wp-signup.php
+wp-trackback.php
+xmlrpc.php
+
+# IDE / OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Build artifacts
+*.zip
+
+# Operations Organizer Plugin Specific Debug Log
+# Ignore the log file itself, but not the directory or its control files
+!debug/.htaccess
+!debug/.gitkeep
+debug/debug.log 

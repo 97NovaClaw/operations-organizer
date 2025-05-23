@@ -1,0 +1,386 @@
+/* Admin styles for Employee Job Phase Tracker */
+
+.wrap h1 {
+    margin-bottom: 20px;
+}
+
+/* Make plugin admin pages full width */
+.toplevel_page_oo_dashboard #wpcontent,
+.job-tracker_page_oo_employees #wpcontent,
+.job-tracker_page_oo_phases #wpcontent,
+.admin_page_oo_start_job #wpcontent, /* For hidden start page */
+.admin_page_oo_stop_job #wpcontent { /* For hidden stop page */
+    padding-left: 0;
+}
+
+.oo-form-table th {
+    width: 180px; /* Increased width for better readability */
+    padding: 10px;
+}
+.oo-form-table td {
+    padding: 10px;
+}
+
+.oo-form-table td input[type="text"],
+.oo-form-table td input[type="number"],
+.oo-form-table td select,
+.oo-form-table td textarea {
+    width: 100%;
+    max-width: 450px; /* Increased max-width */
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.oo-form-table td textarea {
+    height: 100px;
+}
+
+/* Notices */
+.oo-notice.notice-success,
+.notice.notice-success.oo-notice {
+    border-left-color: #4CAF50 !important; 
+}
+.oo-notice.notice-error,
+.notice.notice-error.oo-notice {
+    border-left-color: #F44336 !important;
+}
+.oo-notice p {
+    margin: 0.5em 0 !important;
+    padding: 2px !important;
+}
+
+
+/* Styles for DataTables */
+.dataTables_wrapper .dataTables_length, 
+.dataTables_wrapper .dataTables_filter, 
+.dataTables_wrapper .dataTables_info, 
+.dataTables_wrapper .dataTables_paginate {
+    margin-bottom: 15px;
+}
+
+#oo-dashboard-filters {
+    margin-bottom: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* Increased gap */
+    align-items: flex-end; /* Align items to bottom for better look with labels on top */
+}
+
+#oo-dashboard-filters .filter-item {
+    display: flex;
+    flex-direction: column;
+}
+
+#oo-dashboard-filters label {
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+#oo-dashboard-filters input[type="date"],
+#oo-dashboard-filters input[type="text"],
+#oo-dashboard-filters select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    min-width: 180px; /* Minimum width for filter inputs */
+}
+#oo-dashboard-filters .button {
+    margin-left: 10px; /* Space for buttons */
+    height: 37px; /* Match input height */
+}
+
+.oo-readonly-field {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    display: inline-block;
+    min-width: 200px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.form-buttons {
+    margin-top: 25px;
+}
+
+/* Modal styles */
+.oo-modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1001; /* Higher z-index */
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.5); /* Darker overlay */
+}
+
+.oo-modal-content {
+    background-color: #fefefe;
+    margin: 8% auto; /* Adjusted margin for better centering */
+    padding: 25px;
+    border: 1px solid #bbb;
+    width: 90%;
+    max-width: 600px; /* Wider modal for forms */
+    border-radius: 5px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.oo-close-button {
+    color: #aaa;
+    float: right;
+    font-size: 32px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.oo-close-button:hover,
+.oo-close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.oo-modal h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+/* Action buttons styling */
+.button-secondary.oo-deactivate {
+    color: #dc3232; 
+    border-color: #dc3232;
+}
+.button-secondary.oo-deactivate:hover,
+.button-secondary.oo-deactivate:focus {
+    background: #dc3232;
+    color: #fff;
+    border-color: #dc3232;
+}
+.button-secondary.oo-activate {
+    color: #2271b1; 
+    border-color: #2271b1;
+}
+.button-secondary.oo-activate:hover,
+.button-secondary.oo-activate:focus {
+    background: #2271b1;
+    color: #fff;
+    border-color: #2271b1;
+}
+
+/* Table styling */
+.wp-list-table th .sorting-indicator::before {
+    font-size: 1.2em;
+}
+
+.wp-list-table td, .wp-list-table th {
+    padding: 10px 8px;
+}
+
+/* Responsive adjustments for DataTables */
+@media screen and (max-width: 782px) {
+    #oo-dashboard-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    #oo-dashboard-filters .filter-item {
+        width: 100%;
+    }
+    #oo-dashboard-filters input,
+    #oo-dashboard-filters select {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+    }
+    .dataTables_wrapper .dataTables_length, 
+    .dataTables_wrapper .dataTables_filter {
+        float: none;
+        text-align: left;
+    }
+    .dataTables_wrapper .dataTables_filter input {
+        width: calc(100% - 60px);
+        margin-left: 0;
+    }
+}
+
+/* Admin-wide Styles */
+
+/* Dashboard Tabs */
+.oo-tab-content {
+    margin-top: 20px;
+}
+
+.oo-dashboard-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    margin-bottom: 20px;
+    padding: 15px;
+}
+
+.oo-notice {
+    background: #f8f9fa;
+    padding: 15px;
+    border-left: 4px solid #72aee6;
+    margin: 15px 0;
+}
+
+.oo-notice.oo-info {
+    border-color: #72aee6;
+}
+
+.oo-notice.oo-warning {
+    border-color: #dba617;
+    background-color: #fff8e5;
+}
+
+.oo-notice.oo-error {
+    border-color: #d63638;
+    background-color: #fbeaea;
+}
+
+.oo-notice.oo-success {
+    border-color: #46b450;
+    background-color: #ecf7ed;
+}
+
+.oo-placeholder-kanban, 
+.oo-placeholder-charts {
+    min-height: 150px;
+    border: 2px dashed #ddd;
+    margin: 20px 0;
+    padding: 20px;
+    text-align: center;
+    background: #f9f9f9;
+}
+
+.oo-kpi-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.oo-kpi-card {
+    flex: 1;
+    min-width: 200px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    padding: 15px;
+    text-align: center;
+    border-radius: 4px;
+}
+
+.oo-kpi-value {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.oo-kpi-label {
+    color: #666;
+    font-size: 14px;
+}
+
+.oo-filter-section {
+    margin: 20px 0;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+/* Dashboard Filters */
+#oo-dashboard-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+}
+
+#oo-dashboard-filters .filter-item {
+    margin-right: 15px;
+    margin-bottom: 10px;
+}
+
+#oo-dashboard-filters label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+#oo-export-options {
+    margin: 15px 0;
+}
+
+/* Modal Styles */
+.oo-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.oo-modal-content {
+    position: relative;
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 700px;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+}
+
+.oo-close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.oo-close-button:hover,
+.oo-close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 782px) {
+    #oo-dashboard-filters {
+        flex-direction: column;
+    }
+    
+    #oo-dashboard-filters .filter-item {
+        width: 100%;
+        margin-right: 0;
+    }
+    
+    .oo-kpi-cards {
+        flex-direction: column;
+    }
+    
+    .oo-modal-content {
+        width: 95%;
+        margin: 5% auto;
+    }
+} 
