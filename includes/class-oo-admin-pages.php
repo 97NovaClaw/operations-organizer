@@ -261,18 +261,18 @@ class OO_Admin_Pages { // Renamed class
             return;
         }
         
-        // Basic validation for KPI data (can be expanded based on unit_type later)
-        // This validation should ideally happen against the defined unit_type for each kpi_key
-        foreach ($sanitized_kpi_values as $key => $value) {
-            // Example: if a kpi named 'items_completed' should be numeric and non-negative
-            // This requires fetching KPI definitions here or in OO_DB::stop_job_phase
-            // For now, this example is simplified.
-            if ( ($key === 'boxes_completed' || $key === 'items_completed') && !empty($value) && !is_numeric($value) || (is_numeric($value) && intval($value) < 0) ) {
-                oo_log( 'AJAX Error: ' . $key . ' must be a non-negative number: ' . $value, __METHOD__ );
-                wp_send_json_error( [ 'message' => esc_html( ucfirst( str_replace('_', ' ', $key) ) ) . ' must be a non-negative number.'] );
-                return;
-            }
-        }
+        // Basic validation for KPI data can be expanded based on unit_type later
+        // For now, specific validation for legacy keys is removed.
+        // foreach ($sanitized_kpi_values as $key => $value) {
+        //     // Example: if a kpi named 'items_completed' should be numeric and non-negative
+        //     // This requires fetching KPI definitions here or in OO_DB::stop_job_phase
+        //     // For now, this example is simplified.
+        //     if ( ($key === 'boxes_completed' || $key === 'items_completed') && !empty($value) && !is_numeric($value) || (is_numeric($value) && intval($value) < 0) ) {
+        //         oo_log( 'AJAX Error: ' . $key . ' must be a non-negative number: ' . $value, __METHOD__ );
+        //         wp_send_json_error( [ 'message' => esc_html( ucfirst( str_replace('_', ' ', $key) ) ) . ' must be a non-negative number.'] );
+        //         return;
+        //     }
+        // }
 
         $result = OO_DB::stop_job_phase($employee_id, $job_id, $stream_id, $phase_id, $sanitized_kpi_values, $notes);
 

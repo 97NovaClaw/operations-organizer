@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.4.2.4
+ * Version:           1.4.3.0
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media

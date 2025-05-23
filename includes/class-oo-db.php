@@ -232,8 +232,6 @@ class OO_DB { // Renamed class
             start_time DATETIME NOT NULL,
             end_time DATETIME NULL,
             duration_minutes INT UNSIGNED NULL,
-            boxes_completed INT UNSIGNED NULL,
-            items_completed INT UNSIGNED NULL,
             kpi_data JSON NULL,
             notes TEXT NULL,
             status VARCHAR(50) NOT NULL DEFAULT 'started',
@@ -1309,14 +1307,8 @@ class OO_DB { // Renamed class
         }
         
         if (!is_null($kpi_data) && is_array($kpi_data)) {
-            if(isset($kpi_data['boxes_completed'])) {
-                $insert_data['boxes_completed'] = intval($kpi_data['boxes_completed']);
-                $formats[] = '%d'; 
-            }
-            if(isset($kpi_data['items_completed'])) {
-                $insert_data['items_completed'] = intval($kpi_data['items_completed']);
-                $formats[] = '%d';
-            }
+            // Legacy fields are no longer directly handled here.
+            // All KPI data, including custom ones, are stored in the kpi_data JSON field.
             $insert_data['kpi_data'] = wp_json_encode($kpi_data);
             $formats[] = '%s';
         }
@@ -1407,27 +1399,8 @@ class OO_DB { // Renamed class
         $update_data['kpi_data'] = wp_json_encode($final_kpi_data);
         $formats[] = '%s';
 
-        if (isset($kpi_data_updates['boxes_completed'])) {
-            $update_data['boxes_completed'] = intval($kpi_data_updates['boxes_completed']); 
-            $formats[] = '%d';
-        } elseif (array_key_exists('boxes_completed', $kpi_data_updates) && is_null($kpi_data_updates['boxes_completed'])) {
-            $update_data['boxes_completed'] = null; 
-            $formats[] = '%s'; // format for NULL should be %s or handled by $wpdb
-        } else if (!isset($final_kpi_data['boxes_completed'])) { // If not in new data and not in old, ensure it can be nulled if column allows
-            $update_data['boxes_completed'] = null; 
-            $formats[] = '%s';
-        }
-
-        if (isset($kpi_data_updates['items_completed'])) {
-            $update_data['items_completed'] = intval($kpi_data_updates['items_completed']); 
-            $formats[] = '%d';
-        } elseif (array_key_exists('items_completed', $kpi_data_updates) && is_null($kpi_data_updates['items_completed'])) {
-            $update_data['items_completed'] = null; 
-            $formats[] = '%s';
-        } else if (!isset($final_kpi_data['items_completed'])) {
-            $update_data['items_completed'] = null; 
-            $formats[] = '%s';
-        }
+        // Legacy fields (boxes_completed, items_completed) are no longer directly updated here.
+        // They are part of the kpi_data JSON blob if they were captured.
 
         if (isset($notes)) { // Allow clearing notes if an empty string is explicitly passed
             $update_data['notes'] = sanitize_textarea_field($notes);
@@ -1602,8 +1575,6 @@ class OO_DB { // Renamed class
             'start_time' => '%s',
             'end_time' => '%s',  // Only use end_time, not stop_time
             'duration_minutes' => '%d',
-            'boxes_completed' => '%d',
-            'items_completed' => '%d',
             'kpi_data' => '%s',
             'notes' => '%s',
             'log_date' => '%s',
