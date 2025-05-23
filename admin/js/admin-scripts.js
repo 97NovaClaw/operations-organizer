@@ -343,9 +343,11 @@ jQuery(document).ready(function($) {
     }
 
     // Usage for Start Job Form (assuming phase_id is available as a JS variable `oo_form_data.phase_id`)
+    /* KPIs are not typically recorded at the start of a job phase.
     if ($('#phase-kpi-fields-container-start').length && typeof oo_form_data !== 'undefined' && oo_form_data.phase_id) {
         loadPhaseKpiFieldsForForm(oo_form_data.phase_id, '#phase-kpi-fields-container-start', 'start');
     }
+    */
 
     // Usage for Stop Job Form (assuming phase_id is available as a JS variable `oo_form_data.phase_id`)
     if ($('#phase-kpi-fields-container-stop').length && typeof oo_form_data !== 'undefined' && oo_form_data.phase_id) {
