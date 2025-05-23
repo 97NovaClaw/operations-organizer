@@ -107,14 +107,6 @@ $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'overview';
                     <th scope="row"><label for="edit_log_end_time"><?php esc_html_e( 'End Time', 'operations-organizer' ); ?></label></th>
                     <td><input type="datetime-local" id="edit_log_end_time" name="edit_log_end_time" /></td>
                 </tr>
-                <tr valign="top">
-                    <th scope="row"><label for="edit_log_boxes_completed"><?php esc_html_e( 'Boxes Completed', 'operations-organizer' ); ?></label></th>
-                    <td><input type="number" id="edit_log_boxes_completed" name="edit_log_boxes_completed" min="0" /></td>
-                </tr>
-                <tr valign="top">
-                    <th scope="row"><label for="edit_log_items_completed"><?php esc_html_e( 'Items Completed', 'operations-organizer' ); ?></label></th>
-                    <td><input type="number" id="edit_log_items_completed" name="edit_log_items_completed" min="0" /></td>
-                </tr>
                  <tr valign="top">
                     <th scope="row"><label for="edit_log_status"><?php esc_html_e( 'Status', 'operations-organizer' ); ?></label></th>
                     <td>

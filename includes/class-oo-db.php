@@ -935,9 +935,9 @@ class OO_DB { // Renamed class
     }
 
     // --- Phase CRUD Methods ---
-    public static function add_phase( $stream_id, $phase_name, $phase_slug = '', $phase_description = '', $order_in_stream = 0, $phase_type = null, $default_kpi_units = null, $is_active = 1, $includes_kpi = 1 ) {
+    public static function add_phase( $stream_id, $phase_name, $phase_slug = '', $phase_description = '', $order_in_stream = 0, $is_active = 1, $includes_kpi = 1 ) {
         oo_log('Attempting to add phase.', __METHOD__);
-        oo_log(compact('stream_id', 'phase_name', 'phase_slug', 'phase_description', 'order_in_stream', 'phase_type', 'default_kpi_units', 'is_active', 'includes_kpi'), __METHOD__);
+        oo_log(compact('stream_id', 'phase_name', 'phase_slug', 'phase_description', 'order_in_stream', 'is_active', 'includes_kpi'), __METHOD__);
         self::init(); global $wpdb;
 
         if (empty($stream_id) || empty($phase_name)) {
@@ -967,47 +967,20 @@ class OO_DB { // Renamed class
             return $error;
         }
         
-        // Check for column existence to handle database schema differences
-        $table_columns = $wpdb->get_results("SHOW COLUMNS FROM " . self::$phases_table);
-        $column_names = array_map(function($col) {
-            return $col->Field;
-        }, $table_columns);
-        
-        // Build data array with only columns that exist in the table
+        // Build data array for the new KPI system
         $data = array(
             'stream_id' => intval($stream_id),
             'phase_name' => sanitize_text_field($phase_name), 
-            'phase_slug' => $phase_slug, // Add the sanitized/generated slug
+            'phase_slug' => $phase_slug,
             'phase_description' => sanitize_textarea_field($phase_description),
             'order_in_stream' => intval($order_in_stream),
             'is_active' => intval($is_active),
+            'includes_kpi' => intval($includes_kpi),
             'created_at' => current_time('mysql', 1)
         );
         
-        // Only add columns that exist in the database table
-        if (in_array('phase_type', $column_names) && $phase_type !== null) {
-            $data['phase_type'] = $phase_type;
-        }
-        
-        if (in_array('default_kpi_units', $column_names) && $default_kpi_units !== null) {
-            $data['default_kpi_units'] = $default_kpi_units;
-        }
-        
-        if (in_array('includes_kpi', $column_names)) {
-            $data['includes_kpi'] = intval($includes_kpi);
-        }
-        
         // Create format array based on data types
-        $formats = array();
-        foreach ($data as $field => $value) {
-            if (is_int($value)) {
-                $formats[] = '%d';
-            } elseif (is_float($value)) {
-                $formats[] = '%f';
-            } else {
-                $formats[] = '%s';
-            }
-        }
+        $formats = array('%d', '%s', '%s', '%s', '%d', '%d', '%d', '%s');
         
         $result = $wpdb->insert(self::$phases_table, $data, $formats);
         
@@ -1028,9 +1001,9 @@ class OO_DB { // Renamed class
         return $result;
     }
 
-    public static function update_phase( $phase_id, $stream_id, $phase_name, $phase_slug = '', $phase_description = '', $order_in_stream = null, $phase_type = null, $default_kpi_units = null, $is_active = null, $includes_kpi = null ) {
+    public static function update_phase( $phase_id, $stream_id, $phase_name, $phase_slug = '', $phase_description = '', $order_in_stream = null, $is_active = null, $includes_kpi = null ) {
         oo_log('Attempting to update phase ID: ' . $phase_id, __METHOD__);
-        oo_log(compact('phase_id', 'stream_id', 'phase_name', 'phase_slug', 'phase_description', 'order_in_stream', 'phase_type', 'default_kpi_units', 'is_active', 'includes_kpi'), __METHOD__);
+        oo_log(compact('phase_id', 'stream_id', 'phase_name', 'phase_slug', 'phase_description', 'order_in_stream', 'is_active', 'includes_kpi'), __METHOD__);
         self::init(); global $wpdb;
 
         if (empty($stream_id) || empty($phase_name)) {
@@ -1040,7 +1013,6 @@ class OO_DB { // Renamed class
         }
 
         // Generate phase_slug from phase_name if it's empty or not provided
-        // If phase_name is being changed, the slug should ideally be regenerated or explicitly provided
         if (empty($phase_slug)) {
             $phase_slug = sanitize_title($phase_name);
         } else {
@@ -1060,41 +1032,19 @@ class OO_DB { // Renamed class
             return $error;
         }
 
-        // Special debug to check for includes_kpi column existence
-        $table_columns = $wpdb->get_results("SHOW COLUMNS FROM " . self::$phases_table);
-        $column_names = array_map(function($col) {
-            return $col->Field;
-        }, $table_columns);
-        
-        oo_log('Phase table columns: ' . implode(', ', $column_names), __METHOD__);
-        
-        // Get current phase before update to compare values
-        $current_phase = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::$phases_table . " WHERE phase_id = %d", $phase_id));
-        oo_log('Current phase data before update: ', $current_phase);
-        
-        // Build data array with only columns that exist in the table
+        // Build data array for the new KPI system
         $data = array(
             'stream_id' => intval($stream_id),
             'phase_name' => sanitize_text_field($phase_name),
-            'phase_slug' => $phase_slug, // Add the sanitized/generated slug
+            'phase_slug' => $phase_slug,
             'phase_description' => sanitize_textarea_field($phase_description),
+            'updated_at' => current_time('mysql', 1)
         );
-        $formats = array('%d', '%s', '%s', '%s');
+        $formats = array('%d', '%s', '%s', '%s', '%s');
 
         if (!is_null($order_in_stream)) { 
             $data['order_in_stream'] = intval($order_in_stream); 
             $formats[] = '%d'; 
-        }
-        
-        // Only add columns that exist in the database table
-        if (in_array('phase_type', $column_names) && !is_null($phase_type)) { 
-            $data['phase_type'] = $phase_type; 
-            $formats[] = '%s'; 
-        }
-        
-        if (in_array('default_kpi_units', $column_names) && !is_null($default_kpi_units)) { 
-            $data['default_kpi_units'] = $default_kpi_units; 
-            $formats[] = '%s'; 
         }
         
         if (!is_null($is_active)) { 
@@ -1102,54 +1052,20 @@ class OO_DB { // Renamed class
             $formats[] = '%d'; 
         }
         
-        // Explicitly handle includes_kpi parameter with detailed logging
-        if (in_array('includes_kpi', $column_names) && !is_null($includes_kpi)) {
+        if (!is_null($includes_kpi)) {
             $data['includes_kpi'] = intval($includes_kpi); 
             $formats[] = '%d';
-            oo_log('Adding includes_kpi to update data with value: ' . $data['includes_kpi'], __METHOD__);
-        } else {
-            oo_log('Not adding includes_kpi to update. Column exists: ' . (in_array('includes_kpi', $column_names) ? 'Yes' : 'No') . ', Value is null: ' . (is_null($includes_kpi) ? 'Yes' : 'No'), __METHOD__);
         }
         
         oo_log('Final update data: ', $data);
 
-        // DEBUG: Manually construct the SQL query to see exactly what's being executed
-        $placeholders = array();
-        $sql = "UPDATE " . self::$phases_table . " SET ";
-        $i = 0;
-        foreach ($data as $key => $value) {
-            if ($i > 0) {
-                $sql .= ", ";
-            }
-            $sql .= "`$key` = ";
-            if (is_null($value)) {
-                $sql .= "NULL";
-            } else if (is_string($value)) {
-                $sql .= "'$value'";
-            } else {
-                $sql .= $value;
-            }
-            $i++;
-        }
-        $sql .= " WHERE phase_id = $phase_id";
-        oo_log('SQL that would be run: ' . $sql, __METHOD__);
-
-        // Now run the real update
-        $result = $wpdb->update(self::$phases_table, $data, array( 'phase_id' => $phase_id ), $formats, array( '%d' ));
+        $result = $wpdb->update(self::$phases_table, $data, array('phase_id' => $phase_id), $formats, array('%d'));
+        
         if ($result === false) {
             $error = new WP_Error('db_error', 'Could not update phase. Error: ' . $wpdb->last_error);
             oo_log('Error updating phase: DB update failed. ' . $wpdb->last_error, $error);
             return $error;
         }
-
-        // Check if the data was actually updated
-        $updated_phase = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::$phases_table . " WHERE phase_id = %d", $phase_id));
-        oo_log('Phase data after update: ', $updated_phase);
-        
-        if (isset($data['includes_kpi'])) {
-            oo_log('Verifying includes_kpi update: Wanted to set to ' . $data['includes_kpi'] . ', actual value after update is ' . $updated_phase->includes_kpi, __METHOD__);
-        }
-        
         oo_log('Phase updated successfully. ID: ' . $phase_id, __METHOD__);
         return true;
     }
