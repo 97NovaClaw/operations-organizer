@@ -355,4 +355,174 @@ jQuery(document).ready(function($) {
     }
     // --- End KPI Fields Logic ---
 
+    // --- Derived KPI Definitions Modal Logic (NEW) ---
+    var $derivedKpiModal = $('#derived-kpi-modal');
+    var $derivedKpiForm = $('#derived-kpi-form');
+
+    // Function to reset and prepare derived KPI modal
+    function resetDerivedKpiModal() {
+        $derivedKpiForm[0].reset();
+        $derivedKpiForm.find('#derived_definition_id').val('');
+        $derivedKpiForm.find('#derived_kpi_oo_action').val('add_derived_kpi');
+        $derivedKpiModal.find('#derived-kpi-modal-title').text(oo_data.text_add_derived_kpi || 'Add Derived Calculation');
+        $derivedKpiForm.find('#derived_secondary_kpi_field, #derived_time_unit_field').hide();
+        $derivedKpiForm.find('#derived_calculation_type').empty();
+        $derivedKpiForm.find('#derived_secondary_kpi_measure_id').empty().append('<option value="">' + (oo_data.text_select_secondary_kpi || '-- Select Secondary KPI --') + '</option>');
+    }
+
+    // Populate calculation type options based on primary KPI unit type
+    function populateCalculationTypes(primaryUnitType) {
+        var $calcTypeSelect = $derivedKpiForm.find('#derived_calculation_type');
+        $calcTypeSelect.empty();
+        var options = '<option value="">' + (oo_data.text_select_calculation_type || '-- Select Calculation Type --') + '</option>';
+
+        if (primaryUnitType === 'integer' || primaryUnitType === 'decimal') {
+            options += '<option value="rate_per_time">Rate per Time Unit</option>';
+            options += '<option value="ratio_to_kpi">Ratio to another KPI</option>';
+            options += '<option value="sum_value">Sum (Value from log)</option>';
+            options += '<option value="average_value">Average (Value from log)</option>';
+        } else if (primaryUnitType === 'boolean') {
+            options += '<option value="count_if_true">Count if True</option>';
+            options += '<option value="count_if_false">Count if False</option>';
+        }
+        // Text KPIs might not have storable derived calculations initially, or limited ones.
+        $calcTypeSelect.html(options);
+    }
+
+    // Populate secondary KPI dropdown (excluding primary KPI)
+    function populateSecondaryKpis(primaryKpiId) {
+        var $secondaryKpiSelect = $derivedKpiForm.find('#derived_secondary_kpi_measure_id');
+        $secondaryKpiSelect.empty().append('<option value="">' + (oo_data.text_select_secondary_kpi || '-- Select Secondary KPI --') + '</option>');
+        
+        if (oo_data.all_kpi_measures && Array.isArray(oo_data.all_kpi_measures)) {
+            $.each(oo_data.all_kpi_measures, function(index, kpi) {
+                if (kpi.kpi_measure_id != primaryKpiId) { // Exclude the primary KPI itself
+                     // Only allow integer/decimal for ratio denominator for now
+                    if (kpi.unit_type === 'integer' || kpi.unit_type === 'decimal') {
+                        $secondaryKpiSelect.append('<option value="' + kpi.kpi_measure_id + '">' + kpi.measure_name + ' (' + kpi.unit_type + ')</option>');
+                    }
+                }
+            });
+        }
+    }
+
+    // Open Modal for ADDING a new derived KPI
+    $('body').on('click', '#add-new-derived-kpi-trigger', function() {
+        resetDerivedKpiModal();
+        var primaryKpiId = $(this).data('primary-kpi-id');
+        var primaryKpiName = $(this).data('primary-kpi-name');
+        var primaryUnitType = $(this).data('primary-kpi-unit-type');
+
+        $derivedKpiForm.find('#modal_primary_kpi_measure_id').val(primaryKpiId);
+        $derivedKpiForm.find('#modal_primary_kpi_name_display').text(primaryKpiName);
+        $derivedKpiForm.find('#modal_primary_kpi_unit_type').val(primaryUnitType); 
+
+        populateCalculationTypes(primaryUnitType);
+        populateSecondaryKpis(primaryKpiId); // Populate for ratio, even if hidden initially
+        $derivedKpiModal.show();
+    });
+
+    // Open Modal for EDITING an existing derived KPI (AJAX to get details)
+    $('body').on('click', '.edit-derived-kpi-trigger', function(e) {
+        e.preventDefault();
+        resetDerivedKpiModal();
+        var definitionId = $(this).data('definition-id');
+        $derivedKpiModal.find('#derived-kpi-modal-title').text(oo_data.text_edit_derived_kpi || 'Edit Derived Calculation');
+        $derivedKpiForm.find('#derived_kpi_oo_action').val('edit_derived_kpi');
+        $derivedKpiForm.find('#derived_definition_id').val(definitionId);
+
+        // AJAX to fetch derived KPI definition details
+        $.post(oo_data.ajax_url, { 
+            action: 'oo_get_derived_kpi_definition_details', // Needs new AJAX action 
+            definition_id: definitionId,
+            _ajax_nonce: oo_data.nonce_get_derived_kpi_details // Needs new nonce
+        }, function(response) {
+            if (response.success && response.data) {
+                var def = response.data.definition;
+                var primaryKpi = response.data.primary_kpi; // Expecting primary KPI details too
+
+                $derivedKpiForm.find('#modal_primary_kpi_measure_id').val(def.primary_kpi_measure_id);
+                $derivedKpiForm.find('#modal_primary_kpi_name_display').text(primaryKpi.measure_name || 'N/A');
+                $derivedKpiForm.find('#modal_primary_kpi_unit_type').val(primaryKpi.unit_type || 'integer');
+
+                $derivedKpiForm.find('#derived_definition_name').val(def.definition_name);
+                populateCalculationTypes(primaryKpi.unit_type || 'integer');
+                $derivedKpiForm.find('#derived_calculation_type').val(def.calculation_type).trigger('change'); // Trigger change to show/hide fields
+                
+                if (def.calculation_type === 'ratio_to_kpi') {
+                    populateSecondaryKpis(def.primary_kpi_measure_id);
+                    $derivedKpiForm.find('#derived_secondary_kpi_measure_id').val(def.secondary_kpi_measure_id);
+                }
+                if (def.calculation_type === 'rate_per_time') {
+                    $derivedKpiForm.find('#derived_time_unit_for_rate').val(def.time_unit_for_rate);
+                }
+                $derivedKpiForm.find('#derived_output_description').val(def.output_description);
+                $derivedKpiForm.find('#derived_is_active').prop('checked', parseInt(def.is_active) === 1);
+                
+                $derivedKpiModal.show();
+            } else {
+                alert(response.data.message || 'Could not load derived calculation details.');
+            }
+        }).fail(function(){
+            alert('AJAX error loading derived calculation details.');
+        });
+    });
+
+    // Handle Calculation Type change
+    $derivedKpiForm.on('change', '#derived_calculation_type', function() {
+        var selectedType = $(this).val();
+        if (selectedType === 'ratio_to_kpi') {
+            $derivedKpiForm.find('#derived_secondary_kpi_field').show();
+            $derivedKpiForm.find('#derived_time_unit_field').hide();
+        } else if (selectedType === 'rate_per_time') {
+            $derivedKpiForm.find('#derived_secondary_kpi_field').hide();
+            $derivedKpiForm.find('#derived_time_unit_field').show();
+        } else {
+            $derivedKpiForm.find('#derived_secondary_kpi_field').hide();
+            $derivedKpiForm.find('#derived_time_unit_field').hide();
+        }
+    });
+
+    // AJAX Form Submission for Derived KPI
+    $derivedKpiForm.on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $submitButton = $form.find('input[type="submit"]');
+        var originalButtonText = $submitButton.val();
+        $submitButton.prop('disabled', true).val(oo_data.text_saving || 'Saving...');
+
+        $.post(oo_data.ajax_url, $form.serialize(), function(response) {
+            // The form submission is handled by page reload due to PHP logic at the top of kpi-measure-management-page.php
+            // So, we just need to close modal on success or show error.
+            if (response.success || response.includes("notice-success")) { // Check for direct success or HTML success notice
+                $derivedKpiModal.hide();
+                location.reload(); // Reload to see changes and success message
+            } else {
+                // Try to extract error message if response is JSON
+                var errorMessage = oo_data.text_error_generic || 'An error occurred.';
+                if (response.data && response.data.message) {
+                    errorMessage = response.data.message;
+                } else if (typeof response === 'string') {
+                    // If it's a string, it might be HTML containing an error notice
+                    var $htmlResponse = $(response);
+                    var $errorNotice = $htmlResponse.find('.notice-error p');
+                    if ($errorNotice.length) {
+                        errorMessage = $errorNotice.first().text();
+                    }
+                }
+                alert('Error: ' + errorMessage);
+                $submitButton.prop('disabled', false).val(originalButtonText);
+            }
+        }).fail(function() {
+            alert(oo_data.text_error_ajax || 'AJAX request failed.');
+            $submitButton.prop('disabled', false).val(originalButtonText);
+        });
+    });
+
+    // Close modal
+    $derivedKpiModal.on('click', '.oo-modal-close', function() {
+        $derivedKpiModal.hide();
+    });
+    // --- End Derived KPI Definitions Modal Logic ---
+
 }); 

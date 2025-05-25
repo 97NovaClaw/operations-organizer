@@ -18,6 +18,7 @@ class OO_DB { // Renamed class
     private static $expense_types_table;
     private static $kpi_measures_table; // New table for KPI measures
     private static $phase_kpi_measures_link_table; // New table for linking KPIs to Phases
+    private static $derived_kpi_definitions_table; // New table for derived KPI definitions
     
     // Stream-specific data tables
     private static $stream_data_soft_content_table;
@@ -39,6 +40,7 @@ class OO_DB { // Renamed class
         self::$expense_types_table = $wpdb->prefix . 'oo_expense_types';
         self::$kpi_measures_table = $wpdb->prefix . 'oo_kpi_measures'; // Initialize new table name
         self::$phase_kpi_measures_link_table = $wpdb->prefix . 'oo_phase_kpi_measures_link'; // Initialize new link table name
+        self::$derived_kpi_definitions_table = $wpdb->prefix . 'oo_derived_kpi_definitions'; // Initialize new table name
         
         // Stream-specific data tables
         self::$stream_data_soft_content_table = $wpdb->prefix . 'oo_stream_data_soft_content';
@@ -384,6 +386,24 @@ class OO_DB { // Renamed class
             INDEX idx_display_order (display_order)
         ) $charset_collate;";
 
+        // SQL for oo_derived_kpi_definitions table (NEW)
+        $sql_derived_kpi_definitions = "CREATE TABLE " . self::$derived_kpi_definitions_table . " (
+            derived_definition_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            definition_name VARCHAR(255) NOT NULL,
+            primary_kpi_measure_id BIGINT UNSIGNED NOT NULL,
+            calculation_type VARCHAR(50) NOT NULL,
+            secondary_kpi_measure_id BIGINT UNSIGNED NULL,
+            time_unit_for_rate VARCHAR(20) NULL,
+            output_description TEXT NULL,
+            is_active BOOLEAN NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (derived_definition_id),
+            KEY idx_primary_kpi_measure_id (primary_kpi_measure_id),
+            KEY idx_secondary_kpi_measure_id (secondary_kpi_measure_id),
+            INDEX idx_is_active (is_active)
+        ) $charset_collate;";
+
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         
         // Order of execution matters due to foreign keys.
@@ -434,6 +454,9 @@ class OO_DB { // Renamed class
         
         oo_log('Running dbDelta for phase_kpi_measures_link table (' . self::$phase_kpi_measures_link_table . ').', __METHOD__);
         dbDelta( $sql_phase_kpi_measures_link );
+        
+        oo_log('Running dbDelta for derived_kpi_definitions table (' . self::$derived_kpi_definitions_table . ').', __METHOD__);
+        dbDelta( $sql_derived_kpi_definitions );
         
         oo_log('Finished dbDelta calls. Check logs for specific table creation/update details.', __METHOD__);
     }
@@ -4330,6 +4353,228 @@ class OO_DB { // Renamed class
         }
         oo_log('Deleted ' . $result . ' phase links for KPI measure ID: ' . $kpi_measure_id, __METHOD__);
         return true;
+    }
+
+    // --- Derived KPI Definitions CRUD Methods (NEW) ---
+
+    /**
+     * Add a new derived KPI definition.
+     * @param array $args Associative array of derived KPI definition data.
+     *                    Required: definition_name, primary_kpi_measure_id, calculation_type.
+     *                    Optional: secondary_kpi_measure_id, time_unit_for_rate, output_description, is_active.
+     * @return int|WP_Error The new derived_definition_id on success, or WP_Error on failure.
+     */
+    public static function add_derived_kpi_definition( $args ) {
+        self::init(); global $wpdb;
+        oo_log('Attempting to add derived KPI definition with args:', $args);
+
+        if ( empty( $args['definition_name'] ) || empty( $args['primary_kpi_measure_id'] ) || empty( $args['calculation_type'] ) ) {
+            return new WP_Error('missing_required_fields', 'Definition Name, Primary KPI Measure ID, and Calculation Type are required.');
+        }
+
+        $data = array(
+            'definition_name' => sanitize_text_field( $args['definition_name'] ),
+            'primary_kpi_measure_id' => intval( $args['primary_kpi_measure_id'] ),
+            'calculation_type' => sanitize_text_field( $args['calculation_type'] ),
+            'secondary_kpi_measure_id' => isset( $args['secondary_kpi_measure_id'] ) ? intval( $args['secondary_kpi_measure_id'] ) : null,
+            'time_unit_for_rate' => isset( $args['time_unit_for_rate'] ) ? sanitize_text_field( $args['time_unit_for_rate'] ) : null,
+            'output_description' => isset( $args['output_description'] ) ? sanitize_textarea_field( $args['output_description'] ) : null,
+            'is_active' => isset( $args['is_active'] ) ? intval( $args['is_active'] ) : 1,
+            'created_at' => current_time('mysql', 1),
+            'updated_at' => current_time('mysql', 1)
+        );
+
+        $formats = array(
+            '%s', // definition_name
+            '%d', // primary_kpi_measure_id
+            '%s', // calculation_type
+            '%d', // secondary_kpi_measure_id
+            '%s', // time_unit_for_rate
+            '%s', // output_description
+            '%d', // is_active
+            '%s', // created_at
+            '%s'  // updated_at
+        );
+
+        $result = $wpdb->insert( self::$derived_kpi_definitions_table, $data, $formats );
+
+        if ( $result === false ) {
+            oo_log('Error adding derived KPI definition: ' . $wpdb->last_error, array('data' => $data));
+            return new WP_Error('db_insert_error', 'Could not add derived KPI definition: ' . $wpdb->last_error);
+        }
+        oo_log('Derived KPI definition added successfully. ID: ' . $wpdb->insert_id, __METHOD__);
+        return $wpdb->insert_id;
+    }
+
+    /**
+     * Get a specific derived KPI definition by its ID.
+     * @param int $derived_definition_id
+     * @return object|null Derived KPI definition object or null if not found.
+     */
+    public static function get_derived_kpi_definition( $derived_definition_id ) {
+        self::init(); global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$derived_kpi_definitions_table . " WHERE derived_definition_id = %d", intval($derived_definition_id) ) );
+    }
+
+    /**
+     * Update an existing derived KPI definition.
+     * @param int $derived_definition_id
+     * @param array $args Associative array of data to update.
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function update_derived_kpi_definition( $derived_definition_id, $args ) {
+        self::init(); global $wpdb;
+        oo_log('Attempting to update derived KPI definition ID: ' . $derived_definition_id . ' with args:', $args);
+
+        $derived_definition_id = intval($derived_definition_id);
+        if ( $derived_definition_id <= 0 ) {
+            return new WP_Error('invalid_derived_definition_id', 'Invalid Derived KPI Definition ID provided for update.');
+        }
+
+        $data = array();
+        $formats = array();
+
+        if ( isset( $args['definition_name'] ) ) { $data['definition_name'] = sanitize_text_field( $args['definition_name'] ); $formats[] = '%s'; }
+        if ( isset( $args['primary_kpi_measure_id'] ) ) { $data['primary_kpi_measure_id'] = intval( $args['primary_kpi_measure_id'] ); $formats[] = '%d'; }
+        if ( isset( $args['calculation_type'] ) ) { $data['calculation_type'] = sanitize_text_field( $args['calculation_type'] ); $formats[] = '%s'; }
+        if ( isset( $args['secondary_kpi_measure_id'] ) ) { $data['secondary_kpi_measure_id'] = is_null($args['secondary_kpi_measure_id']) ? null : intval( $args['secondary_kpi_measure_id'] ); $formats[] = '%d'; }
+        if ( isset( $args['time_unit_for_rate'] ) ) { $data['time_unit_for_rate'] = sanitize_text_field( $args['time_unit_for_rate'] ); $formats[] = '%s'; }
+        if ( isset( $args['output_description'] ) ) { $data['output_description'] = sanitize_textarea_field( $args['output_description'] ); $formats[] = '%s'; }
+        if ( isset( $args['is_active'] ) ) { $data['is_active'] = intval( $args['is_active'] ); $formats[] = '%d'; }
+
+        if ( empty($data) ) {
+            oo_log('No data provided to update for derived KPI definition ID: ' . $derived_definition_id, __METHOD__);
+            return new WP_Error('no_data_to_update', 'No data provided to update derived KPI definition.');
+        }
+
+        $data['updated_at'] = current_time('mysql', 1);
+        $formats[] = '%s';
+
+        $result = $wpdb->update( self::$derived_kpi_definitions_table, $data, array( 'derived_definition_id' => $derived_definition_id ), $formats, array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error updating derived KPI definition ID ' . $derived_definition_id . ': ' . $wpdb->last_error, array('data' => $data));
+            return new WP_Error('db_update_error', 'Could not update derived KPI definition: ' . $wpdb->last_error);
+        }
+        oo_log('Derived KPI definition updated successfully. ID: ' . $derived_definition_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Delete a derived KPI definition.
+     * Note: Foreign key to oo_derived_kpi_definitions is ON DELETE CASCADE.
+     * @param int $derived_definition_id
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function delete_derived_kpi_definition( $derived_definition_id ) {
+        self::init(); global $wpdb;
+        $derived_definition_id = intval($derived_definition_id);
+        if ( $derived_definition_id <= 0 ) {
+            return new WP_Error('invalid_derived_definition_id', 'Invalid Derived KPI Definition ID for deletion.');
+        }
+
+        $result = $wpdb->delete( self::$derived_kpi_definitions_table, array( 'derived_definition_id' => $derived_definition_id ), array('%d') );
+
+        if ( $result === false ) {
+            oo_log('Error deleting derived KPI definition ID ' . $derived_definition_id . ': ' . $wpdb->last_error, __METHOD__);
+            return new WP_Error('db_delete_error', 'Could not delete derived KPI definition: ' . $wpdb->last_error);
+        }
+        if ( $result === 0 ) {
+            oo_log('Derived KPI definition not found for deletion or no rows affected. ID: ' . $derived_definition_id, __METHOD__);
+            return true; // Not necessarily an error
+        }
+        oo_log('Derived KPI definition deleted successfully. ID: ' . $derived_definition_id, __METHOD__);
+        return true;
+    }
+
+    /**
+     * Get multiple derived KPI definitions with filtering, sorting, and pagination.
+     * @param array $params Parameters: is_active, search (definition_name, primary_kpi_measure_id, calculation_type), orderby, order, number, offset.
+     * @return array Array of derived KPI definition objects.
+     */
+    public static function get_derived_kpi_definitions( $params = array() ) {
+        self::init(); global $wpdb;
+
+        $defaults = array(
+            'is_active' => null,
+            'search' => null,
+            'orderby' => 'definition_name',
+            'order' => 'ASC',
+            'number' => -1, // Default to all
+            'offset' => 0,
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql = "SELECT * FROM " . self::$derived_kpi_definitions_table;
+        $where_clauses = array();
+        $query_params = array();
+
+        if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
+        
+        if ( !empty($args['search']) ) {
+            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search'])) . '%';
+            $search_fields = array("definition_name LIKE %s", "primary_kpi_measure_id LIKE %s", "calculation_type LIKE %s");
+            $where_clauses[] = "(" . implode(" OR ", $search_fields) . ")";
+            $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;
+        }
+
+        if ( !empty($where_clauses) ) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        if ( !empty($query_params) ) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+
+        $allowed_orderby = ['derived_definition_id', 'definition_name', 'primary_kpi_measure_id', 'calculation_type', 'is_active', 'created_at'];
+        $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'definition_name';
+        $order = strtoupper($args['order']) === 'DESC' ? 'DESC' : 'ASC';
+        $sql .= " ORDER BY $orderby $order";
+
+        if ( $args['number'] > 0 ) {
+            $sql .= $wpdb->prepare(" LIMIT %d OFFSET %d", intval($args['number']), intval($args['offset']));
+        }
+        
+        oo_log('Executing get_derived_kpi_definitions query: ' . $sql, __METHOD__);
+        return $wpdb->get_results( $sql );
+    }
+
+    /**
+     * Get the count of derived KPI definitions based on filters.
+     * @param array $params Parameters: is_active, search.
+     * @return int Count of derived KPI definitions.
+     */
+    public static function get_derived_kpi_definitions_count( $params = array() ) {
+        self::init(); global $wpdb;
+
+        $defaults = array(
+            'is_active' => null,
+            'search' => null,
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql = "SELECT COUNT(*) FROM " . self::$derived_kpi_definitions_table;
+        $where_clauses = array();
+        $query_params = array();
+
+        if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
+
+        if ( !empty($args['search']) ) {
+            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search'])) . '%';
+            $search_fields = array("definition_name LIKE %s", "primary_kpi_measure_id LIKE %s", "calculation_type LIKE %s");
+            $where_clauses[] = "(" . implode(" OR ", $search_fields) . ")";
+            $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;
+        }
+
+        if ( !empty($where_clauses) ) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        if ( !empty($query_params) ) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+        oo_log('Executing get_derived_kpi_definitions_count query: ' . $sql, __METHOD__);
+        return (int) $wpdb->get_var( $sql );
     }
 
 }

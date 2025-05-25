@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.4.3.0
+ * Version:           1.4.4.0
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,6 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
+define( 'OO_PLUGIN_VERSION', '1.4.4.0' ); // Added plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -48,6 +49,22 @@ function oo_activate_plugin() {
     
     // Hook for post-database creation actions
     do_action('oo_after_db_create');
+}
+
+// Plugin upgrade routine
+add_action( 'plugins_loaded', 'oo_plugin_update_check' );
+function oo_plugin_update_check() {
+    $current_db_version = get_option( 'oo_plugin_db_version', '0' );
+    if ( version_compare( $current_db_version, OO_PLUGIN_VERSION, '<' ) ) {
+        // If the DB version is older than the plugin version, run create_tables
+        OO_DB::init(); // Ensure DB class is initialized with table names
+        OO_DB::create_tables();
+        update_option( 'oo_plugin_db_version', OO_PLUGIN_VERSION );
+        // Optionally, add an admin notice about the update
+        // add_action( 'admin_notices', function() {
+        //     echo '<div class="notice notice-success is-dismissible"><p>Operations Organizer database has been updated to version ' . OO_PLUGIN_VERSION . '.</p></div>';
+        // });
+    }
 }
 
 // Instantiate classes and hook into WordPress
@@ -95,8 +112,17 @@ if ( is_admin() ) {
                 'nonce_dashboard'     => wp_create_nonce('oo_dashboard_nonce'),
                 'nonce_get_phase_kpi_links' => wp_create_nonce('oo_get_phase_kpi_links_nonce'),
                 'nonce_manage_phase_kpi_links' => wp_create_nonce('oo_manage_phase_kpi_links_nonce'),
+                'nonce_get_derived_kpi_details' => wp_create_nonce('oo_get_derived_kpi_details_nonce'),
                 'text_please_select_employee' => __('Please select an employee.', 'operations-organizer'),
                 'text_please_enter_emp_no' => __('Please enter an employee number.', 'operations-organizer'),
+                'text_add_derived_kpi' => __( 'Add Derived Calculation', 'operations-organizer' ),
+                'text_edit_derived_kpi' => __( 'Edit Derived Calculation', 'operations-organizer' ),
+                'text_select_calculation_type' => __( '-- Select Calculation Type --', 'operations-organizer' ),
+                'text_select_secondary_kpi' => __( '-- Select Secondary KPI --', 'operations-organizer' ),
+                'text_saving' => __( 'Saving...', 'operations-organizer' ),
+                'text_error_generic' => __( 'An error occurred.', 'operations-organizer' ),
+                'text_error_ajax' => __( 'AJAX request failed.', 'operations-organizer' ),
+                'all_kpi_measures' => OO_DB::get_kpi_measures(array('is_active' => 1))
             );
             wp_localize_script( 'oo-admin-scripts', 'oo_data', $localized_data );
 
@@ -144,6 +170,9 @@ add_action('wp_ajax_oo_delete_phase_kpi_link', array('OO_Phase', 'ajax_delete_ph
 add_action('wp_ajax_oo_save_phase_kpi_links', array('OO_Phase', 'ajax_save_phase_kpi_links'));
 add_action('wp_ajax_oo_get_kpi_measures', array('OO_Phase', 'ajax_get_kpi_measures'));
 add_action('wp_ajax_oo_get_kpis_for_phase_form', array('OO_Phase', 'ajax_get_kpis_for_phase_form'));
+
+// AJAX for Derived KPI Definitions (NEW)
+add_action('wp_ajax_oo_get_derived_kpi_definition_details', array('OO_Admin_Pages', 'ajax_get_derived_kpi_definition_details'));
 
 // TODO: Update admin menu registration with new structure and OO_Admin_Menus class 
 

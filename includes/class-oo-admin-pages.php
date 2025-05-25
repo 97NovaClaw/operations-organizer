@@ -284,4 +284,35 @@ class OO_Admin_Pages { // Renamed class
             wp_send_json_success(['message' => 'Job phase stopped and KPIs recorded successfully.']);
         }
     }
+
+    public static function ajax_get_derived_kpi_definition_details() {
+        check_ajax_referer('oo_get_derived_kpi_details_nonce', '_ajax_nonce');
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => __('Permission denied.', 'operations-organizer')], 403);
+            return;
+        }
+
+        $definition_id = isset($_POST['definition_id']) ? intval($_POST['definition_id']) : 0;
+        if ($definition_id <= 0) {
+            wp_send_json_error(['message' => __('Invalid Derived KPI Definition ID.', 'operations-organizer')]);
+            return;
+        }
+
+        $definition = OO_DB::get_derived_kpi_definition($definition_id);
+        if (!$definition) {
+            wp_send_json_error(['message' => __('Derived KPI Definition not found.', 'operations-organizer')]);
+            return;
+        }
+
+        // Also fetch the primary KPI details to get its name and unit type for the modal
+        $primary_kpi = null;
+        if ($definition->primary_kpi_measure_id > 0) {
+            $primary_kpi = OO_DB::get_kpi_measure($definition->primary_kpi_measure_id);
+        }
+
+        wp_send_json_success(array(
+            'definition' => $definition,
+            'primary_kpi' => $primary_kpi
+        ));
+    }
 } 
