@@ -483,40 +483,40 @@ jQuery(document).ready(function($) {
         }
     });
 
-    // AJAX Form Submission for Derived KPI
+    // AJAX Form Submission for Derived KPI -- CHANGED TO NORMAL FORM SUBMISSION
     $derivedKpiForm.on('submit', function(e) {
-        e.preventDefault();
+        // e.preventDefault(); // Allowed to submit normally now
         var $form = $(this);
         var $submitButton = $form.find('input[type="submit"]');
-        var originalButtonText = $submitButton.val();
-        $submitButton.prop('disabled', true).val(oo_data.text_saving || 'Saving...');
+        // var originalButtonText = $submitButton.val(); // Not needed for normal submit
+        $submitButton.prop('disabled', true).val(oo_data.text_saving || 'Saving...'); // Still provide user feedback
 
-        $.post(oo_data.ajax_url, $form.serialize(), function(response) {
-            // The form submission is handled by page reload due to PHP logic at the top of kpi-measure-management-page.php
-            // So, we just need to close modal on success or show error.
-            if (response.success || response.includes("notice-success")) { // Check for direct success or HTML success notice
-                $derivedKpiModal.hide();
-                location.reload(); // Reload to see changes and success message
-            } else {
-                // Try to extract error message if response is JSON
-                var errorMessage = oo_data.text_error_generic || 'An error occurred.';
-                if (response.data && response.data.message) {
-                    errorMessage = response.data.message;
-                } else if (typeof response === 'string') {
-                    // If it's a string, it might be HTML containing an error notice
-                    var $htmlResponse = $(response);
-                    var $errorNotice = $htmlResponse.find('.notice-error p');
-                    if ($errorNotice.length) {
-                        errorMessage = $errorNotice.first().text();
-                    }
-                }
-                alert('Error: ' + errorMessage);
-                $submitButton.prop('disabled', false).val(originalButtonText);
-            }
-        }).fail(function() {
-            alert(oo_data.text_error_ajax || 'AJAX request failed.');
-            $submitButton.prop('disabled', false).val(originalButtonText);
-        });
+        // The form will now submit via standard POST to the page,
+        // and be handled by the PHP at the top of kpi-measure-management-page.php
+        // No $.post() call here.
+
+        // $.post(oo_data.ajax_url, $form.serialize(), function(response) {
+        //     if (response.success || response.includes("notice-success")) { 
+        //         $derivedKpiModal.hide();
+        //         location.reload(); 
+        //     } else {
+        //         var errorMessage = oo_data.text_error_generic || 'An error occurred.';
+        //         if (response.data && response.data.message) {
+        //             errorMessage = response.data.message;
+        //         } else if (typeof response === 'string') {
+        //             var $htmlResponse = $(response);
+        //             var $errorNotice = $htmlResponse.find('.notice-error p');
+        //             if ($errorNotice.length) {
+        //                 errorMessage = $errorNotice.first().text();
+        //             }
+        //         }
+        //         alert('Error: ' + errorMessage);
+        //         $submitButton.prop('disabled', false).val(originalButtonText);
+        //     }
+        // }).fail(function() {
+        //     alert(oo_data.text_error_ajax || 'AJAX request failed.');
+        //     $submitButton.prop('disabled', false).val(originalButtonText);
+        // });
     });
 
     // Close modal
