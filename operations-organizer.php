@@ -93,8 +93,8 @@ if ( is_admin() ) {
         }
 
         if ( $is_oo_page ) {
-            wp_enqueue_style( 'oo-admin-styles', OO_PLUGIN_URL . 'admin/css/admin-styles.css', array(), '1.4.2.3' );
-            wp_enqueue_script( 'oo-admin-scripts', OO_PLUGIN_URL . 'admin/js/admin-scripts.js', array( 'jquery', 'jquery-ui-datepicker' ), '1.4.2.3', true );
+            wp_enqueue_style( 'oo-admin-styles', OO_PLUGIN_URL . 'admin/css/admin-styles.css', array(), OO_PLUGIN_VERSION );
+            wp_enqueue_script( 'oo-admin-scripts', OO_PLUGIN_URL . 'admin/js/admin-scripts.js', array( 'jquery', 'jquery-ui-datepicker' ), OO_PLUGIN_VERSION, true );
             
             $localized_data = array(
                 'ajax_url'        => admin_url( 'admin-ajax.php' ),
