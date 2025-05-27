@@ -19,6 +19,7 @@ class OO_DB { // Renamed class
     private static $kpi_measures_table; // New table for KPI measures
     private static $phase_kpi_measures_link_table; // New table for linking KPIs to Phases
     private static $derived_kpi_definitions_table; // New table for derived KPI definitions
+    private static $job_log_derived_values_table; // New table for storing calculated derived values
     
     // Stream-specific data tables
     private static $stream_data_soft_content_table;
@@ -41,6 +42,7 @@ class OO_DB { // Renamed class
         self::$kpi_measures_table = $wpdb->prefix . 'oo_kpi_measures'; // Initialize new table name
         self::$phase_kpi_measures_link_table = $wpdb->prefix . 'oo_phase_kpi_measures_link'; // Initialize new link table name
         self::$derived_kpi_definitions_table = $wpdb->prefix . 'oo_derived_kpi_definitions'; // Initialize new table name
+        self::$job_log_derived_values_table = $wpdb->prefix . 'oo_job_log_derived_values'; // Initialize new table name
         
         // Stream-specific data tables
         self::$stream_data_soft_content_table = $wpdb->prefix . 'oo_stream_data_soft_content';
@@ -404,6 +406,25 @@ class OO_DB { // Renamed class
             INDEX idx_is_active (is_active)
         ) $charset_collate;";
 
+        // SQL for oo_job_log_derived_values table (NEW)
+        $sql_job_log_derived_values = "CREATE TABLE " . self::$job_log_derived_values_table . " (
+            log_derived_value_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            log_id BIGINT UNSIGNED NOT NULL,
+            derived_definition_id BIGINT UNSIGNED NOT NULL,
+            calculated_value_numeric DECIMAL(10,2) NULL,
+            calculated_value_text TEXT NULL,
+            calculated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (log_derived_value_id),
+            INDEX idx_log_id (log_id),
+            INDEX idx_derived_definition_id (derived_definition_id),
+            KEY fk_log_derived_log_id (log_id),
+            KEY fk_log_derived_definition_id (derived_definition_id)
+            /* -- We might add actual foreign key constraints if DB engine supports it and ON DELETE CASCADE is desired
+            -- FOREIGN KEY (log_id) REFERENCES " . self::$job_logs_table . "(log_id) ON DELETE CASCADE,
+            -- FOREIGN KEY (derived_definition_id) REFERENCES " . self::$derived_kpi_definitions_table . "(derived_definition_id) ON DELETE CASCADE
+            */
+        ) $charset_collate;";
+
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         
         // Order of execution matters due to foreign keys.
@@ -457,6 +478,9 @@ class OO_DB { // Renamed class
         
         oo_log('Running dbDelta for derived_kpi_definitions table (' . self::$derived_kpi_definitions_table . ').', __METHOD__);
         dbDelta( $sql_derived_kpi_definitions );
+        
+        oo_log('Running dbDelta for job_log_derived_values table (' . self::$job_log_derived_values_table . ').', __METHOD__);
+        dbDelta( $sql_job_log_derived_values );
         
         oo_log('Finished dbDelta calls. Check logs for specific table creation/update details.', __METHOD__);
     }
@@ -1439,8 +1463,112 @@ class OO_DB { // Renamed class
             oo_log('Error stopping job phase: DB update failed. ' . $wpdb->last_error, $error);
             return $error;
         }
+        
         oo_log('Job phase stopped successfully. Log ID: ' . $log_to_update->log_id, __METHOD__);
+
+        // --- Calculate and Store Derived KPI Values (NEW) ---
+        // This logic is now moved to self::recalculate_and_store_derived_kpis
+        $duration_minutes_for_derived = isset($update_data['duration_minutes']) ? floatval($update_data['duration_minutes']) : 0;
+        self::recalculate_and_store_derived_kpis($log_to_update->log_id, $final_kpi_data, $duration_minutes_for_derived);
+        // --- End Derived KPI Values Logic ---
+
         return true;
+    }
+
+    /**
+     * Recalculates and stores all derived KPI values for a given job log.
+     * This method should be called when a job log is completed or its KPIs are updated.
+     *
+     * @param int $log_id The ID of the job log.
+     * @param array $kpi_values_from_log Associative array of the primary KPI key-value pairs from the log.
+     * @param float $duration_minutes The duration of the job log in minutes.
+     * @return void
+     */
+    public static function recalculate_and_store_derived_kpis($log_id, $kpi_values_from_log, $duration_minutes) {
+        self::init(); global $wpdb;
+        oo_log('Recalculating derived KPIs for log ID: ' . $log_id, __METHOD__);
+
+        if (!is_array($kpi_values_from_log) || empty($kpi_values_from_log) || $duration_minutes < 0) {
+            oo_log('Skipping derived KPI calculation for log ID: ' . $log_id . ' (no KPI data or invalid duration)', __METHOD__);
+            return;
+        }
+
+        // Clear all existing derived values for this log before recalculating all.
+        // This is important if primary KPIs might have been removed from the log's kpi_data,
+        // or if a derived definition was deactivated.
+        self::delete_job_log_derived_values_for_log($log_id);
+
+        foreach ($kpi_values_from_log as $primary_kpi_key => $primary_kpi_value) {
+            $primary_kpi_measure = self::get_kpi_measure_by_key($primary_kpi_key);
+            if ($primary_kpi_measure && $primary_kpi_measure->kpi_measure_id) {
+                $derived_definitions = self::get_derived_kpi_definitions(array(
+                    'primary_kpi_measure_id' => $primary_kpi_measure->kpi_measure_id,
+                    'is_active' => 1
+                ));
+
+                if (!empty($derived_definitions)) {
+                    foreach ($derived_definitions as $derived_def) {
+                        $calculated_numeric_value = null;
+                        $calculated_text_value = null;
+                        $primary_kpi_value_numeric = is_numeric($primary_kpi_value) ? floatval($primary_kpi_value) : 0;
+
+                        switch ($derived_def->calculation_type) {
+                            case 'rate_per_time':
+                                if ($duration_minutes > 0 && is_numeric($primary_kpi_value)) {
+                                    $duration_in_target_unit = $duration_minutes;
+                                    if ($derived_def->time_unit_for_rate === 'hour') {
+                                        $duration_in_target_unit = $duration_minutes / 60.0;
+                                    } elseif ($derived_def->time_unit_for_rate === 'day') {
+                                        $duration_in_target_unit = $duration_minutes / (60.0 * 24.0);
+                                    }
+                                    if ($duration_in_target_unit > 0) {
+                                        $calculated_numeric_value = $primary_kpi_value_numeric / $duration_in_target_unit;
+                                    }
+                                }
+                                break;
+                            case 'ratio_to_kpi':
+                                if ($derived_def->secondary_kpi_measure_id) {
+                                    $secondary_kpi_measure = self::get_kpi_measure($derived_def->secondary_kpi_measure_id);
+                                    if ($secondary_kpi_measure && isset($kpi_values_from_log[$secondary_kpi_measure->measure_key])) {
+                                        $secondary_kpi_value = $kpi_values_from_log[$secondary_kpi_measure->measure_key];
+                                        if (is_numeric($secondary_kpi_value) && floatval($secondary_kpi_value) != 0 && is_numeric($primary_kpi_value)) {
+                                            $calculated_numeric_value = $primary_kpi_value_numeric / floatval($secondary_kpi_value);
+                                        }
+                                    }
+                                }
+                                break;
+                            case 'sum_value':
+                            case 'average_value': 
+                                if (is_numeric($primary_kpi_value)) {
+                                    $calculated_numeric_value = $primary_kpi_value_numeric;
+                                } else {
+                                    $calculated_text_value = strval($primary_kpi_value);
+                                }
+                                break;
+                            case 'count_if_true':
+                                $bool_val = filter_var($primary_kpi_value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                                $calculated_numeric_value = ($bool_val === true) ? 1 : 0;
+                                break;
+                            case 'count_if_false':
+                                $bool_val = filter_var($primary_kpi_value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                                $calculated_numeric_value = ($bool_val === false) ? 1 : 0;
+                                break;
+                        }
+
+                        if (!is_null($calculated_numeric_value) || !is_null($calculated_text_value)) {
+                            // No need to delete first, as we deleted all for the log_id at the start of this function.
+                            self::add_job_log_derived_value(array(
+                                'log_id' => $log_id,
+                                'derived_definition_id' => $derived_def->derived_definition_id,
+                                'calculated_value_numeric' => $calculated_numeric_value,
+                                'calculated_value_text' => $calculated_text_value
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        oo_log('Finished recalculating derived KPIs for log ID: ' . $log_id, __METHOD__);
     }
 
     public static function get_job_log( $log_id ) {
@@ -4575,6 +4703,55 @@ class OO_DB { // Renamed class
         }
         oo_log('Executing get_derived_kpi_definitions_count query: ' . $sql, __METHOD__);
         return (int) $wpdb->get_var( $sql );
+    }
+
+    // --- CRUD methods for oo_job_log_derived_values ---
+    public static function add_job_log_derived_value($args) {
+        self::init(); global $wpdb;
+        // Required: log_id, derived_definition_id
+        // One of: calculated_value_numeric, calculated_value_text
+        if (empty($args['log_id']) || empty($args['derived_definition_id']) || 
+            (!isset($args['calculated_value_numeric']) && !isset($args['calculated_value_text']))) {
+            return new WP_Error('missing_fields', 'log_id, derived_definition_id, and a calculated value are required.');
+        }
+        $data = array(
+            'log_id' => intval($args['log_id']),
+            'derived_definition_id' => intval($args['derived_definition_id']),
+            'calculated_value_numeric' => isset($args['calculated_value_numeric']) ? $args['calculated_value_numeric'] : null, // Assumes already formatted decimal/double
+            'calculated_value_text' => isset($args['calculated_value_text']) ? $args['calculated_value_text'] : null,
+            'calculated_at' => current_time('mysql', 1)
+        );
+        $formats = array('%d', '%d', '%f', '%s', '%s'); 
+        // Adjust format for numeric if it's not always float e.g. if integer. For now %f covers decimal.
+
+        // Potentially, clear existing value for this log_id and derived_definition_id before inserting new one
+        // This depends on whether we expect multiple values or always one current value per log per derived definition.
+        // For now, assuming we might update or insert new if needed, or that calling code handles prior deletion.
+
+        $result = $wpdb->insert(self::$job_log_derived_values_table, $data, $formats);
+        if ($result === false) {
+            return new WP_Error('db_insert_error', 'Could not add job log derived value: ' . $wpdb->last_error);
+        }
+        return $wpdb->insert_id;
+    }
+
+    public static function get_job_log_derived_values($log_id, $derived_definition_id = null) {
+        self::init(); global $wpdb;
+        $sql = $wpdb->prepare("SELECT * FROM " . self::$job_log_derived_values_table . " WHERE log_id = %d", $log_id);
+        if (!is_null($derived_definition_id)) {
+            $sql .= $wpdb->prepare(" AND derived_definition_id = %d", $derived_definition_id);
+        }
+        if (!is_null($derived_definition_id)) { // if a specific def is asked, expect one row
+            return $wpdb->get_row($sql);
+        } else { // if all for a log_id, expect multiple rows
+            return $wpdb->get_results($sql);
+        }
+    }
+    
+    // It might be useful to have a method to delete derived values for a log, e.g., if the log is deleted or KPIs re-calculated.
+    public static function delete_job_log_derived_values_for_log($log_id) {
+        self::init(); global $wpdb;
+        return $wpdb->delete(self::$job_log_derived_values_table, array('log_id' => intval($log_id)), array('%d'));
     }
 
 }

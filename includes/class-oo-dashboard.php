@@ -100,11 +100,19 @@ class OO_Dashboard { // Renamed class
         $filter_date_from = isset($_POST['filter_date_from']) && !empty($_POST['filter_date_from']) ? sanitize_text_field($_POST['filter_date_from']) : null;
         $filter_date_to = isset($_POST['filter_date_to']) && !empty($_POST['filter_date_to']) ? sanitize_text_field($_POST['filter_date_to']) : null;
         $filter_status = isset($_POST['filter_status']) && !empty($_POST['filter_status']) ? sanitize_text_field($_POST['filter_status']) : null;
-        $selected_kpi_keys = isset($_POST['selected_kpi_keys']) && is_array($_POST['selected_kpi_keys']) ? array_map('sanitize_key', $_POST['selected_kpi_keys']) : array();
+        $selected_columns_config = isset($_POST['selected_columns_config']) && is_array($_POST['selected_columns_config']) ? $_POST['selected_columns_config'] : array();
 
-        // Legacy KPI keys are no longer forced into selection.
-        // If 'boxes_completed' or 'items_completed' are needed, they should be selected as dynamic KPIs.
-        oo_log('Selected KPI keys for processing: ', $selected_kpi_keys);
+        // Extract primary KPI keys for direct data fetching if needed for those columns
+        $selected_primary_kpi_keys = array();
+        if (!empty($selected_columns_config)) {
+            foreach ($selected_columns_config as $col_config) {
+                if (isset($col_config['type']) && $col_config['type'] === 'primary' && isset($col_config['key'])) {
+                    $selected_primary_kpi_keys[] = sanitize_key($col_config['key']);
+                }
+            }
+        }
+        oo_log('Selected primary KPI keys for processing: ', $selected_primary_kpi_keys);
+        oo_log('Full selected columns config: ', $selected_columns_config);
         
         // Check if we have explicit order parameter, useful when tabs enforce specific ordering
         $order_column_index = isset($_POST['order'][0]['column']) ? intval($_POST['order'][0]['column']) : 4; // Default to start_time column
@@ -260,18 +268,38 @@ class OO_Dashboard { // Renamed class
 
             // Add selected dynamic KPI data to the row
             // The keys in $row_data should match the `data` property in DataTable column definitions (e.g., 'kpi_measurekey')
-            foreach ($selected_kpi_keys as $kpi_key) {
+            foreach ($selected_primary_kpi_keys as $kpi_key) {
                 $row_data['kpi_' . $kpi_key] = isset($current_kpi_values[$kpi_key]) ? esc_html($current_kpi_values[$kpi_key]) : 'N/A';
             }
-            // Ensure legacy 'boxes_completed' and 'items_completed' are available if not in selected_kpi_keys but needed by other parts of JS
-            // (e.g. if hardcoded columns for these are still present, or for calculations)
-            // This ensures they are in the data object sent to datatables, even if not explicitly selected as a kpi_ column.
-            // if (!isset($row_data['kpi_boxes_completed']) && !in_array('boxes_completed', $selected_kpi_keys)) {
-            //      $row_data['boxes_completed'] = $boxes_completed; 
-            // }
-            // if (!isset($row_data['kpi_items_completed']) && !in_array('items_completed', $selected_kpi_keys)) {
-            //      $row_data['items_completed'] = $items_completed; 
-            // }
+            // New logic for selected columns (primary and derived)
+            if (!empty($selected_columns_config)) {
+                foreach ($selected_columns_config as $col_config) {
+                    if (isset($col_config['type'])) {
+                        if ($col_config['type'] === 'primary' && isset($col_config['key'])) {
+                            $kpi_key = sanitize_key($col_config['key']);
+                            $row_data['kpi_' . $kpi_key] = isset($current_kpi_values[$kpi_key]) ? esc_html($current_kpi_values[$kpi_key]) : 'N/A';
+                        } elseif ($col_config['type'] === 'derived' && isset($col_config['id'])) {
+                            $derived_definition_id = intval($col_config['id']);
+                            $data_key = 'derived_metric_val_' . $derived_definition_id;
+                            $derived_value_obj = OO_DB::get_job_log_derived_values($log->log_id, $derived_definition_id);
+                            
+                            if ($derived_value_obj) {
+                                if (!is_null($derived_value_obj->calculated_value_numeric)) {
+                                    // Format numeric value, perhaps to 2 decimal places if appropriate
+                                    // For now, direct value, can be refined based on derived_def output type later
+                                    $row_data[$data_key] = esc_html(round(floatval($derived_value_obj->calculated_value_numeric), 2)); 
+                                } elseif (!is_null($derived_value_obj->calculated_value_text)) {
+                                    $row_data[$data_key] = esc_html($derived_value_obj->calculated_value_text);
+                                } else {
+                                    $row_data[$data_key] = 'N/A';
+                                }
+                            } else {
+                                $row_data[$data_key] = 'N/A';
+                            }
+                        }
+                    }
+                }
+            }
 
             $data[] = $row_data;
         }
@@ -499,6 +527,33 @@ class OO_Dashboard { // Renamed class
             wp_send_json_error(['message' => 'Error updating job log: ' . $result->get_error_message()]);
         } else {
             oo_log('AJAX Success: Job log updated. Log ID: ' . $log_id, __METHOD__);
+
+            // Recalculate derived KPIs if kpi_data or time affecting duration was part of the update
+            if (isset($data_to_update['kpi_data']) || isset($data_to_update['start_time']) || isset($data_to_update['end_time'])) {
+                $updated_log = OO_DB::get_job_log($log_id);
+                if ($updated_log) {
+                    $kpi_values_from_log = !empty($updated_log->kpi_data) ? json_decode($updated_log->kpi_data, true) : array();
+                    $duration_minutes = 0;
+                    if ($updated_log->start_time && $updated_log->end_time) {
+                        // Calculate duration (similar to how it's done in stop_job_phase or calculate_duration)
+                        try {
+                            $start = new DateTime($updated_log->start_time, new DateTimeZone(wp_timezone_string()));
+                            $end = new DateTime($updated_log->end_time, new DateTimeZone(wp_timezone_string()));
+                            $interval = $start->diff($end);
+                            $duration_minutes = ($interval->days * 24 * 60) + ($interval->h * 60) + $interval->i;
+                        } catch (Exception $e) {
+                            oo_log('Error calculating duration for derived KPI recalc: ' . $e->getMessage(), __METHOD__);
+                        }
+                    } else if (isset($updated_log->duration_minutes)) { // Fallback if duration_minutes is already stored correctly
+                         $duration_minutes = floatval($updated_log->duration_minutes);
+                    }
+                    
+                    if (is_array($kpi_values_from_log)) {
+                        OO_DB::recalculate_and_store_derived_kpis($log_id, $kpi_values_from_log, $duration_minutes);
+                        oo_log('Derived KPIs recalculated after job log update for log ID: ' . $log_id, __METHOD__);
+                    }
+                }
+            }
             wp_send_json_success(['message' => 'Job log updated successfully.']);
         }
     }
