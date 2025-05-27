@@ -86,7 +86,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <th><?php esc_html_e('Duration', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('Notes', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('KPI Data', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('Actions', 'operations-organizer'); ?></th>
             </tr>
         </thead>
@@ -104,7 +103,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <th><?php esc_html_e('Duration', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('Notes', 'operations-organizer'); ?></th>
-                <th><?php esc_html_e('KPI Data', 'operations-organizer'); ?></th>
                 <th><?php esc_html_e('Actions', 'operations-organizer'); ?></th>
             </tr>
         </tfoot>
@@ -154,7 +152,6 @@ jQuery(document).ready(function($) {
                 return escData;
               } 
             },
-            { data: 'kpi_data' },
             {
                 data: null, // Using null for custom content
                 orderable: false,
@@ -229,14 +226,13 @@ jQuery(document).ready(function($) {
                 var headers = [
                     "Employee Name", "Job No.", "Stream Type", "Phase", 
                     "Start Time", "End Time", "Duration", 
-                    "Status", "Notes", "KPI Data"
+                    "Status", "Notes"
                 ];
                 csvData.push(headers.join(','));
 
                 response.data.forEach(function(row) {
                     var statusText = $($.parseHTML(row.status)).text().trim(); // Strip HTML from status for CSV
                     var notesText = row.notes ? row.notes.replace(/"/g, '""').replace(/\r\n|\n|\r/g, ' ') : '';
-                    var kpiDataText = (typeof row.kpi_data === 'string') ? row.kpi_data : JSON.stringify(row.kpi_data || {});
 
                     var csvRow = [
                         '"' + row.employee_name.replace(/"/g, '""') + '"',
@@ -247,8 +243,7 @@ jQuery(document).ready(function($) {
                         '"' + (row.end_time !== 'N/A' ? row.end_time.replace(/"/g, '""') : 'N/A') + '"',
                         '"' + row.duration.replace(/"/g, '""') + '"',
                         '"' + statusText + '"',
-                        '"' + notesText + '"',
-                        '"' + kpiDataText + '"'
+                        '"' + notesText + '"'
                     ];
                     csvData.push(csvRow.join(','));
                 });
@@ -308,7 +303,6 @@ jQuery(document).ready(function($) {
                     $('#oo-edit-log-form').find('#edit_log_end_time').val(log.end_time);     
                     $('#oo-edit-log-form').find('#edit_log_status').val(log.status);
                     $('#oo-edit-log-form').find('#edit_log_notes').val(log.notes);
-                    $('#oo-edit-log-form').find('#edit_log_kpi_data').val( (typeof log.kpi_data === 'string') ? log.kpi_data : JSON.stringify(log.kpi_data || {}) );
                     $('#ooEditLogModal').show();
                 } else {
                     alert(response.data.message || '<?php echo esc_js(__("Could not fetch log details.", "operations-organizer")); ?>');

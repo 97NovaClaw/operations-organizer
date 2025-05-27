@@ -182,7 +182,6 @@ foreach ($phases as $phase) {
                     <th><?php esc_html_e('Duration', 'operations-organizer'); ?></th>
                     <th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
                     <th><?php esc_html_e('Notes', 'operations-organizer'); ?></th>
-                    <th><?php esc_html_e('KPI Data', 'operations-organizer'); ?></th>
                     <th><?php esc_html_e('Actions', 'operations-organizer'); ?></th>
                 </tr>
             </thead>
@@ -384,6 +383,14 @@ jQuery(document).ready(function($) {
                         orderable: true, 
                         searchable: true 
                     });
+                } else if (kpi.type === 'raw_json') {
+                     columnsConfig.push({
+                        data: 'kpi_data',
+                        title: kpi.name,
+                        defaultContent: 'N/A',
+                        orderable: false, // JSON data not easily sortable
+                        searchable: true 
+                    });
                 }
             });
         }
@@ -574,10 +581,8 @@ jQuery(document).ready(function($) {
                     return data || '';
                 }
             },
-            { data: "notes", title: "<?php esc_html_e('Notes', 'operations-organizer'); ?>" },
-            // The generic 'KPI Data' column might be removed if all selected KPIs are shown as separate columns
-            // Or it can be a fallback to show non-selected KPIs from the JSON
-            { data: "kpi_data", title: "<?php esc_html_e('All KPI Data (JSON)', 'operations-organizer'); ?>" } 
+            { data: "notes", title: "<?php esc_html_e('Notes', 'operations-organizer'); ?>" }
+            // { data: "kpi_data", title: "<?php esc_html_e('All KPI Data (JSON)', 'operations-organizer'); ?>" } // Removed, now optional via selector
         ];
     }
 
@@ -1019,6 +1024,14 @@ jQuery(document).ready(function($) {
                     } else {
                         echo '<p>' . esc_html__('No active KPI measures defined yet. Please define them under KPI Definitions.', 'operations-organizer') . '</p>';
                     }
+                    echo '<hr style="margin: 10px 0;">';
+                    echo '<div style="margin-top:10px;">';
+                    echo '<strong>' . esc_html__('Advanced/Debug Columns:', 'operations-organizer') . '</strong>';
+                    echo '<label style="display: block; margin-top: 5px;">';
+                    echo '<input type="checkbox" name="selected_kpi_columns[]" value="raw_kpi_data_json" data-measure-name="' . esc_attr__('All KPI Data (JSON)', 'operations-organizer') . '" data-kpi-type="raw_json">';
+                    echo ' ' . esc_html__('All KPI Data (JSON)', 'operations-organizer');
+                    echo '</label>';
+                    echo '</div>';
                     ?></div><button type="button" id="apply_selected_kpi_columns" class="button button-primary"><?php esc_html_e('Apply Columns', 'operations-organizer'); ?></button><button type="button" class="button oo-modal-cancel"><?php esc_html_e('Cancel', 'operations-organizer'); ?></button></div></div>');
     $('body').append(kpiColumnModal); // Append modal to body once
 
@@ -1031,6 +1044,8 @@ jQuery(document).ready(function($) {
                     currentlySelectedValues.push(kpiObj.key);
                 } else if (kpiObj.type === 'derived') {
                     currentlySelectedValues.push(kpiObj.original_value_string);
+                } else if (kpiObj.type === 'raw_json') {
+                    currentlySelectedValues.push(kpiObj.key); 
                 }
             });
         }
@@ -1068,6 +1083,12 @@ jQuery(document).ready(function($) {
                     name: kpiName,
                     primary_key: $checkbox.data('primary-kpi-key'),
                     original_value_string: kpiValue 
+                });
+            } else if (kpiType === 'raw_json') {
+                selectedObjects.push({
+                    type: 'raw_json',
+                    key: kpiValue, // e.g. 'raw_kpi_data_json'
+                    name: kpiName  // e.g. 'All KPI Data (JSON)'
                 });
             }
         });

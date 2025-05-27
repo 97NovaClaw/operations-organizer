@@ -1487,9 +1487,11 @@ class OO_DB { // Renamed class
     public static function recalculate_and_store_derived_kpis($log_id, $kpi_values_from_log, $duration_minutes) {
         self::init(); global $wpdb;
         oo_log('Recalculating derived KPIs for log ID: ' . $log_id, __METHOD__);
+        oo_log('Input kpi_values: ', $kpi_values_from_log);
+        oo_log('Input duration_minutes: ' . $duration_minutes, __METHOD__);
 
-        if (!is_array($kpi_values_from_log) || empty($kpi_values_from_log) || $duration_minutes < 0) {
-            oo_log('Skipping derived KPI calculation for log ID: ' . $log_id . ' (no KPI data or invalid duration)', __METHOD__);
+        if (!is_array($kpi_values_from_log) || empty($kpi_values_from_log)) {
+            oo_log('Skipping derived KPI calculation for log ID: ' . $log_id . ' (No KPI data provided or not an array)', __METHOD__);
             return;
         }
 
@@ -1499,15 +1501,20 @@ class OO_DB { // Renamed class
         self::delete_job_log_derived_values_for_log($log_id);
 
         foreach ($kpi_values_from_log as $primary_kpi_key => $primary_kpi_value) {
+            oo_log('Processing primary_kpi_key: ' . $primary_kpi_key . ' with value: ' . $primary_kpi_value, __METHOD__);
             $primary_kpi_measure = self::get_kpi_measure_by_key($primary_kpi_key);
+            oo_log('Primary KPI Measure for key ' . $primary_kpi_key . ': ', $primary_kpi_measure);
+
             if ($primary_kpi_measure && $primary_kpi_measure->kpi_measure_id) {
                 $derived_definitions = self::get_derived_kpi_definitions(array(
                     'primary_kpi_measure_id' => $primary_kpi_measure->kpi_measure_id,
                     'is_active' => 1
                 ));
+                oo_log('Found ' . count($derived_definitions) . ' derived definitions for primary KPI ID ' . $primary_kpi_measure->kpi_measure_id, __METHOD__);
 
                 if (!empty($derived_definitions)) {
                     foreach ($derived_definitions as $derived_def) {
+                        oo_log('Calculating derived_def ID: ' . $derived_def->derived_definition_id . ' (' . $derived_def->definition_name . ') of type: ' . $derived_def->calculation_type, __METHOD__);
                         $calculated_numeric_value = null;
                         $calculated_text_value = null;
                         $primary_kpi_value_numeric = is_numeric($primary_kpi_value) ? floatval($primary_kpi_value) : 0;
@@ -1521,6 +1528,7 @@ class OO_DB { // Renamed class
                                     } elseif ($derived_def->time_unit_for_rate === 'day') {
                                         $duration_in_target_unit = $duration_minutes / (60.0 * 24.0);
                                     }
+                                    oo_log('Rate per time: primary_val_num=' . $primary_kpi_value_numeric . ', duration_target_unit=' . $duration_in_target_unit, __METHOD__);
                                     if ($duration_in_target_unit > 0) {
                                         $calculated_numeric_value = $primary_kpi_value_numeric / $duration_in_target_unit;
                                     }
@@ -1531,6 +1539,7 @@ class OO_DB { // Renamed class
                                     $secondary_kpi_measure = self::get_kpi_measure($derived_def->secondary_kpi_measure_id);
                                     if ($secondary_kpi_measure && isset($kpi_values_from_log[$secondary_kpi_measure->measure_key])) {
                                         $secondary_kpi_value = $kpi_values_from_log[$secondary_kpi_measure->measure_key];
+                                        oo_log('Ratio to KPI: primary_val_num=' . $primary_kpi_value_numeric . ', secondary_key=' . $secondary_kpi_measure->measure_key . ', secondary_val=' . $secondary_kpi_value, __METHOD__);
                                         if (is_numeric($secondary_kpi_value) && floatval($secondary_kpi_value) != 0 && is_numeric($primary_kpi_value)) {
                                             $calculated_numeric_value = $primary_kpi_value_numeric / floatval($secondary_kpi_value);
                                         }
@@ -1555,14 +1564,17 @@ class OO_DB { // Renamed class
                                 break;
                         }
 
+                        oo_log('Calculated values: Numeric=' . $calculated_numeric_value . ', Text=' . $calculated_text_value . ' for derived_def ID: ' . $derived_def->derived_definition_id, __METHOD__);
+
                         if (!is_null($calculated_numeric_value) || !is_null($calculated_text_value)) {
                             // No need to delete first, as we deleted all for the log_id at the start of this function.
-                            self::add_job_log_derived_value(array(
+                            $insert_derived_result = self::add_job_log_derived_value(array(
                                 'log_id' => $log_id,
                                 'derived_definition_id' => $derived_def->derived_definition_id,
                                 'calculated_value_numeric' => $calculated_numeric_value,
                                 'calculated_value_text' => $calculated_text_value
                             ));
+                            oo_log('Result of adding derived value for def ID ' . $derived_def->derived_definition_id . ': ', $insert_derived_result);
                         }
                     }
                 }
