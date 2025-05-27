@@ -383,4 +383,85 @@
         width: 95%;
         margin: 5% auto;
     }
+}
+
+/* Filter Section Improvements */
+.oo-dashboard-section .oo-filter-section {
+    display: flex;
+    flex-wrap: wrap; /* Allow items to wrap to the next line */
+    gap: 20px; /* Space between filter items/groups */
+    padding: 15px;
+    border: 1px solid #ccd0d4;
+    background-color: #f9f9f9;
+    margin-bottom: 20px;
+    align-items: flex-end; /* Align items to the bottom, useful for buttons */
+}
+
+.oo-filter-section .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px; /* Space between individual filter items in a row */
+    align-items: flex-end; /* Align items to the bottom */
+    width: 100%; /* Make rows take full width to better manage items */
+}
+
+.oo-filter-section .filter-item {
+    display: flex;
+    flex-direction: column; /* Stack label on top of input */
+    margin-bottom: 0; /* Remove default bottom margin if any */
+    flex-grow: 1; /* Allow items to grow if space allows, or set fixed widths */
+    min-width: 150px; /* Prevent items from becoming too small */
+}
+
+.oo-filter-section .filter-item label {
+    margin-bottom: 5px; /* Space between label and input */
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.oo-filter-section .filter-item input[type="text"],
+.oo-filter-section .filter-item select {
+    padding: 6px 8px;
+    width: 100%; /* Make inputs/selects take full width of their filter-item */
+    box-sizing: border-box;
+}
+
+/* Specifically for the button group in the last filter-item of a filter-row */
+/* This selector might need to be more specific if structure varies */
+.oo-filter-section .filter-row .filter-item.oo-filter-buttons {
+    flex-grow: 0; /* Don't let button container grow excessively */
+    min-width: auto; /* Reset min-width for button container */
+    flex-direction: row; /* For buttons side-by-side */
+    align-items: center; /* Align buttons vertically */
+    /* margin-left: auto; Push button group to the right if desired, this might need adjustment */
+}
+.oo-filter-section .filter-row .filter-item.oo-filter-buttons button {
+    margin-right: 8px;
+}
+.oo-filter-section .filter-row .filter-item.oo-filter-buttons button:last-child {
+    margin-right: 0;
+}
+
+/* Adjustments for the KPI selector section if it uses similar classes */
+.oo-kpi-column-selector-section.filter-row {
+    align-items: center; /* Vertically align items in the KPI selector row */
+}
+.oo-kpi-column-selector-section .filter-item label {
+    margin-right: 10px; /* Space between label and button */
+}
+
+/* Ensure labels and inputs are easily readable on mobile */
+@media (max-width: 782px) {
+    .oo-filter-section .filter-item {
+        min-width: 100%; /* Full width on smaller screens */
+    }
+    .oo-filter-section .filter-row .filter-item.oo-filter-buttons {
+        width: 100%;
+        justify-content: flex-start;
+        margin-left: 0;
+    }
+    .oo-filter-section .filter-row .filter-item.oo-filter-buttons button {
+        flex-grow: 1;
+        margin-bottom: 5px;
+    }
 } 

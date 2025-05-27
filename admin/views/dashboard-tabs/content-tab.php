@@ -152,7 +152,7 @@ foreach ($phases as $phase) {
                     <input type="text" id="content_filter_date_to" name="content_filter_date_to" class="oo-datepicker" placeholder="YYYY-MM-DD">
                 </div>
 
-                <div class="filter-item">
+                <div class="filter-item oo-filter-buttons">
                     <button id="content_apply_filters_button" class="button button-primary"><?php esc_html_e('Apply Filters', 'operations-organizer');?></button>
                     <button id="content_clear_filters_button" class="button"><?php esc_html_e('Clear Filters', 'operations-organizer');?></button>
                 </div>

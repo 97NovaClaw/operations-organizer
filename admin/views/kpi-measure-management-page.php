@@ -314,6 +314,7 @@ $unit_types = array( 'integer', 'decimal', 'text', 'boolean' ); // Define availa
                         <th scope="col"><?php esc_html_e( 'Name', 'operations-organizer' ); ?></th>
                         <th scope="col"><?php esc_html_e( 'Key', 'operations-organizer' ); ?></th>
                         <th scope="col"><?php esc_html_e( 'Unit Type', 'operations-organizer' ); ?></th>
+                        <th scope="col"><?php esc_html_e( 'Associated Streams', 'operations-organizer' ); ?></th>
                         <th scope="col"><?php esc_html_e( 'Status', 'operations-organizer' ); ?></th>
                         <th scope="col"><?php esc_html_e( 'Actions', 'operations-organizer' ); ?></th>
                     </tr>
@@ -327,6 +328,22 @@ $unit_types = array( 'integer', 'decimal', 'text', 'boolean' ); // Define availa
                                 <td><strong><a href="<?php echo esc_url( admin_url( 'admin.php?page=oo_kpi_measures&action=edit_kpi_measure&kpi_measure_id=' . $measure->kpi_measure_id ) ); ?>"><?php echo esc_html( $measure->measure_name ); ?></a></strong></td>
                                 <td><code><?php echo esc_html( $measure->measure_key ); ?></code></td>
                                 <td><?php echo esc_html( ucfirst( $measure->unit_type ) ); ?></td>
+                                <td>
+                                    <?php
+                                    $linked_phases_with_stream_info = OO_DB::get_phase_kpi_links_by_measure($measure->kpi_measure_id, array('join_phases' => true));
+                                    $stream_names = array();
+                                    if (!empty($linked_phases_with_stream_info)) {
+                                        $stream_ids = array_unique(wp_list_pluck($linked_phases_with_stream_info, 'stream_id'));
+                                        foreach ($stream_ids as $stream_id) {
+                                            $stream = OO_DB::get_stream($stream_id);
+                                            if ($stream && $stream->stream_name) {
+                                                $stream_names[] = esc_html($stream->stream_name);
+                                            }
+                                        }
+                                    }
+                                    echo !empty($stream_names) ? implode(', ', $stream_names) : esc_html__('N/A', 'operations-organizer');
+                                    ?>
+                                </td>
                                 <td>
                                     <?php 
                                     $status_text = $measure->is_active ? __( 'Active', 'operations-organizer' ) : __( 'Inactive', 'operations-organizer' );
@@ -345,7 +362,7 @@ $unit_types = array( 'integer', 'decimal', 'text', 'boolean' ); // Define availa
                         <?php endforeach; ?>
                     <?php else : ?>
                         <tr>
-                            <td colspan="5"><?php esc_html_e( 'No KPI measures found.', 'operations-organizer' ); ?></td>
+                            <td colspan="6"><?php esc_html_e( 'No KPI measures found.', 'operations-organizer' ); ?></td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
