@@ -362,19 +362,29 @@ jQuery(document).ready(function($) {
     var initialContentColumns = getInitialContentColumns(); // Get base columns
     var contentDashboardTable; // Declare globally for this scope
 
-    function initializeContentDashboardTable(dynamicKpiColumns) {
+    function initializeContentDashboardTable(dynamicColumnObjects) {
         var columnsConfig = [].concat(initialContentColumns); // Start with base columns
         
         // Add dynamic KPI columns if any are selected
-        if (dynamicKpiColumns && dynamicKpiColumns.length > 0) {
-            dynamicKpiColumns.forEach(function(kpi) {
-                columnsConfig.push({
-                    data: 'kpi_' + kpi.key, // Data key, e.g., kpi_boxes_packed
-                    title: kpi.name,      // Column title, e.g., Boxes Packed
-                    defaultContent: 'N/A', // Default content if value is missing
-                    orderable: true,      // Make KPI columns sortable if desired
-                    searchable: true
-                });
+        if (dynamicColumnObjects && dynamicColumnObjects.length > 0) {
+            dynamicColumnObjects.forEach(function(kpi) {
+                if (kpi.type === 'primary') {
+                    columnsConfig.push({
+                        data: 'kpi_' + kpi.key,
+                        title: kpi.name,
+                        defaultContent: 'N/A',
+                        orderable: true,
+                        searchable: true
+                    });
+                } else if (kpi.type === 'derived') {
+                    columnsConfig.push({
+                        data: 'derived_metric_val_' + kpi.id, 
+                        title: kpi.name,
+                        defaultContent: 'N/A (Calc Pending)',
+                        orderable: true, 
+                        searchable: true 
+                    });
+                }
             });
         }
         // Add the ثابت Actions column at the end
@@ -401,7 +411,7 @@ jQuery(document).ready(function($) {
                     d.filter_date_to = $('#content_filter_date_to').val();
                     d.filter_status = $('#content_filter_status').val();
                     d.filter_stream_id = 4; // Always filter by Content stream (ID 4)
-                    d.selected_kpi_keys = window.contentSelectedKpiKeys || []; // Send selected KPI keys
+                    d.selected_columns_config = window.contentSelectedKpiObjects || []; // Changed parameter name
                     
                     // Default order if not provided by DataTable (e.g. initial load)
                     if (!d.order || d.order.length === 0) {
@@ -987,7 +997,24 @@ jQuery(document).ready(function($) {
                     $all_kpi_measures = OO_DB::get_kpi_measures(array('is_active' => 1, 'orderby' => 'measure_name', 'order' => 'ASC'));
                     if (!empty($all_kpi_measures)) {
                         foreach ($all_kpi_measures as $measure) {
-                            echo '<label style="display: block; margin-bottom: 5px;"><input type="checkbox" name="selected_kpi_columns[]" value="' . esc_attr($measure->measure_key) . '" data-measure-name="' . esc_attr($measure->measure_name) . '"> ' . esc_html($measure->measure_name) . ' (<code>' . esc_html($measure->measure_key) . '</code>)</label>';
+                            echo '<label style="display: block; margin-bottom: 5px;"><input type="checkbox" name="selected_kpi_columns[]" value="' . esc_attr($measure->measure_key) . '" data-measure-name="' . esc_attr($measure->measure_name) . '" data-kpi-type="primary"> ' . esc_html($measure->measure_name) . ' (<code>' . esc_html($measure->measure_key) . '</code>)</label>';
+                            // Fetch and display derived KPIs for this primary KPI
+                            $derived_definitions = OO_DB::get_derived_kpi_definitions(array('primary_kpi_measure_id' => $measure->kpi_measure_id, 'is_active' => 1));
+                            if (!empty($derived_definitions)) {
+                                echo '<div style="margin-left: 20px; padding-left: 10px; border-left: 1px solid #eee;">';
+                                foreach ($derived_definitions as $derived_def) {
+                                    $derived_value_attr = 'derived::' . esc_attr($derived_def->derived_definition_id);
+                                    echo '<label style="display: block; margin-bottom: 3px; font-weight:normal;">';
+                                    echo '<input type="checkbox" name="selected_kpi_columns[]" value="' . $derived_value_attr . '" ';
+                                    echo 'data-measure-name="' . esc_attr($derived_def->definition_name) . '" ';
+                                    echo 'data-kpi-type="derived" ';
+                                    echo 'data-primary-kpi-key="' . esc_attr($measure->measure_key) . '" ';
+                                    echo 'data-derived-id="' . esc_attr($derived_def->derived_definition_id) . '">';
+                                    echo ' ' . esc_html($derived_def->definition_name) . ' <em style=\"color:#555; font-size:0.9em;\"> (Derived from ' . esc_html($measure->measure_name) . ')</em>';
+                                    echo '</label>';
+                                }
+                                echo '</div>';
+                            }
                         }
                     } else {
                         echo '<p>' . esc_html__('No active KPI measures defined yet. Please define them under KPI Definitions.', 'operations-organizer') . '</p>';
@@ -997,36 +1024,58 @@ jQuery(document).ready(function($) {
 
     // Open KPI Column Selector Modal
     $('#content_open_kpi_selector_modal').on('click', function() {
-        // Load currently selected columns (e.g., from a global variable or localStorage)
-        // For now, just open it
-        var currentlySelected = window.contentSelectedKpiKeys || [];
+        var currentlySelectedValues = [];
+        if (window.contentSelectedKpiObjects && window.contentSelectedKpiObjects.length > 0) {
+            window.contentSelectedKpiObjects.forEach(function(kpiObj) {
+                if (kpiObj.type === 'primary') {
+                    currentlySelectedValues.push(kpiObj.key);
+                } else if (kpiObj.type === 'derived') {
+                    currentlySelectedValues.push(kpiObj.original_value_string);
+                }
+            });
+        }
         $('#kpi-measures-checkbox-list input[type="checkbox"]').each(function() {
-            $(this).prop('checked', currentlySelected.includes($(this).val()));
+            $(this).prop('checked', currentlySelectedValues.includes($(this).val()));
         });
         $('#kpi-column-selector-modal').css('display', 'block');
     });
 
     function updateSelectedKpiCount() {
-        var count = window.contentSelectedKpiKeys.length;
-        $('#content_selected_kpi_count').text(count + ' KPI column(s) selected.');
+        var count = (window.contentSelectedKpiObjects && window.contentSelectedKpiObjects.length) ? window.contentSelectedKpiObjects.length : 0;
+        $('#content_selected_kpi_count').text(count + ' column(s) selected.'); // Simpler message
     }
     updateSelectedKpiCount(); // Initial count
 
     // Apply Selected KPI Columns
     $('#apply_selected_kpi_columns').on('click', function() {
-        var selectedKeys = [];
         var selectedObjects = [];
         $('#kpi-measures-checkbox-list input[type="checkbox"]:checked').each(function() {
-            selectedKeys.push($(this).val());
-            selectedObjects.push({ key: $(this).val(), name: $(this).data('measure-name') });
+            var $checkbox = $(this);
+            var kpiType = $checkbox.data('kpi-type');
+            var kpiValue = $checkbox.val();
+            var kpiName = $checkbox.data('measure-name');
+
+            if (kpiType === 'primary') {
+                selectedObjects.push({
+                    type: 'primary',
+                    key: kpiValue, 
+                    name: kpiName
+                });
+            } else if (kpiType === 'derived') {
+                selectedObjects.push({
+                    type: 'derived',
+                    id: $checkbox.data('derived-id'), 
+                    name: kpiName,
+                    primary_key: $checkbox.data('primary-kpi-key'),
+                    original_value_string: kpiValue 
+                });
+            }
         });
-        window.contentSelectedKpiKeys = selectedKeys;
-        window.contentSelectedKpiObjects = selectedObjects; // Store objects for column titles
+        window.contentSelectedKpiObjects = selectedObjects; 
         
         updateSelectedKpiCount();
         $('#kpi-column-selector-modal').css('display', 'none');
         
-        // Rebuild and reload DataTable (using full re-initialization for simplicity now)
         reinitializeContentDashboardTable();
     });
 
