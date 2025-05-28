@@ -191,7 +191,16 @@ class OO_Admin_Pages { // Renamed class
             wp_send_json_error(['message' => 'Error starting job: ' . $result->get_error_message()]);
         } else {
             oo_log('AJAX Success: Job phase started. Log ID: ' . $result, __METHOD__);
-            wp_send_json_success(['message' => 'Job phase started successfully. Log ID: ' . $result]);
+            $return_tab = isset($_POST['return_tab']) ? sanitize_key($_POST['return_tab']) : '';
+            $base_redirect_url = admin_url('admin.php?page=oo_dashboard');
+            $final_redirect_url = $base_redirect_url;
+            if (!empty($return_tab)) {
+                $allowed_tabs = array('content', 'soft_content', 'electronics', 'art', 'overview'); 
+                if (in_array($return_tab, $allowed_tabs)) {
+                    $final_redirect_url = add_query_arg('tab', $return_tab, $base_redirect_url);
+                }
+            }
+            wp_send_json_success(['message' => 'Job phase started successfully. Log ID: ' . $result, 'redirect_url' => $final_redirect_url]);
         }
     }
 
@@ -281,7 +290,16 @@ class OO_Admin_Pages { // Renamed class
             wp_send_json_error(['message' => 'Error stopping job: ' . $result->get_error_message()]);
         } else {
             oo_log('AJAX Success: Job phase stopped and KPIs recorded.', __METHOD__);
-            wp_send_json_success(['message' => 'Job phase stopped and KPIs recorded successfully.']);
+            $return_tab = isset($_POST['return_tab']) ? sanitize_key($_POST['return_tab']) : '';
+            $base_redirect_url = admin_url('admin.php?page=oo_dashboard');
+            $final_redirect_url = $base_redirect_url;
+            if (!empty($return_tab)) {
+                $allowed_tabs = array('content', 'soft_content', 'electronics', 'art', 'overview');
+                if (in_array($return_tab, $allowed_tabs)) {
+                    $final_redirect_url = add_query_arg('tab', $return_tab, $base_redirect_url);
+                }
+            }
+            wp_send_json_success(['message' => 'Job phase stopped and KPIs recorded successfully.', 'redirect_url' => $final_redirect_url]);
         }
     }
 

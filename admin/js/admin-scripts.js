@@ -213,7 +213,11 @@ jQuery(document).ready(function($) {
             .done(function(response) {
                 if (response.success) {
                     showNotice('success', response.data.message);
-                    window.location.href = oo_data.dashboard_url;
+                    if (response.data && response.data.redirect_url) {
+                        window.location.href = response.data.redirect_url;
+                    } else {
+                        window.location.href = oo_data.dashboard_url; // Fallback
+                    }
                 } else {
                     showNotice('error', response.data.message || 'An unknown error occurred.');
                     $submitButton.prop('disabled', false).text('Start Job'); // Re-enable only on error
@@ -239,7 +243,11 @@ jQuery(document).ready(function($) {
             .done(function(response) {
                 if (response.success) {
                     showNotice('success', response.data.message);
-                    window.location.href = oo_data.dashboard_url;
+                    if (response.data && response.data.redirect_url) {
+                        window.location.href = response.data.redirect_url;
+                    } else {
+                        window.location.href = oo_data.dashboard_url; // Fallback
+                    }
                 } else {
                     showNotice('error', response.data.message || 'An unknown error occurred.');
                     $submitButton.prop('disabled', false).text('Stop Job & Save'); // Re-enable only on error

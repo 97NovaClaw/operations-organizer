@@ -8,6 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Get pre-filled data from URL parameters
 $job_number_get = isset( $_GET['job_number'] ) ? sanitize_text_field( $_GET['job_number'] ) : '';
 $phase_id_get = isset( $_GET['phase_id'] ) ? intval( $_GET['phase_id'] ) : 0;
+$return_tab_get = isset( $_GET['return_tab'] ) ? sanitize_key( $_GET['return_tab'] ) : '';
 
 $phase_name_display = 'N/A';
 $phase_valid = false;
@@ -70,6 +71,9 @@ if (defined('WP_DEBUG') && WP_DEBUG === true) {
         <?php wp_nonce_field( 'oo_start_job_nonce', 'oo_start_job_nonce' ); ?>
         <input type="hidden" name="job_number" value="<?php echo esc_attr( $job_number_get ); ?>" />
         <input type="hidden" name="phase_id" value="<?php echo esc_attr( $phase_id_get ); ?>" />
+        <?php if ( !empty($return_tab_get) ) : ?>
+            <input type="hidden" name="return_tab" value="<?php echo esc_attr( $return_tab_get ); ?>" />
+        <?php endif; ?>
 
         <table class="form-table oo-form-table">
             <tr valign="top">
