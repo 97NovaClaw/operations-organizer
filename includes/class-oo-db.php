@@ -1601,8 +1601,9 @@ class OO_DB { // Renamed class
         $sql_base = $sql_select . $sql_from;
         $where_clauses = array(); $query_params = array();
         if ( !empty($args['employee_id']) ) { $where_clauses[] = "jl.employee_id = %d"; $query_params[] = $args['employee_id'];}
-        if ( !empty($args['job_id']) ) { $where_clauses[] = "jl.job_id = %d"; $query_params[] = $args['job_id'];}
+        if ( !empty($args['job_number']) ) { $where_clauses[] = "jl.job_number = %s"; $query_params[] = sanitize_text_field($args['job_number']);}
         if ( !empty($args['stream_id']) ) { $where_clauses[] = "jl.stream_id = %d"; $query_params[] = $args['stream_id'];}
+        if ( !empty($args['phase_id']) ) { $where_clauses[] = "jl.phase_id = %d"; $query_params[] = intval($args['phase_id']);}
         if ( !empty($args['date_from']) ) { $where_clauses[] = "jl.start_time >= %s"; $query_params[] = sanitize_text_field($args['date_from']) . ' 00:00:00';}
         if ( !empty($args['date_to']) ) { $date_to_end_of_day = sanitize_text_field($args['date_to']) . ' 23:59:59'; if (!empty($args['date_from'])) { $date_from_start_of_day = sanitize_text_field($args['date_from']) . ' 00:00:00'; $where_clauses[] = "( (jl.start_time <= %s AND (jl.end_time IS NULL OR jl.end_time >= %s)) OR (jl.start_time >= %s AND jl.start_time <= %s) )"; $query_params[] = $date_to_end_of_day; $query_params[] = $date_from_start_of_day; $query_params[] = $date_from_start_of_day; $query_params[] = $date_to_end_of_day; } else { $where_clauses[] = "jl.start_time <= %s"; $query_params[] = $date_to_end_of_day; }}
         if ( !empty($args['status']) ) { $where_clauses[] = "jl.status = %s"; $query_params[] = sanitize_text_field($args['status']);}
@@ -1629,8 +1630,9 @@ class OO_DB { // Renamed class
         $sql_base = $sql_select . $sql_from;
         $where_clauses = array(); $query_params = array();
         if ( !empty($args['employee_id']) ) { $where_clauses[] = "jl.employee_id = %d"; $query_params[] = $args['employee_id'];}
-        if ( !empty($args['job_id']) ) { $where_clauses[] = "jl.job_id = %d"; $query_params[] = $args['job_id'];}
+        if ( !empty($args['job_number']) ) { $where_clauses[] = "jl.job_number = %s"; $query_params[] = sanitize_text_field($args['job_number']);}
         if ( !empty($args['stream_id']) ) { $where_clauses[] = "jl.stream_id = %d"; $query_params[] = $args['stream_id'];}
+        if ( !empty($args['phase_id']) ) { $where_clauses[] = "jl.phase_id = %d"; $query_params[] = intval($args['phase_id']);}
         if ( !empty($args['date_from']) ) { $where_clauses[] = "jl.start_time >= %s"; $query_params[] = sanitize_text_field($args['date_from']) . ' 00:00:00';}
         if ( !empty($args['date_to']) ) { $date_to_end_of_day = sanitize_text_field($args['date_to']) . ' 23:59:59'; if (!empty($args['date_from'])) { $date_from_start_of_day = sanitize_text_field($args['date_from']) . ' 00:00:00'; $where_clauses[] = "( (jl.start_time <= %s AND (jl.end_time IS NULL OR jl.end_time >= %s)) OR (jl.start_time >= %s AND jl.start_time <= %s) )"; $query_params[] = $date_to_end_of_day; $query_params[] = $date_from_start_of_day; $query_params[] = $date_from_start_of_day; $query_params[] = $date_to_end_of_day; } else { $where_clauses[] = "jl.start_time <= %s"; $query_params[] = $date_to_end_of_day; }}
         if ( !empty($args['status']) ) { $where_clauses[] = "jl.status = %s"; $query_params[] = sanitize_text_field($args['status']);}
