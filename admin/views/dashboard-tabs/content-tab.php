@@ -519,42 +519,38 @@ jQuery(document).ready(function($) {
             },
             drawCallback: function(settings) {
                 var api = this.api();
-                var recordsTotal = api.page.info().recordsTotal || 0;
-                console.log('Table draw complete. Row count:', recordsTotal);
+                var pageInfo = api.page.info();
+                var displayedRows = pageInfo.recordsDisplay; // Total records matching current filter
+                var onPageRows = api.rows( { page: 'current' } ).count(); // Rows on the current page
+
+                console.log('Table draw complete. Displayed/Filtered rows:', displayedRows, 'Rows on current page:', onPageRows, 'Total in table:', pageInfo.recordsTotal);
                 
-                if (recordsTotal === 0) {
-                    console.log('No records in table - checking if we have data that was not rendered');
-                    var data = api.data();
-                    console.log('API data length:', data.length);
-                    
-                    if (data.length === 0) {
-                        $('#content-dashboard-table tbody').html(
-                            '<tr><td colspan="16" class="dataTables_empty" style="padding: 20px; text-align: center;">' +
-                            '<?php esc_html_e('No job logs found for the Content stream. Try clearing filters or adding job logs.', 'operations-organizer'); ?>' +
-                            '</td></tr>'
-                        );
-                    }
+                if (displayedRows === 0) {
+                    console.log('No records to display after filtering (or no data at all).');
+                    var columnCount = api.columns().header().length; // Get current number of columns
+                    $('#content-dashboard-table tbody').html(
+                        '<tr><td colspan="' + columnCount + '" class="dataTables_empty" style="padding: 20px; text-align: center;">' +
+                        '<?php esc_html_e('No job logs found matching your criteria. Try clearing filters or adding job logs.', 'operations-organizer'); ?>' +
+                        '</td></tr>'
+                    );
                 }
             },
             initComplete: function(settings, json) {
                 console.log('DataTable initialization complete');
-                // Force a redraw after initialization to ensure rows are displayed
                 var api = this.api();
                 
-                // Debug data after initialization
-                var data = api.data();
-                console.log('Data after init:', data);
-                console.log('Data length after init:', data.length);
+                var allDataOnInit = api.rows().data().toArray();
+                console.log('Data array on init:', allDataOnInit);
+                console.log('Data array length on init:', allDataOnInit.length);
                 
-                // Check if DataTable has data but isn't displaying it
-                if (data.length > 0) {
-                    console.log('DataTable has data but might not be displaying it properly');
-                    
-                    // Force redraw with setTimeout to ensure DOM is ready
+                if (allDataOnInit.length > 0 && api.rows( { page: 'current' } ).count() === 0) {
+                    console.log('DataTable has data but is not displaying rows on current page. Forcing redraw.');
                     setTimeout(function() {
-                        api.draw(false); // false parameter to maintain current paging
-                        console.log('Forced redraw completed');
+                        api.draw(false); 
+                        console.log('Forced redraw completed on init.');
                     }, 200);
+                } else if(allDataOnInit.length === 0 && json && json.data && json.data.recordsFiltered > 0){
+                    console.warn('DataTables received records but data array is empty. Check dataSrc function or response format.');
                 }
             }
         });
@@ -1031,7 +1027,6 @@ jQuery(document).ready(function($) {
                     echo '<input type="checkbox" name="selected_kpi_columns[]" value="raw_kpi_data_json" data-measure-name="' . esc_attr__('All KPI Data (JSON)', 'operations-organizer') . '" data-kpi-type="raw_json">';
                     echo ' ' . esc_html__('All KPI Data (JSON)', 'operations-organizer');
                     echo '</label>';
-                    echo '</div>';
                     ?></div><button type="button" id="apply_selected_kpi_columns" class="button button-primary"><?php esc_html_e('Apply Columns', 'operations-organizer'); ?></button><button type="button" class="button oo-modal-cancel"><?php esc_html_e('Cancel', 'operations-organizer'); ?></button></div></div>');
     $('body').append(kpiColumnModal); // Append modal to body once
 
