@@ -48,19 +48,28 @@ if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase' && isset( $_
 } elseif ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase_and_logs' && isset( $_GET['phase_id'] ) ) {
     $phase_id_to_delete_with_logs = intval( $_GET['phase_id'] );
     if ( check_admin_referer( 'oo_delete_phase_and_logs_nonce_' . $phase_id_to_delete_with_logs ) ) {
-        $logs_deleted_count = OO_DB::delete_job_logs_for_phase($phase_id_to_delete_with_logs);
+        $logs_deleted_result = OO_DB::delete_job_logs_for_phase($phase_id_to_delete_with_logs);
         
-        if (is_wp_error($logs_deleted_count)) {
-            $action_message = '<div class="notice notice-error is-dismissible"><p>' . sprintf(esc_html__('Error deleting job logs for phase: %s', 'operations-organizer'), $logs_deleted_count->get_error_message()) . '</p></div>';
+        if (is_wp_error($logs_deleted_result)) {
+            $action_message = '<div class="notice notice-error is-dismissible"><p>' . sprintf(esc_html__('Error deleting job logs for phase: %s', 'operations-organizer'), $logs_deleted_result->get_error_message()) . '</p></div>';
+            // Stay on the page to show the error, ensure $_GET params are set for list view
+            $_GET['action'] = null;
+            unset($_GET['phase_id']);
         } else {
+            // Logs deleted successfully (or no logs to delete, $logs_deleted_result would be >= 0)
+            oo_log('Successfully deleted ' . $logs_deleted_result . ' job logs for phase ID: ' . $phase_id_to_delete_with_logs, 'PhaseManagement');
+            
             OO_DB::delete_phase_kpi_links_for_phase($phase_id_to_delete_with_logs);
+            oo_log('Deleted KPI links for phase ID: ' . $phase_id_to_delete_with_logs, 'PhaseManagement');
+
             $phase_delete_result = OO_DB::delete_phase( $phase_id_to_delete_with_logs );
+            oo_log('Phase deletion result for ID ' . $phase_id_to_delete_with_logs . ': ', $phase_delete_result);
             
             $redirect_url = admin_url( 'admin.php?page=oo_phases' );
             if ( is_wp_error( $phase_delete_result ) ) {
                 $redirect_url = add_query_arg( array('message' => 'phase_delete_error', 'error_code' => urlencode($phase_delete_result->get_error_message())), $redirect_url );
             } else {
-                $redirect_url = add_query_arg( array('message' => 'phase_and_logs_deleted', 'logs_deleted' => $logs_deleted_count), $redirect_url );
+                $redirect_url = add_query_arg( array('message' => 'phase_and_logs_deleted', 'logs_deleted' => $logs_deleted_result), $redirect_url );
             }
             wp_redirect($redirect_url);
             exit;

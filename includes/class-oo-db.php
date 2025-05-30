@@ -4797,34 +4797,40 @@ class OO_DB { // Renamed class
 
         oo_log('Attempting to delete all job logs and their derived values for phase ID: ' . $phase_id, __METHOD__);
 
-        // Get all log_ids for the phase first to delete their derived values
-        $log_ids_to_delete = $wpdb->get_col($wpdb->prepare(
-            "SELECT log_id FROM " . self::$job_logs_table . " WHERE phase_id = %d",
-            $phase_id
-        ));
+        $log_ids_to_delete_query = $wpdb->prepare("SELECT log_id FROM " . self::$job_logs_table . " WHERE phase_id = %d", $phase_id);
+        $log_ids_to_delete = $wpdb->get_col($log_ids_to_delete_query);
 
-        if (is_wp_error($log_ids_to_delete)) {
-            oo_log('Error fetching log IDs for phase ' . $phase_id . ': ' . $log_ids_to_delete->get_error_message(), __METHOD__);
-            return new WP_Error('db_fetch_error', 'Could not fetch job logs for phase to delete derived values.');
+        // $wpdb->get_col returns an empty array if no results, or null on error. 
+        // It does not return WP_Error unless $wpdb->suppress_errors(false) is explicitly set.
+        if (is_null($log_ids_to_delete) && $wpdb->last_error) {
+            $db_error = $wpdb->last_error;
+            oo_log('DB Error fetching log IDs for phase ' . $phase_id . ': ' . $db_error, __METHOD__);
+            return new WP_Error('db_fetch_error', 'Could not fetch job logs for phase to delete derived values. DB error: ' . $db_error);
         }
+        oo_log('Found ' . count($log_ids_to_delete) . ' log IDs to process for phase ID: ' . $phase_id, __METHOD__);
 
         if (!empty($log_ids_to_delete)) {
             foreach ($log_ids_to_delete as $log_id_item) {
-                self::delete_job_log_derived_values_for_log(intval($log_id_item));
+                $delete_derived_result = self::delete_job_log_derived_values_for_log(intval($log_id_item));
+                if (is_wp_error($delete_derived_result)) {
+                    oo_log('Error deleting derived values for log_id: ' . $log_id_item . ' - ' . $delete_derived_result->get_error_message(), __METHOD__);
+                    // Decide if this is a fatal error for the whole process or if we continue
+                }
                 oo_log('Deleted derived values for log_id: ' . $log_id_item . ' (part of phase ' . $phase_id . ' deletion)', __METHOD__);
             }
         }
 
-        // Now delete the job logs themselves for this phase
+        oo_log('Attempting to delete job log entries for phase ID: ' . $phase_id, __METHOD__);
         $deleted_rows = $wpdb->delete(self::$job_logs_table, array('phase_id' => $phase_id), array('%d'));
 
         if ($deleted_rows === false) {
-            oo_log('Error deleting job logs for phase ID ' . $phase_id . ': ' . $wpdb->last_error, __METHOD__);
-            return new WP_Error('db_delete_error', 'Could not delete job logs for phase: ' . $wpdb->last_error);
+            $db_error = $wpdb->last_error;
+            oo_log('Error deleting job logs for phase ID ' . $phase_id . ': ' . $db_error, __METHOD__);
+            return new WP_Error('db_delete_error', 'Could not delete job logs for phase: ' . $db_error);
         }
 
         oo_log('Successfully deleted ' . $deleted_rows . ' job log(s) for phase ID: ' . $phase_id, __METHOD__);
-        return $deleted_rows; // Return number of logs deleted
+        return intval($deleted_rows); // Return number of logs deleted
     }
 
 }
