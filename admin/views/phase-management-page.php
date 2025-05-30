@@ -17,6 +17,8 @@ $action_message = '';
 // Handle Phase delete action
 if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase' && isset( $_GET['phase_id'] ) ) {
     $phase_id_to_delete = intval( $_GET['phase_id'] );
+    $return_to_stream_slug = isset($_GET['return_to_stream']) ? sanitize_key($_GET['return_to_stream']) : '';
+
     if ( check_admin_referer( 'oo_delete_phase_nonce_' . $phase_id_to_delete ) ) {
         $job_logs_using_phase = OO_DB::get_job_logs_count(array('phase_id' => $phase_id_to_delete, 'number' => 1));
 
@@ -37,7 +39,12 @@ if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase' && isset( $_
         } else {
             OO_DB::delete_phase_kpi_links_for_phase($phase_id_to_delete); 
             $result = OO_DB::delete_phase( $phase_id_to_delete );
-            $redirect_url = admin_url( 'admin.php?page=oo_phases' );
+            
+            if (!empty($return_to_stream_slug) && array_key_exists($return_to_stream_slug, OO_Admin_Pages::get_stream_page_configs_for_redirect())) {
+                $redirect_url = admin_url('admin.php?page=' . OO_Admin_Pages::get_stream_page_configs_for_redirect()[$return_to_stream_slug]['slug'] . '&sub_tab=manage_stream_phases');
+            } else {
+                $redirect_url = admin_url( 'admin.php?page=oo_phases' );
+            }
             if ( is_wp_error( $result ) ) {
                 $redirect_url = add_query_arg( array('message' => 'phase_delete_error', 'error_code' => urlencode($result->get_error_message())), $redirect_url );
             } else {
@@ -51,6 +58,8 @@ if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase' && isset( $_
     }
 } elseif ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase_and_logs' && isset( $_GET['phase_id'] ) ) {
     $phase_id_to_delete_with_logs = intval( $_GET['phase_id'] );
+    $return_to_stream_slug_logs = isset($_GET['return_to_stream']) ? sanitize_key($_GET['return_to_stream']) : '';
+
     if ( check_admin_referer( 'oo_delete_phase_and_logs_nonce_' . $phase_id_to_delete_with_logs ) ) {
         $logs_deleted_result = OO_DB::delete_job_logs_for_phase($phase_id_to_delete_with_logs);
         
@@ -69,7 +78,11 @@ if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase' && isset( $_
             $phase_delete_result = OO_DB::delete_phase( $phase_id_to_delete_with_logs );
             oo_log('Phase deletion result for ID ' . $phase_id_to_delete_with_logs . ': ', $phase_delete_result);
             
-            $redirect_url = admin_url( 'admin.php?page=oo_phases' );
+            if (!empty($return_to_stream_slug_logs) && array_key_exists($return_to_stream_slug_logs, OO_Admin_Pages::get_stream_page_configs_for_redirect())) {
+                $redirect_url = admin_url('admin.php?page=' . OO_Admin_Pages::get_stream_page_configs_for_redirect()[$return_to_stream_slug_logs]['slug'] . '&sub_tab=manage_stream_phases');
+            } else {
+                $redirect_url = admin_url( 'admin.php?page=oo_phases' );
+            }
             if ( is_wp_error( $phase_delete_result ) ) {
                 $redirect_url = add_query_arg( array('message' => 'phase_delete_error', 'error_code' => urlencode($phase_delete_result->get_error_message())), $redirect_url );
             } else {
@@ -86,12 +99,19 @@ if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase' && isset( $_
 // Handle toggle status action for main Phase
 if ( isset( $_GET['action'] ) && $_GET['action'] === 'toggle_phase_status' && isset( $_GET['phase_id'] ) && isset($_GET['_wpnonce']) ) {
     $phase_id_to_toggle = intval( $_GET['phase_id'] );
+    $return_to_stream_slug_toggle = isset($_GET['return_to_stream']) ? sanitize_key($_GET['return_to_stream']) : '';
+
     if ( wp_verify_nonce( $_GET['_wpnonce'], 'oo_toggle_phase_status_nonce_' . $phase_id_to_toggle ) ) {
         $phase = OO_DB::get_phase( $phase_id_to_toggle );
         if ( $phase ) {
             $new_status = $phase->is_active ? 0 : 1;
             OO_DB::toggle_phase_status( $phase_id_to_toggle, $new_status );
-            $redirect_url = admin_url( 'admin.php?page=oo_phases' );
+            
+            if (!empty($return_to_stream_slug_toggle) && array_key_exists($return_to_stream_slug_toggle, OO_Admin_Pages::get_stream_page_configs_for_redirect())) {
+                $redirect_url = admin_url('admin.php?page=' . OO_Admin_Pages::get_stream_page_configs_for_redirect()[$return_to_stream_slug_toggle]['slug'] . '&sub_tab=manage_stream_phases');
+            } else {
+                $redirect_url = admin_url( 'admin.php?page=oo_phases' );
+            }
             $redirect_url = add_query_arg( array('message' => 'phase_status_updated'), $redirect_url );
             wp_redirect($redirect_url);
             exit;

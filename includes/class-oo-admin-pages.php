@@ -11,84 +11,78 @@ class OO_Admin_Pages { // Renamed class
     private static $stream_pages_config = array(); // Store stream page slugs and names
 
     public function add_admin_menu_pages() {
-        // Define streams (could also be fetched from DB or a config file)
-        // For now, using the hardcoded streams from functions.php
-        $streams = oo_get_hardcoded_streams(); // Ensure this function is available or define locally
-        self::$stream_pages_config = array(); // Clear it for fresh population
+        $streams = oo_get_hardcoded_streams(); 
+        self::$stream_pages_config = array(); 
 
-        $settings_parent_slug = 'oo_operations_settings';
+        $main_menu_icon = 'dashicons-analytics'; // A general icon for the plugin group
+        $main_menu_position = 25;
 
-        // New Top-Level Menu for general settings and management
+        // Top-Level: Jobs
         $this->admin_page_hooks[] = add_menu_page(
-            __( 'Operations Settings', 'operations-organizer' ),
-            __( 'Settings', 'operations-organizer' ), // Shorter menu title
-            oo_get_capability(), 
-            $settings_parent_slug,
-            array( $this, 'display_jobs_management_page_redirect' ), // Redirect to Jobs by default
-            'dashicons-admin-settings', 
-            26 // Position after default Operations/Streams
-        );
-
-        // Add Jobs management page under Settings
-        $this->admin_page_hooks[] = add_submenu_page(
-            $settings_parent_slug,
             __( 'Manage Jobs', 'operations-organizer' ),
             __( 'Jobs', 'operations-organizer' ),
             oo_get_capability(),
             'oo_jobs',
-            array( 'OO_Job', 'display_job_management_page' )
+            array( 'OO_Job', 'display_job_management_page' ),
+            'dashicons-list-view', 
+            $main_menu_position + 1
         );
         
-        // Employees management page under Settings
-        $this->admin_page_hooks[] = add_submenu_page(
-            $settings_parent_slug, 
+        // Top-Level: Employees
+        $this->admin_page_hooks[] = add_menu_page(
             __( 'Manage Employees', 'operations-organizer' ),
             __( 'Employees', 'operations-organizer' ),
             oo_get_capability(), 
             'oo_employees',
-            array( 'OO_Employee', 'display_employee_management_page' )
+            array( 'OO_Employee', 'display_employee_management_page' ),
+            'dashicons-groups',
+            $main_menu_position + 2
         );
         
-        // Phases management page under Settings
-        $this->admin_page_hooks[] = add_submenu_page(
-            $settings_parent_slug, 
-            __( 'Manage Phases', 'operations-organizer' ),
-            __( 'Phases', 'operations-organizer' ),
+        // Top-Level: Phases (Global View)
+        $this->admin_page_hooks[] = add_menu_page(
+            __( 'Manage All Phases', 'operations-organizer' ), // Title clarifies it's global
+            __( 'Phases (All)', 'operations-organizer' ),
             oo_get_capability(), 
             'oo_phases',
-            array( 'OO_Phase', 'display_phase_management_page' )
+            array( 'OO_Phase', 'display_phase_management_page' ),
+            'dashicons-networking',
+            $main_menu_position + 3
         );
         
-        // KPI Measure Management under Settings
-        $this->admin_page_hooks[] = add_submenu_page(
-            $settings_parent_slug,
+        // Top-Level: KPI Definitions (Global View)
+        $this->admin_page_hooks[] = add_menu_page(
             __('KPI Measure Definitions', 'operations-organizer'),
             __('KPI Definitions', 'operations-organizer'),
             oo_get_capability(),
             'oo_kpi_measures', 
-            array($this, 'display_kpi_measure_management_page')
+            array($this, 'display_kpi_measure_management_page'),
+            'dashicons-performance',
+            $main_menu_position + 4
         );
 
         // Create Top-Level Menu Pages for each Stream
-        $stream_menu_position = 20;
-        foreach ($streams as $stream) {
-            if (!$stream || !isset($stream->stream_id) || !isset($stream->stream_name)) continue;
-            $page_slug = 'oo_stream_' . sanitize_key($stream->stream_name); // e.g., oo_stream_content
-            self::$stream_pages_config[$stream->stream_id] = array(
-                'slug' => $page_slug,
-                'name' => $stream->stream_name,
-                'tab_slug' => sanitize_key($stream->stream_name) // e.g. 'content' for return_tab
-            );
+        $stream_menu_position = $main_menu_position + 10; // Start streams after main management pages
+        if (!empty($streams)) {
+            foreach ($streams as $stream) {
+                if (!$stream || !isset($stream->stream_id) || !isset($stream->stream_name)) continue;
+                $page_slug = 'oo_stream_' . sanitize_key($stream->stream_name); 
+                self::$stream_pages_config[$stream->stream_id] = array(
+                    'slug' => $page_slug,
+                    'name' => $stream->stream_name,
+                    'tab_slug' => sanitize_key($stream->stream_name) 
+                );
 
-            $this->admin_page_hooks[] = add_menu_page(
-                sprintf(__( '%s Stream', 'operations-organizer' ), $stream->stream_name),
-                $stream->stream_name, // Menu Title
-                oo_get_capability(), 
-                $page_slug,
-                array( $this, 'display_single_stream_page' ), 
-                'dashicons-chart-line', // Example icon, can be stream-specific if desired
-                $stream_menu_position++ 
-            );
+                $this->admin_page_hooks[] = add_menu_page(
+                    sprintf(__( '%s Stream', 'operations-organizer' ), $stream->stream_name),
+                    $stream->stream_name, 
+                    oo_get_capability(), 
+                    $page_slug,
+                    array( $this, 'display_single_stream_page' ), 
+                    'dashicons-chart-line', 
+                    $stream_menu_position++ 
+                );
+            }
         }
         
         // Hidden pages for Start/Stop forms
@@ -122,6 +116,20 @@ class OO_Admin_Pages { // Renamed class
         return $actual_hooks;
     }
 
+    // Getter for stream page configurations, primarily for redirect logic
+    public static function get_stream_page_configs_for_redirect() {
+        // Ensure $stream_pages_config is populated if accessed before add_admin_menu_pages (e.g. during an early hook)
+        // However, for redirects from admin pages, add_admin_menu_pages should have already run.
+        if (empty(self::$stream_pages_config)) {
+            // Potentially re-populate if called very early, though less likely for this specific use case.
+            // For robustness, ensure oo_get_hardcoded_streams() is available here if needed.
+            // $streams = oo_get_hardcoded_streams(); 
+            // foreach ($streams as $stream) { ... fill self::$stream_pages_config ... }
+            // For now, assuming it's populated by the time redirects occur from within admin pages.
+        }
+        return self::$stream_pages_config;
+    }
+
     public function display_start_job_form_page() {
         if (!current_user_can(oo_get_form_access_capability())) { 
             wp_die(__( 'You do not have sufficient permissions to access this page.', 'operations-organizer' ));
@@ -143,17 +151,6 @@ class OO_Admin_Pages { // Renamed class
             wp_die( __( 'You do not have sufficient permissions to access this page.', 'operations-organizer' ) );
         }
         include_once OO_PLUGIN_DIR . 'admin/views/kpi-measure-management-page.php';
-    }
-
-    // New method to redirect the main settings page to the Jobs page
-    public function display_jobs_management_page_redirect() {
-        // This function will be the callback for the main settings page.
-        // We can simply display the jobs page content here, or do a redirect.
-        // For a cleaner URL, a redirect is better if the Jobs page is the true "default".
-        // However, to avoid an extra redirect, we can also just call the Jobs display method.
-        // For now, let's keep it simple and call the method directly.
-        // If a redirect is preferred: wp_redirect(admin_url('admin.php?page=oo_jobs')); exit;
-        OO_Job::display_job_management_page();
     }
 
     // New generic display method for stream pages

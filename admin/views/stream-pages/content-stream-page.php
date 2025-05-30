@@ -30,6 +30,9 @@ if (isset($current_stream_id) && !empty($phases)) {
         <a href="?page=<?php echo esc_attr($_REQUEST['page']); ?>&sub_tab=phase_dashboard" class="nav-tab <?php echo $active_tab == 'phase_dashboard' ? 'nav-tab-active' : ''; ?>">
             <?php esc_html_e('Phase Dashboard', 'operations-organizer'); ?>
         </a>
+        <a href="?page=<?php echo esc_attr($_REQUEST['page']); ?>&sub_tab=manage_stream_phases" class="nav-tab <?php echo $active_tab == 'manage_stream_phases' ? 'nav-tab-active' : ''; ?>">
+            <?php esc_html_e('Manage Stream Phases', 'operations-organizer'); ?>
+        </a>
         <!-- Add more tabs here as needed -->
     </h2>
 
@@ -276,6 +279,86 @@ if (isset($current_stream_id) && !empty($phases)) {
                     </div>
 
                 </div>
+            </div>
+        <?php elseif ( $active_tab == 'manage_stream_phases' ) : ?>
+            <div id="manage-stream-phases-content">
+                <h3><?php printf(esc_html__('Manage Phases for %s Stream', 'operations-organizer'), esc_html($current_stream_name)); ?></h3>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=oo_phases&action=add_new_ui&stream_id=' . $current_stream_id)); ?>" class="page-title-action">
+                    <?php esc_html_e('Add New Phase to this Stream', 'operations-organizer'); ?>
+                </a>
+                <?php 
+                // We need to fetch phases specifically for this stream for the table
+                // The global $phases might contain all phases. Let's re-filter or re-fetch if necessary.
+                $current_stream_phases_for_table = array();
+                if (!empty($GLOBALS['phases'])) {
+                    foreach ($GLOBALS['phases'] as $phase_item) {
+                        if ($phase_item->stream_id == $current_stream_id) {
+                            $current_stream_phases_for_table[] = $phase_item;
+                        }
+                    }
+                } else {
+                    // If $GLOBALS['phases'] wasn't populated by the main page controller, fetch them now.
+                    $current_stream_phases_for_table = OO_DB::get_phases(array('stream_id' => $current_stream_id, 'orderby' => 'order_in_stream', 'order' => 'ASC', 'number' => -1));
+                }
+                
+                // For pagination, we'd need a count specific to this stream as well.
+                // $total_stream_phases = OO_DB::get_phases_count(array('stream_id' => $current_stream_id));
+                // For now, no pagination on this sub-tab table.
+                ?>
+                <table class="wp-list-table widefat fixed striped table-view-list phases" style="margin-top:20px;">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e('Phase Name', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Slug', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Description', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Order', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Includes KPIs', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Manage KPIs', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Actions', 'operations-organizer'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ( ! empty( $current_stream_phases_for_table ) ) : ?>
+                            <?php foreach ( $current_stream_phases_for_table as $phase ) : ?>
+                                <tr class="<?php echo $phase->is_active ? 'active' : 'inactive'; ?>">
+                                    <td><strong><a href="<?php echo esc_url( admin_url( 'admin.php?page=oo_phases&action=edit_kpi_measure&phase_id=' . $phase->phase_id . '&return_to_stream=' . $current_stream_tab_slug ) ); ?>"><?php echo esc_html( $phase->phase_name ); ?></a></strong></td>
+                                    <td><code><?php echo esc_html( $phase->phase_slug ); ?></code></td>
+                                    <td><?php echo esc_html( $phase->phase_description ); ?></td>
+                                    <td><?php echo intval( $phase->order_in_stream ); ?></td>
+                                    <td><?php echo $phase->includes_kpi ? 'Yes' : 'No'; ?></td>
+                                    <td>
+                                        <?php if ( $phase->includes_kpi ) : ?>
+                                            <button class="button button-small oo-manage-phase-kpis-button" 
+                                                    data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>" 
+                                                    data-phase-name="<?php echo esc_attr( $phase->phase_name ); ?>">
+                                                <?php esc_html_e('Manage KPIs', 'operations-organizer'); ?>
+                                            </button>
+                                        <?php else : esc_html_e( 'N/A', 'operations-organizer' ); endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php 
+                                        $status_text = $phase->is_active ? __( 'Active', 'operations-organizer' ) : __( 'Inactive', 'operations-organizer' );
+                                        $toggle_nonce = wp_create_nonce('oo_toggle_phase_status_nonce_' . $phase->phase_id);
+                                        $toggle_action_url = admin_url( 'admin.php?page=oo_phases&action=toggle_phase_status&phase_id=' . $phase->phase_id . '&_wpnonce='.$toggle_nonce . '&return_to_stream=' . $current_stream_tab_slug );
+                                        echo '<a href="' . esc_url( $toggle_action_url ) . '">' . esc_html( $status_text ) . '</a>';
+                                        ?>
+                                    </td>
+                                    <td>
+                                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=oo_phases&action=edit_kpi_measure&phase_id=' . $phase->phase_id . '&return_to_stream=' . $current_stream_tab_slug ) ); ?>"><?php esc_html_e( 'Edit', 'operations-organizer' ); ?></a> |
+                                        <a href="<?php echo wp_nonce_url( admin_url( 'admin.php?page=oo_phases&action=delete_phase&phase_id=' . $phase->phase_id . '&return_to_stream=' . $current_stream_tab_slug), 'oo_delete_phase_nonce_' . $phase->phase_id ); ?>" 
+                                           onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this phase? This action cannot be undone and may affect existing job logs if not handled carefully by the system.', 'operations-organizer' ); ?>');" 
+                                           style="color:#b32d2e;"><?php esc_html_e( 'Delete', 'operations-organizer' ); ?></a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <tr><td colspan="8"><?php esc_html_e( 'No phases found for this stream.', 'operations-organizer' ); ?></td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+                 <!-- Note: The Manage KPIs modal and Edit Phase Modal are defined on the global oo_phases page -->
+                 <!-- We might need to duplicate/re-trigger them here if actions are to stay on this stream page -->
             </div>
         <?php endif; ?>
     </div>
