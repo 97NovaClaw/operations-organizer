@@ -202,7 +202,6 @@ if (empty($phases)) {
                         'phase_description' => __('Description', 'operations-organizer'),
                         'sort_order' => __('Order', 'operations-organizer'),
                         'includes_kpi' => __('Includes KPIs', 'operations-organizer'),
-                        'manage_kpis' => __('Manage KPIs', 'operations-organizer'),
                         'status' => __('Status', 'operations-organizer'),
                         'actions' => __('Actions', 'operations-organizer'),
                     ];
@@ -249,17 +248,6 @@ if (empty($phases)) {
                                     <span style="color: green;"><?php esc_html_e( 'Yes', 'operations-organizer' ); ?></span>
                                 <?php else : ?>
                                     <span style="color: red;"><?php esc_html_e( 'No', 'operations-organizer' ); ?></span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="manage_kpis column-manage_kpis" data-colname="<?php esc_attr_e('Manage KPIs', 'operations-organizer'); ?>">
-                                <?php if ( $phase->includes_kpi ) : ?>
-                                    <button class="button button-small oo-manage-phase-kpis-button" 
-                                            data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>" 
-                                            data-phase-name="<?php echo esc_attr( $phase->phase_name ); ?>">
-                                        <?php esc_html_e('Manage KPIs', 'operations-organizer'); ?>
-                                    </button>
-                                <?php else : ?>
-                                    <?php esc_html_e( 'N/A', 'operations-organizer' ); ?>
                                 <?php endif; ?>
                             </td>
                             <td class="status column-status" data-colname="<?php esc_attr_e('Status', 'operations-organizer'); ?>">
@@ -449,7 +437,6 @@ if (empty($phases)) {
                     
                 </table>
                 <?php submit_button( __( 'Save Changes', 'operations-organizer' ), 'primary', 'submit_edit_phase' ); ?>
-                <button type="button" id="oo-ajax-delete-phase-from-modal-button" class="button button-link is-destructive" style="margin-left: 10px; vertical-align: middle; display:none;"><?php esc_html_e( 'Delete This Phase', 'operations-organizer' ); ?></button>
             </form>
         </div>
     </div>
@@ -650,6 +637,7 @@ jQuery(document).ready(function($) {
     $(document).on('click', '.oo-toggle-status-phase-button', function() {
         var phaseId = $(this).data('phase-id');
         var newStatus = $(this).data('new-status');
+        var nonce = $(this).data('nonce'); // Get nonce from button data
         var confirmMessage = newStatus == 1 ? 
             '<?php echo esc_js(__("Are you sure you want to activate this phase?", "operations-organizer")); ?>' : 
             '<?php echo esc_js(__("Are you sure you want to deactivate this phase?", "operations-organizer")); ?>';
@@ -658,52 +646,22 @@ jQuery(document).ready(function($) {
             return;
         }
         
-        $.post(oo_data.ajax_url, {
-            action: 'oo_toggle_phase_status',
-            phase_id: phaseId,
-            is_active: newStatus,
-            _ajax_nonce: oo_data.nonce_toggle_status
-        }, function(response) {
-            if (response.success) {
-                showNotice('success', response.data.message);
-                loadPhasesTable(); 
-            } else {
-                showNotice('error', response.data.message || 'Could not change phase status.');
-            }
-        }).fail(function() {
-            showNotice('error', 'Request to change phase status failed.');
-        });
+        // Redirect approach (as per existing GET-based toggle)
+        var toggleUrl = '<?php echo admin_url("admin.php?page=oo_phases&action=toggle_phase_status"); ?>' + 
+                        '&phase_id=' + phaseId + 
+                        '&_wpnonce=' + nonce + 
+                        '&new_status=' + newStatus; // Pass new_status for handler clarity, though it can be derived
+        // Add return_to_stream if it was on the page URL for consistency (though not typical for global page)
+        var urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('return_to_stream')) {
+            toggleUrl += '&return_to_stream=' + urlParams.get('return_to_stream');
+        }
+        if (urlParams.has('return_sub_tab')) {
+             toggleUrl += '&return_sub_tab=' + urlParams.get('return_sub_tab');
+        }
+        window.location.href = toggleUrl;
     });
     
-    // AJAX Delete Phase from Modal
-    $('#oo-ajax-delete-phase-from-modal-button').on('click', function() {
-        var phaseId = $(this).data('phase-id');
-        if (!phaseId) {
-            alert('Error: Phase ID not found for deletion.');
-            return;
-        }
-
-        if (!confirm('<?php echo esc_js( __("Are you sure you want to permanently delete this phase? This action cannot be undone and may affect existing job logs if not handled carefully by the system.", "operations-organizer") ); ?>')) {
-            return;
-        }
-
-        $.post(oo_data.ajax_url, {
-            action: 'oo_delete_phase_ajax',
-            phase_id: phaseId,
-            _ajax_nonce: oo_data.nonce_delete_phase_ajax 
-        }, function(response) {
-            if (response.success) {
-                showNotice('success', response.data.message);
-                $('#editOOPhaseModal').hide();
-                loadPhasesTable(); // Reload the list table
-            } else {
-                showNotice('error', response.data.message || 'Could not delete phase.');
-            }
-        }).fail(function() {
-            showNotice('error', 'Request to delete phase failed.');
-        });
-    });
-
     // Common function to display notices
     if (typeof showNotice !== 'function') {
         window.showNotice = function(type, message) {
@@ -724,117 +682,6 @@ jQuery(document).ready(function($) {
             });
         };
     }
-
-    // --- Manage Phase KPIs Modal Logic ---
-    // Open Manage Phase KPIs Modal - already uses event delegation, which is good.
-    $(document).on('click', '.oo-manage-phase-kpis-button', function() {
-        var phaseId = $(this).data('phase-id');
-        var phaseName = $(this).data('phase-name');
-
-        $('#manageKPIsPhaseName').text(phaseName);
-        $('#manageKPIsPhaseId').val(phaseId);
-        $('#manageOOPhaseKPIsModal').show();
-        loadAvailableAndLinkedKPIsForPhase(phaseId);
-    });
-
-    function loadAvailableAndLinkedKPIsForPhase(phaseId) {
-        var container = $('#availableKPIsForPhaseList');
-        container.html('<p><?php echo esc_js( __( 'Loading KPIs...', 'operations-organizer' ) ); ?></p>');
-
-        $.when(
-            // Get all active KPI measures
-            $.post(oo_data.ajax_url, { 
-                action: 'oo_get_kpi_measures', 
-                _ajax_nonce: oo_data.nonce_dashboard, // Re-use a general nonce or create specific one
-                is_active: 1,
-                number: -1 // Get all
-            }),
-            // Get KPIs already linked to this phase
-            $.post(oo_data.ajax_url, {
-                action: 'oo_get_phase_kpi_links',
-                phase_id: phaseId,
-                _ajax_nonce: oo_data.nonce_get_phase_kpi_links 
-            })
-        ).done(function(allKpisResponse, linkedKpisResponse) {
-            container.empty();
-            var allKpis = (allKpisResponse[0] && allKpisResponse[0].success) ? allKpisResponse[0].data : [];
-            var linkedKpis = (linkedKpisResponse[0] && linkedKpisResponse[0].success) ? linkedKpisResponse[0].data : [];
-
-            if (allKpis.length === 0) {
-                container.html('<p><?php echo esc_js( __( "No active KPI measures defined. Please define KPIs first.", "operations-organizer" ) ); ?></p>');
-                return;
-            }
-
-            var list = $('<ul style="list-style-type: none; padding-left: 0;">');
-            $.each(allKpis, function(index, kpi) {
-                var currentLink = linkedKpis.find(function(link) { return link.kpi_measure_id == kpi.kpi_measure_id; });
-                var isChecked = currentLink ? 'checked' : '';
-                var isMandatory = (currentLink && currentLink.is_mandatory == 1) ? 'checked' : '';
-                var displayOrder = (currentLink && typeof currentLink.display_order !== 'undefined') ? currentLink.display_order : 0;
-
-                var listItem = $('<li style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee;">');
-                listItem.append(
-                    '<label style="display: block; margin-bottom: 5px;">' + 
-                    '<input type="checkbox" name="phase_kpis[]" value="' + kpi.kpi_measure_id + '" ' + isChecked + ' style="margin-right: 5px;" />' + 
-                    '<strong>' + esc_html(kpi.measure_name) + '</strong> (<code>' + esc_html(kpi.measure_key) + '</code>)' + 
-                    '</label>');
-                
-                var optionsDiv = $('<div style="margin-left: 25px;" class="kpi-link-options"></div>').toggle(isChecked !== '');
-                optionsDiv.append(
-                    '<label style="margin-right: 15px;">' + 
-                    '<input type="checkbox" name="kpi_mandatory[' + kpi.kpi_measure_id + ']" ' + isMandatory + ' style="margin-right: 3px;"/><?php echo esc_js( __("Mandatory?", "operations-organizer") ); ?>' + 
-                    '</label>');
-                optionsDiv.append(
-                    '<label><?php echo esc_js( __("Display Order:", "operations-organizer") ); ?> ' + 
-                    '<input type="number" name="kpi_display_order[' + kpi.kpi_measure_id + ']" value="' + displayOrder + '" style="width: 60px;" min="0"/>' + 
-                    '</label>');
-                listItem.append(optionsDiv);
-                list.append(listItem);
-            });
-            container.append(list);
-
-            // Toggle options visibility when a KPI is checked/unchecked
-            container.find('input[name="phase_kpis[]"]').on('change', function() {
-                $(this).closest('li').find('.kpi-link-options').toggle($(this).is(':checked'));
-            });
-
-        }).fail(function(jqXHR, textStatus, errorThrown) {
-            container.html('<p><?php echo esc_js( __( "Error loading KPI data.", "operations-organizer" ) ); ?></p>');
-            console.error("Error loading KPIs for phase: ", textStatus, errorThrown, jqXHR.responseText);
-        });
-    }
-
-    $('#savePhaseKPILinksBtn').on('click', function() {
-        var phaseId = $('#manageKPIsPhaseId').val();
-        var links = [];
-        $('#availableKPIsForPhaseList input[name="phase_kpis[]"]:checked').each(function() {
-            var kpiId = $(this).val();
-            var isMandatory = $('input[name="kpi_mandatory[' + kpiId + ']"]').is(':checked') ? 1 : 0;
-            var displayOrder = $('input[name="kpi_display_order[' + kpiId + ']"]').val();
-            links.push({
-                kpi_measure_id: kpiId,
-                is_mandatory: isMandatory,
-                display_order: displayOrder || 0
-            });
-        });
-
-        $.post(oo_data.ajax_url, {
-            action: 'oo_save_phase_kpi_links',
-            phase_id: phaseId,
-            links: links,
-            _ajax_nonce: oo_data.nonce_manage_phase_kpi_links // Ensure this nonce is defined in oo_data
-        }, function(response) {
-            if (response.success) {
-                showNotice('success', response.data.message || '<?php echo esc_js( __("KPI links saved successfully.", "operations-organizer") ); ?>');
-                $('#manageOOPhaseKPIsModal').hide();
-            } else {
-                showNotice('error', response.data.message || '<?php echo esc_js( __("Could not save KPI links.", "operations-organizer") ); ?>');
-            }
-        }).fail(function() {
-            showNotice('error', '<?php echo esc_js( __( "Request to save KPI links failed.", "operations-organizer") ); ?>');
-        });
-    });
-    // --- End Manage Phase KPIs Modal Logic ---
 
 });
 </script> 
@@ -872,22 +719,3 @@ select#edit_modal_stream_type_id option[value=""] {
     font-style: italic;
 }
 </style> 
-
-<!-- Manage Phase KPIs Modal -->
-<div id="manageOOPhaseKPIsModal" class="oo-modal" style="display:none;">
-    <div class="oo-modal-content" style="width: 700px; max-width: 90%;">
-        <span class="oo-close-button">&times;</span>
-        <h2><?php esc_html_e( 'Manage KPIs for Phase:', 'operations-organizer' ); ?> <span id="manageKPIsPhaseName"></span></h2>
-        <input type="hidden" id="manageKPIsPhaseId" value="" />
-        
-        <div id="availableKPIsForPhaseList" style="margin-bottom: 20px; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
-            <!-- AJAX content will load here -->
-            <p><?php esc_html_e( 'Loading available KPIs...', 'operations-organizer' ); ?></p>
-        </div>
-
-        <p class="submit">
-            <button type="button" id="savePhaseKPILinksBtn" class="button button-primary"><?php esc_html_e( 'Save KPI Links', 'operations-organizer' ); ?></button>
-            <button type="button" class="button oo-modal-close oo-close-button"><?php esc_html_e( 'Close', 'operations-organizer' ); ?></button>
-        </p>
-    </div>
-</div> 
