@@ -202,7 +202,6 @@ foreach ($phases as $phase) {
                     <input type="hidden" id="edit_log_job_id" name="edit_log_job_id">
                     <input type="hidden" id="edit_log_phase_id" name="edit_log_phase_id">
                     <input type="hidden" id="edit_log_stream_id" name="edit_log_stream_id" value="4"> <!-- Content stream -->
-                    <input type="hidden" id="edit_log_start_time" name="edit_log_start_time">
                     <input type="hidden" id="edit_log_status" name="edit_log_status">
                     <input type="hidden" name="action" value="oo_update_job_log">
                     <input type="hidden" name="oo_edit_log_nonce_field" value="<?php echo wp_create_nonce('oo_edit_log_nonce'); ?>">
@@ -219,6 +218,15 @@ foreach ($phases as $phase) {
                         <div class="form-description" style="color: #d63638; display: none;" id="job_number_warning">
                             <?php esc_html_e('Warning: Changing the job number may affect related records. Only change if absolutely necessary.', 'operations-organizer'); ?>
                         </div>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label for="edit_log_start_time_editable" id="edit_log_start_time_label"><?php esc_html_e('Start Time', 'operations-organizer'); ?></label>
+                        <div style="display: flex; align-items: center;">
+                            <input type="datetime-local" id="edit_log_start_time_editable" name="edit_log_start_time" style="flex-grow: 1;">
+                            <button type="button" id="set_start_time_now" class="button" style="margin-left: 10px;"><?php esc_html_e('Now', 'operations-organizer'); ?></button>
+                        </div>
+                         <p class="description"><?php esc_html_e('Adjust start time if necessary. Ensure this is accurate as it affects duration and derived metrics.', 'operations-organizer'); ?></p>
                     </div>
                     
                     <div class="form-field">
@@ -742,7 +750,7 @@ jQuery(document).ready(function($) {
                     }
                     
                     $('#edit_log_phase_id').val(logData.phase_id || '');
-                    $('#edit_log_start_time').val(logData.start_time || '');
+                    $('#edit_log_start_time_editable').val(logData.start_time || '');
                     $('#edit_log_status').val(logData.status || 'started');
                     $('#edit_log_notes').val(logData.notes || '');
                     
@@ -801,6 +809,17 @@ jQuery(document).ready(function($) {
                                padNumber(now.getHours()) + ':' + 
                                padNumber(now.getMinutes());
         $('#edit_log_end_time').val(formattedDateTime);
+    });
+    
+    // Set current time for start_time field (NEW)
+    $('#set_start_time_now').on('click', function() {
+        var now = new Date();
+        var formattedDateTime = now.getFullYear() + '-' + 
+                               padNumber(now.getMonth() + 1) + '-' + 
+                               padNumber(now.getDate()) + 'T' + 
+                               padNumber(now.getHours()) + ':' + 
+                               padNumber(now.getMinutes());
+        $('#edit_log_start_time_editable').val(formattedDateTime);
     });
     
     // Function to reset all button states
