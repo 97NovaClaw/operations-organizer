@@ -397,6 +397,14 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
+    // Helper function for escaping HTML in JS (moved to top of ready block)
+    function esc_html(str) {
+        if (str === null || typeof str === 'undefined') return '';
+        var p = document.createElement("p");
+        p.appendChild(document.createTextNode(String(str)));
+        return p.innerHTML;
+    }
+
     // JS for Quick Phase Actions in this Stream tab
     $('.oo-stream-page .oo-start-link-btn, .oo-stream-page .oo-stop-link-btn').on('click', function(e) {
         e.preventDefault();
