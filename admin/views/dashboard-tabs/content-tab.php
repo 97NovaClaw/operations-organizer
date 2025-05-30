@@ -410,15 +410,28 @@ jQuery(document).ready(function($) {
                 }
             });
         }
-        // Add the ثابت Actions column at the end
         columnsConfig.push(getActionsColumnDefinition());
+
+        var $table = $('#content-dashboard-table');
+        // Clear existing headers and body to rebuild them based on current columnsConfig
+        $table.find('thead').empty(); 
+        $table.find('tbody').empty(); 
+        // Optionally clear tfoot if it exists and contains column headers
+        // if ($table.find('tfoot').length) { $table.find('tfoot').empty(); }
+
+        var $theadTr = $('<tr>');
+        columnsConfig.forEach(function(col) {
+            $theadTr.append($('<th>').text(col.title));
+        });
+        $table.find('thead').append($theadTr);
+        // If using a tfoot for headers, replicate here for tfoot
 
         if ($.fn.DataTable.isDataTable('#content-dashboard-table')) {
             contentDashboardTable.destroy();
-            $('#content-dashboard-table').empty(); // Clear headers and tbody to avoid duplication
+            // $table.empty(); // Already cleared thead and tbody specifically
         }
 
-        contentDashboardTable = $('#content-dashboard-table').DataTable({
+        contentDashboardTable = $table.DataTable({
             processing: true,
             serverSide: true,
             ajax: {
