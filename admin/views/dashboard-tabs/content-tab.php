@@ -164,6 +164,8 @@ foreach ($phases as $phase) {
                  <label style="font-weight: bold;"><?php esc_html_e('Select KPI Columns to Display:', 'operations-organizer'); ?></label>
                  <button type="button" id="content_open_kpi_selector_modal" class="button"><?php esc_html_e('Choose KPIs', 'operations-organizer'); ?></button>
                  <span id="content_selected_kpi_count" style="margin-left: 10px;"></span>
+                 <button type="button" id="save_content_columns_as_default" class="button button-secondary" style="margin-left: 15px; display:none;"><?php esc_html_e('Save as Default', 'operations-organizer'); ?></button>
+                 <span id="content_columns_default_saved_msg" style="margin-left: 10px; color: green; font-style: italic; display:none;"><?php esc_html_e('Default saved!', 'operations-organizer'); ?></span>
             </div>
         </div>
         
@@ -571,8 +573,24 @@ jQuery(document).ready(function($) {
     }
 
     // Store selected KPI keys globally for DataTable AJAX call
-    window.contentSelectedKpiKeys = []; // Default selected KPIs (empty)
-    window.contentSelectedKpiObjects = []; // Default selected KPI objects for titles (empty)
+    // window.contentSelectedKpiKeys = []; // No longer used as primary store
+    var initialDefaultColumns = (oo_data.user_content_default_columns && Array.isArray(oo_data.user_content_default_columns)) ? 
+                                oo_data.user_content_default_columns : [];
+    window.contentSelectedKpiObjects = JSON.parse(JSON.stringify(initialDefaultColumns)); // Deep copy for initial state
+    var $saveDefaultButton = $('#save_content_columns_as_default');
+    var $defaultSavedMsg = $('#content_columns_default_saved_msg');
+
+    function checkColumnChangesAndToggleSaveButton() {
+        var currentSelectionJson = JSON.stringify(window.contentSelectedKpiObjects.map(o => ({type: o.type, key: o.key, id: o.id, original_value_string: o.original_value_string })).sort((a,b) => (a.key || a.id) > (b.key || b.id) ? 1 : -1));
+        var defaultSelectionJson = JSON.stringify(initialDefaultColumns.map(o => ({type: o.type, key: o.key, id: o.id, original_value_string: o.original_value_string })).sort((a,b) => (a.key || a.id) > (b.key || b.id) ? 1 : -1));
+        
+        if (currentSelectionJson !== defaultSelectionJson) {
+            $saveDefaultButton.show();
+        } else {
+            $saveDefaultButton.hide();
+        }
+        $defaultSavedMsg.hide(); // Hide message on any change check
+    }
 
     function getInitialContentColumns() {
         // Define base columns that are always present
@@ -634,6 +652,7 @@ jQuery(document).ready(function($) {
 
     function reinitializeContentDashboardTable(){
         initializeContentDashboardTable(window.contentSelectedKpiObjects || []);
+        checkColumnChangesAndToggleSaveButton(); // Check after table reinit
     }
     
     // Initial load of the table with default KPI columns
@@ -1181,8 +1200,33 @@ jQuery(document).ready(function($) {
         
         updateSelectedKpiCount();
         $('#kpi-column-selector-modal').css('display', 'none');
-        
+        checkColumnChangesAndToggleSaveButton(); // Check after applying new selections
         reinitializeContentDashboardTable();
+    });
+
+    // Save current column selection as default
+    $saveDefaultButton.on('click', function(){
+        var $button = $(this);
+        $button.prop('disabled', true).text('<?php echo esc_js(__("Saving...", "operations-organizer")); ?>');
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_save_user_column_preference',
+            context: 'content_stream_table',
+            columns_config: JSON.stringify(window.contentSelectedKpiObjects),
+            _ajax_nonce: oo_data.nonce_save_column_prefs
+        }, function(response){
+            if(response.success){
+                initialDefaultColumns = JSON.parse(JSON.stringify(window.contentSelectedKpiObjects)); // Update our JS 'saved default'
+                $defaultSavedMsg.fadeIn().delay(2000).fadeOut();
+                checkColumnChangesAndToggleSaveButton(); // Should hide the button now
+            } else {
+                alert(response.data.message || '<?php echo esc_js(__("Could not save default settings.", "operations-organizer")); ?>');
+            }
+        }).fail(function(){
+            alert('<?php echo esc_js(__("Request to save default settings failed.", "operations-organizer")); ?>');
+        }).always(function(){
+            $button.prop('disabled', false).text('<?php echo esc_js(__("Save as Default", "operations-organizer")); ?>');
+        });
     });
 
     // Close modal (specific for this new modal)

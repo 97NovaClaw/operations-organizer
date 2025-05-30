@@ -115,6 +115,7 @@ if ( is_admin() ) {
                 'nonce_get_derived_kpi_details' => wp_create_nonce('oo_get_derived_kpi_details_nonce'),
                 'nonce_get_current_site_time' => wp_create_nonce('oo_get_current_site_time_nonce'),
                 'nonce_delete_phase_ajax' => wp_create_nonce('oo_delete_phase_ajax_nonce'),
+                'nonce_save_column_prefs' => wp_create_nonce('oo_save_column_prefs_nonce'),
                 'text_please_select_employee' => __('Please select an employee.', 'operations-organizer'),
                 'text_please_enter_emp_no' => __('Please enter an employee number.', 'operations-organizer'),
                 'text_add_derived_kpi' => __( 'Add Derived Calculation', 'operations-organizer' ),
@@ -125,7 +126,8 @@ if ( is_admin() ) {
                 'text_error_generic' => __( 'An error occurred.', 'operations-organizer' ),
                 'text_error_ajax' => __( 'AJAX request failed.', 'operations-organizer' ),
                 'text_kpi_values' => __( 'KPI Values', 'operations-organizer' ),
-                'all_kpi_measures' => OO_DB::get_kpi_measures(array('is_active' => 1))
+                'all_kpi_measures' => OO_DB::get_kpi_measures(array('is_active' => 1)),
+                'user_content_default_columns' => OO_Admin_Pages::get_user_table_column_defaults('content_stream_table')
             );
             wp_localize_script( 'oo-admin-scripts', 'oo_data', $localized_data );
 
@@ -180,6 +182,8 @@ add_action('wp_ajax_oo_get_derived_kpi_definition_details', array('OO_Admin_Page
 add_action('wp_ajax_oo_get_current_site_time', array('OO_Admin_Pages', 'ajax_get_current_site_time'));
 // AJAX for deleting a phase (NEW)
 add_action('wp_ajax_oo_delete_phase_ajax', array('OO_Phase', 'ajax_delete_phase'));
+// AJAX for saving user column preferences (NEW)
+add_action('wp_ajax_oo_save_user_column_preference', array('OO_Admin_Pages', 'ajax_save_user_column_preference'));
 
 // TODO: Update admin menu registration with new structure and OO_Admin_Menus class 
 

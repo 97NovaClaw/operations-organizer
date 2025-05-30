@@ -353,4 +353,60 @@ class OO_Admin_Pages { // Renamed class
             wp_send_json_error(['message' => __('Error fetching server time.', 'operations-organizer')]);
         }
     }
+
+    public static function get_user_table_column_defaults($context) {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return array();
+        }
+        $meta_key = '';
+        if ($context === 'content_stream_table') {
+            $meta_key = 'oo_content_stream_table_default_columns';
+        } // Add other contexts here if needed in the future
+        
+        if (empty($meta_key)) {
+            return array();
+        }
+
+        $default_columns_json = get_user_meta($user_id, $meta_key, true);
+        $default_columns = !empty($default_columns_json) ? json_decode($default_columns_json, true) : array();
+        return is_array($default_columns) ? $default_columns : array();
+    }
+
+    public static function ajax_save_user_column_preference() {
+        check_ajax_referer('oo_save_column_prefs_nonce', '_ajax_nonce');
+        if (!current_user_can(oo_get_capability())) { // Ensure user has general capability
+            wp_send_json_error(['message' => __('Permission denied.', 'operations-organizer')], 403);
+            return;
+        }
+
+        $user_id = get_current_user_id();
+        $context = isset($_POST['context']) ? sanitize_key($_POST['context']) : '';
+        $columns_config_json = isset($_POST['columns_config']) ? stripslashes($_POST['columns_config']) : '';
+
+        if (empty($user_id) || empty($context) || empty($columns_config_json)) {
+            wp_send_json_error(['message' => __('Missing required data to save preference.', 'operations-organizer')]);
+            return;
+        }
+
+        // Validate JSON structure before saving (basic check)
+        $decoded_config = json_decode($columns_config_json, true);
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded_config)) {
+            wp_send_json_error(['message' => __('Invalid column configuration format.', 'operations-organizer')]);
+            return;
+        }
+
+        $meta_key = '';
+        if ($context === 'content_stream_table') {
+            $meta_key = 'oo_content_stream_table_default_columns';
+        } // Add other contexts here
+
+        if (empty($meta_key)) {
+            wp_send_json_error(['message' => __('Invalid context for saving preference.', 'operations-organizer')]);
+            return;
+        }
+
+        update_user_meta($user_id, $meta_key, $columns_config_json); // Store as JSON string
+        wp_send_json_success(['message' => __('Default column settings saved.', 'operations-organizer')]);
+    }
 } 
