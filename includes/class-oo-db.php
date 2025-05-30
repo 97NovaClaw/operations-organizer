@@ -4382,6 +4382,42 @@ class OO_DB { // Renamed class
         
         return intval($count);
     }
+    /**
+     * Get the names of phases within a specific stream that a KPI measure is linked to.
+     *
+     * @param int $kpi_measure_id The ID of the KPI measure.
+     * @param int $stream_id The ID of the stream to filter phases by.
+     * @return array Array of phase names.
+     */
+    public static function get_phase_names_for_kpi_in_stream($kpi_measure_id, $stream_id) {
+        self::init();
+        global $wpdb;
+
+        $kpi_measure_id = intval($kpi_measure_id);
+        $stream_id = intval($stream_id);
+
+        if ($kpi_measure_id <= 0 || $stream_id <= 0) {
+            return array();
+        }
+
+        $phases_table = self::$phases_table;
+        $phase_kpi_link_table = self::$phase_kpi_measures_link_table;
+
+        $sql = $wpdb->prepare(
+            "SELECT DISTINCT p.phase_name
+            FROM {$phases_table} p
+            INNER JOIN {$phase_kpi_link_table} pkl ON p.phase_id = pkl.phase_id
+            WHERE pkl.kpi_measure_id = %d
+            AND p.stream_id = %d
+            AND p.is_active = 1
+            ORDER BY p.order_in_stream ASC, p.phase_name ASC",
+            $kpi_measure_id,
+            $stream_id
+        );
+
+        $phase_names = $wpdb->get_col($sql);
+        return $phase_names ? $phase_names : array();
+    }        
     // --- Phase KPI Measures Link CRUD Methods (NEW) ---
 
     /**
