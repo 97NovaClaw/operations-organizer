@@ -123,6 +123,7 @@ if ( is_admin() ) {
                 'text_saving' => __( 'Saving...', 'operations-organizer' ),
                 'text_error_generic' => __( 'An error occurred.', 'operations-organizer' ),
                 'text_error_ajax' => __( 'AJAX request failed.', 'operations-organizer' ),
+                'text_kpi_values' => __( 'KPI Values', 'operations-organizer' ),
                 'all_kpi_measures' => OO_DB::get_kpi_measures(array('is_active' => 1))
             );
             wp_localize_script( 'oo-admin-scripts', 'oo_data', $localized_data );

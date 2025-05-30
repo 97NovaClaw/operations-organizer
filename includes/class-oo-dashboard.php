@@ -369,8 +369,33 @@ class OO_Dashboard { // Renamed class
                     // If we had specific form fields for kpi_data, we'd populate them here.
                     // For now, we might just pass the raw kpi_data string or decoded array.
                     // The edit form would need to dynamically generate fields based on stream_type kpi_config
+                    $log_details->recorded_kpis_array = $kpis; // Pass decoded KPIs
+                } else {
+                    $log_details->recorded_kpis_array = array();
+                }
+            } else {
+                $log_details->recorded_kpis_array = array();
+            }
+
+            // Fetch KPI definitions for the phase of this log
+            $log_details->phase_kpi_definitions = array();
+            if ($log_details->phase_id > 0) {
+                $phase_kpis = OO_DB::get_phase_kpi_links_for_phase($log_details->phase_id, array('active_only' => true, 'join_measures' => true));
+                if (!empty($phase_kpis)) {
+                    foreach ($phase_kpis as $kpi_link) {
+                        // We only want the definition (key, name, unit_type, is_mandatory)
+                        if (isset($kpi_link->measure_key)) { // Ensure the measure details were joined
+                            $log_details->phase_kpi_definitions[] = array(
+                                'measure_key' => $kpi_link->measure_key,
+                                'measure_name' => $kpi_link->measure_name,
+                                'unit_type' => $kpi_link->unit_type,
+                                'is_mandatory' => $kpi_link->is_mandatory
+                            );
+                        }
+                    }
                 }
             }
+
             wp_send_json_success($log_details);
         } else {
             wp_send_json_error(['message' => 'Job log not found.']);
@@ -481,7 +506,18 @@ class OO_Dashboard { // Renamed class
         $kpi_data = !empty($current_log->kpi_data) ? json_decode($current_log->kpi_data, true) : array();
         if (!is_array($kpi_data)) $kpi_data = array();
         
-        // Handle boxes_completed
+        // Handle new dynamic KPI values submitted from the edit modal
+        if (isset($_POST['edit_kpi_values']) && is_array($_POST['edit_kpi_values'])) {
+            $submitted_kpis = $_POST['edit_kpi_values'];
+            foreach ($submitted_kpis as $key => $value) {
+                $sanitized_key = sanitize_key($key);
+                // Further per-KPI validation/sanitization could happen here based on unit_type if definitions are fetched
+                $kpi_data[$sanitized_key] = sanitize_text_field(stripslashes($value)); 
+            }
+        }
+
+        // Handle legacy boxes_completed and items_completed updates - these should be phased out or map to new kpi_values keys
+        // For now, ensure they still update kpi_data if submitted through old field names, assuming they are also defined as KPIs.
         if (isset($_POST['edit_log_boxes_completed'])) {
             $boxes_completed_value = !empty($_POST['edit_log_boxes_completed']) || $_POST['edit_log_boxes_completed'] === '0' ? 
                 intval($_POST['edit_log_boxes_completed']) : null;
