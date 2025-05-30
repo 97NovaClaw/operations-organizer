@@ -9,15 +9,21 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 
 $active_tab = isset( $_GET['sub_tab'] ) ? sanitize_key( $_GET['sub_tab'] ) : 'phase_log_actions';
 
+oo_log('[Content Stream Page] Current Stream ID: ' . (isset($current_stream_id) ? $current_stream_id : 'Not Set'), 'ContentStreamPage');
+oo_log('[Content Stream Page] Global Phases available: ' . (isset($phases) ? count($phases) : 'Not Set or Empty'), 'ContentStreamPage');
+
 // Prepare phases for the current stream for Quick Actions
 $stream_phases = array();
 if (isset($current_stream_id) && !empty($phases)) {
     foreach ($phases as $phase_item) { // Renamed to avoid conflict with $phase in content-tab snippet
+        oo_log('[Content Stream Page] Checking phase: ' . $phase_item->phase_name . ' (ID: ' . $phase_item->phase_id . ', StreamID: ' . $phase_item->stream_id . ', IncludesKPI: ' . $phase_item->includes_kpi . ')', 'ContentStreamPage');
         if ($phase_item->stream_id == $current_stream_id && !empty($phase_item->includes_kpi)) {
             $stream_phases[] = $phase_item;
+            oo_log('[Content Stream Page] ----> Added phase: ' . $phase_item->phase_name, 'ContentStreamPage');
         }
     }
 }
+oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . count($stream_phases), 'ContentStreamPage');
 
 ?>
 <div class="wrap oo-stream-page oo-stream-page-<?php echo esc_attr($current_stream_tab_slug); ?>">
@@ -289,17 +295,23 @@ if (isset($current_stream_id) && !empty($phases)) {
                 <?php 
                 // We need to fetch phases specifically for this stream for the table
                 // The global $phases might contain all phases. Let's re-filter or re-fetch if necessary.
-                $current_stream_phases_for_table = array();
-                if (!empty($GLOBALS['phases'])) {
-                    foreach ($GLOBALS['phases'] as $phase_item) {
-                        if ($phase_item->stream_id == $current_stream_id) {
-                            $current_stream_phases_for_table[] = $phase_item;
+                $current_stream_phases_for_table = array(); // Initialize
+                if (isset($current_stream_id)) { // Ensure current_stream_id is set
+                    if (!empty($GLOBALS['phases'])) {
+                        oo_log('[Content Stream Page - Manage Tab] Using GLOBALS phases. Count: ' . count($GLOBALS['phases']), 'ContentStreamPage');
+                        foreach ($GLOBALS['phases'] as $phase_item) {
+                             oo_log('[Content Stream Page - Manage Tab] Checking phase from GLOBALS: ' . $phase_item->phase_name . ' (StreamID: ' . $phase_item->stream_id . ') against Current Stream ID: ' . $current_stream_id, 'ContentStreamPage');
+                            if ($phase_item->stream_id == $current_stream_id) {
+                                $current_stream_phases_for_table[] = $phase_item;
+                            }
                         }
+                    } else {
+                        oo_log('[Content Stream Page - Manage Tab] GLOBALS phases empty, fetching fresh for stream ID: ' . $current_stream_id, 'ContentStreamPage');
+                        // If $GLOBALS['phases'] wasn't populated by the main page controller, fetch them now.
+                        $current_stream_phases_for_table = OO_DB::get_phases(array('stream_id' => $current_stream_id, 'orderby' => 'order_in_stream', 'order' => 'ASC', 'number' => -1));
                     }
-                } else {
-                    // If $GLOBALS['phases'] wasn't populated by the main page controller, fetch them now.
-                    $current_stream_phases_for_table = OO_DB::get_phases(array('stream_id' => $current_stream_id, 'orderby' => 'order_in_stream', 'order' => 'ASC', 'number' => -1));
                 }
+                oo_log('[Content Stream Page - Manage Tab] Filtered Phases for Table: ' . count($current_stream_phases_for_table), 'ContentStreamPage');
                 
                 // For pagination, we'd need a count specific to this stream as well.
                 // $total_stream_phases = OO_DB::get_phases_count(array('stream_id' => $current_stream_id));
