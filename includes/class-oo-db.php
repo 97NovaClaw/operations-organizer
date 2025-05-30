@@ -4653,11 +4653,25 @@ class OO_DB { // Renamed class
 
         if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
         
+        // Add specific filter for primary_kpi_measure_id
+        if ( !empty($args['primary_kpi_measure_id']) ) {
+            $where_clauses[] = "primary_kpi_measure_id = %d";
+            $query_params[] = intval($args['primary_kpi_measure_id']);
+        }
+
         if ( !empty($args['search']) ) {
             $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search'])) . '%';
-            $search_fields = array("definition_name LIKE %s", "primary_kpi_measure_id LIKE %s", "calculation_type LIKE %s");
-            $where_clauses[] = "(" . implode(" OR ", $search_fields) . ")";
-            $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;
+            $search_conditions = array();
+            $search_conditions[] = $wpdb->prepare("definition_name LIKE %s", $search_term);
+            $search_conditions[] = $wpdb->prepare("calculation_type LIKE %s", $search_term);
+            // If search term is purely numeric, also search by primary_kpi_measure_id - this is less relevant now that we have a direct filter
+            // if (is_numeric($args['search'])) {
+            //      $search_conditions[] = $wpdb->prepare("primary_kpi_measure_id = %d", intval($args['search']));
+            // }
+            if (!empty($search_conditions)){
+                 $where_clauses[] = "(" . implode(" OR ", $search_conditions) . ")";
+            } 
+            // Note: $wpdb->prepare handles the $search_term, no need to add to $query_params separately here for these LIKEs
         }
 
         if ( !empty($where_clauses) ) {
