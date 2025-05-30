@@ -325,7 +325,6 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                             <th><?php esc_html_e('Description', 'operations-organizer'); ?></th>
                             <th><?php esc_html_e('Order', 'operations-organizer'); ?></th>
                             <th><?php esc_html_e('Includes KPIs', 'operations-organizer'); ?></th>
-                            <th><?php esc_html_e('Manage KPIs', 'operations-organizer'); ?></th>
                             <th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
                             <th><?php esc_html_e('Actions', 'operations-organizer'); ?></th>
                         </tr>
@@ -334,20 +333,11 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                         <?php if ( ! empty( $current_stream_phases_for_table ) ) : ?>
                             <?php foreach ( $current_stream_phases_for_table as $phase ) : ?>
                                 <tr class="<?php echo $phase->is_active ? 'active' : 'inactive'; ?>">
-                                    <td><strong><button type="button" class="button-link oo-edit-phase-button-stream" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>"><?php echo esc_html( $phase->phase_name ); ?></button></strong></td>
+                                    <td><strong><button type="button" class="button-link oo-edit-phase-button-stream" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>" data-phase-name="<?php echo esc_attr( $phase->phase_name ); ?>"><?php echo esc_html( $phase->phase_name ); ?></button></strong></td>
                                     <td><code><?php echo esc_html( $phase->phase_slug ); ?></code></td>
                                     <td><?php echo esc_html( $phase->phase_description ); ?></td>
                                     <td><?php echo intval( $phase->order_in_stream ); ?></td>
                                     <td><?php echo $phase->includes_kpi ? 'Yes' : 'No'; ?></td>
-                                    <td>
-                                        <?php if ( $phase->includes_kpi ) : ?>
-                                            <button class="button button-small oo-manage-phase-kpis-button" 
-                                                    data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>" 
-                                                    data-phase-name="<?php echo esc_attr( $phase->phase_name ); ?>">
-                                                <?php esc_html_e('Manage KPIs', 'operations-organizer'); ?>
-                                            </button>
-                                        <?php else : esc_html_e( 'N/A', 'operations-organizer' ); endif; ?>
-                                    </td>
                                     <td>
                                         <?php 
                                         $status_text = $phase->is_active ? __( 'Active', 'operations-organizer' ) : __( 'Inactive', 'operations-organizer' );
@@ -367,7 +357,7 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                                 </tr>
                             <?php endforeach; ?>
                         <?php else : ?>
-                            <tr><td colspan="8"><?php esc_html_e( 'No phases found for this stream.', 'operations-organizer' ); ?></td></tr>
+                            <tr><td colspan="7"><?php esc_html_e( 'No phases found for this stream.', 'operations-organizer' ); ?></td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -419,16 +409,16 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
     </div>
 </div>
 
-<!-- Edit Phase Modal for Stream Page -->
+<!-- Edit Phase Modal for Stream Page - To be enhanced -->
 <div id="editOOPhaseModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
-    <div class="oo-modal-content">
+    <div class="oo-modal-content" style="width: 800px; max-width: 90%;">
         <span class="oo-modal-close">&times;</span>
-        <h2><?php esc_html_e( 'Edit Phase for', 'operations-organizer' ); ?> <?php echo esc_html($current_stream_name); ?></h2>
+        <h2><?php esc_html_e( 'Edit Phase for', 'operations-organizer' ); ?> <?php echo esc_html($current_stream_name); ?>: <span id="editModalPhaseNameDisplay-<?php echo esc_attr($current_stream_tab_slug); ?>"></span></h2>
         <form id="oo-edit-phase-form-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
-            <?php wp_nonce_field( 'oo_edit_phase_nonce', 'oo_edit_phase_nonce' ); // Can reuse existing nonce for edit_phase action ?>
+            <?php wp_nonce_field( 'oo_edit_phase_nonce', 'oo_edit_phase_nonce' ); ?>
             <input type="hidden" id="edit_phase_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="edit_phase_id" value="" />
             <input type="hidden" id="edit_modal_phase_slug-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="edit_phase_slug" value="" />
-            <input type="hidden" name="edit_stream_type_id" value="<?php echo esc_attr($current_stream_id); ?>" /> <!-- Stream ID is fixed here -->
+            <input type="hidden" name="edit_stream_type_id" value="<?php echo esc_attr($current_stream_id); ?>" /> 
             
             <table class="form-table oo-form-table">
                 <tr valign="top">
@@ -456,30 +446,37 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                         </label>
                     </td>
                 </tr>
+                <!-- Section for Managing Linked KPIs (Align with global phase edit modal) -->
+                <tr valign="top" class="oo-kpi-linking-section-stream">
+                    <th scope="row"><?php esc_html_e( 'Linked KPI Measures', 'operations-organizer' ); ?></th>
+                    <td>
+                        <div id="linked-kpi-measures-list-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                            <!-- Linked KPIs table will be loaded here by JavaScript -->
+                            <p><?php esc_html_e( 'Loading linked KPIs...', 'operations-organizer' ); ?></p>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label for="add_kpi_measure_to_phase-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Add KPI Measure to this Phase:', 'operations-organizer' ); ?></label>
+                            <select id="add_kpi_measure_to_phase-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="add_kpi_measure_to_phase_stream" style="width: 70%;">
+                                <option value=""><?php esc_html_e( '-- Select KPI Measure --', 'operations-organizer' ); ?></option>
+                                <?php
+                                // This will be populated by JS to show *available (not yet linked)* KPIs for the current phase
+                                // For initial setup, it's empty. JS will fill it based on all active KPIs minus already linked ones.
+                                ?>
+                            </select>
+                            <button type="button" id="btn-add-kpi-to-phase-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="button"><?php esc_html_e( 'Add Selected KPI', 'operations-organizer' ); ?></button>
+                        </div>
+                        <p class="description"><?php esc_html_e( 'Select a predefined KPI measure and add it to this phase. You can then set if it\\'s mandatory and its display order.', 'operations-organizer' ); ?></p>
+                    </td>
+                </tr>
+                <!-- End Section for Managing Linked KPIs -->
             </table>
-            <?php submit_button( __( 'Save Changes', 'operations-organizer' ), 'primary', 'submit_edit_phase-stream-' . $current_stream_tab_slug ); ?>
-            <button type="button" id="oo-ajax-delete-phase-from-modal-button-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="button button-link is-destructive" style="margin-left: 10px; vertical-align: middle; display:none;"><?php esc_html_e( 'Delete This Phase', 'operations-organizer' ); ?></button>
+            <?php submit_button( __( 'Save Phase Changes', 'operations-organizer' ), 'primary', 'submit_edit_phase-stream-' . $current_stream_tab_slug ); ?>
+            <!-- Delete button for phase is now in the table row, not modal -->
         </form>
     </div>
 </div>
 
-<!-- Manage Phase KPIs Modal (Copied from phase-management-page.php) -->
-<div id="manageOOPhaseKPIsModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
-    <div class="oo-modal-content" style="width: 700px; max-width: 90%;">
-        <span class="oo-modal-close">&times;</span>
-        <h2><?php esc_html_e( 'Manage KPIs for Phase:', 'operations-organizer' ); ?> <span id="manageKPIsPhaseName-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"></span></h2>
-        <input type="hidden" id="manageKPIsPhaseId-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" value="" />
-        
-        <div id="availableKPIsForPhaseList-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" style="margin-bottom: 20px; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
-            <p><?php esc_html_e( 'Loading available KPIs...', 'operations-organizer' ); ?></p>
-        </div>
-
-        <p class="submit">
-            <button type="button" id="savePhaseKPILinksBtn-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="button button-primary"><?php esc_html_e( 'Save KPI Links', 'operations-organizer' ); ?></button>
-            <button type="button" class="button oo-modal-close oo-close-button"><?php esc_html_e( 'Close', 'operations-organizer' ); ?></button>
-        </p>
-    </div>
-</div> 
+<!-- Manage Phase KPIs Modal Removed, its functionality is merged into Edit Phase Modal -->
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
@@ -558,16 +555,16 @@ jQuery(document).ready(function($) {
         }
     });
 
-    // --- Phase Management for this Stream Page (NEW) ---
+    // --- Phase Management for this Stream Page (NEW/MODIFIED) ---
     var streamSlug = '<?php echo esc_js($current_stream_tab_slug); ?>';
-    var addPhaseModal = $('#addOOPhaseModal-stream-' + streamSlug);
-    var editPhaseModal = $('#editOOPhaseModal-stream-' + streamSlug);
+    var addPhaseModal_Stream = $('#addOOPhaseModal-stream-' + streamSlug);
+    var editPhaseModal_Stream = $('#editOOPhaseModal-stream-' + streamSlug);
 
     // Open Add Phase Modal for Stream
     $('#openAddOOPhaseModalBtn-stream-' + streamSlug).on('click', function() {
-        addPhaseModal.find('form')[0].reset();
-        // Stream is pre-set and disabled, value is in hidden field already
-        addPhaseModal.show();
+        addPhaseModal_Stream.find('form')[0].reset();
+        addPhaseModal_Stream.find('#add_phase_slug-stream-' + streamSlug).val('');
+        addPhaseModal_Stream.show();
     });
 
     // Auto-generate slug for Add Phase Modal on Stream Page
@@ -580,48 +577,57 @@ jQuery(document).ready(function($) {
     $('#oo-add-phase-form-stream-' + streamSlug).on('submit', function(e) {
         e.preventDefault();
         var $form = $(this);
-        var $submitButton = $form.find('input[type="submit"]');
-        $submitButton.prop('disabled', true);
-        var formData = $form.serialize() + '&action=oo_add_phase'; // Reuses global AJAX action
+        var $submitButton = $form.find('#submit_add_phase-stream-' + streamSlug); // Corrected selector
+        $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Adding...", "operations-organizer")); ?>');
+        var formData = $form.serialize() + '&action=oo_add_phase&return_to_stream=' + streamSlug + '&return_sub_tab=phase_kpi_settings'; 
 
         $.post(oo_data.ajax_url, formData, function(response) {
             if (response.success) {
                 showNotice('success', response.data.message);
-                addPhaseModal.hide();
-                window.location.reload(); // Reload to see new phase in table
+                addPhaseModal_Stream.hide();
+                if(response.data && response.data.redirect_url) { window.location.href = response.data.redirect_url; } else { window.location.reload(); }
             } else {
                 showNotice('error', response.data.message || 'An unknown error occurred.');
             }
         }).fail(function() {
             showNotice('error', 'Request failed. Please try again.');
         }).always(function() {
-            $submitButton.prop('disabled', false);
+            $submitButton.prop('disabled', false).val('<?php echo esc_js(__("Add Phase", "operations-organizer")); ?>');
         });
     });
 
     // Handle Edit Phase Button Click on Stream Page table
     $('#phase-kpi-settings-content').on('click', '.oo-edit-phase-button-stream', function() { 
         var phaseId = $(this).data('phase-id');
-        editPhaseModal.data('current-phase-id', phaseId); 
-        var $deleteButtonInModal = $('#oo-ajax-delete-phase-from-modal-button-stream-' + streamSlug);
-        $deleteButtonInModal.hide(); // Hide delete from modal, use table row delete
+        var phaseName = $(this).closest('tr').find('td:first-child .oo-edit-phase-button-stream').text().trim() || $(this).data('phase-name'); // More robust phase name fetching
+        
+        editPhaseModal_Stream.data('current-phase-id', phaseId); 
+        editPhaseModal_Stream.find('#editModalPhaseNameDisplay-' + streamSlug).text(phaseName);
+
+        // Clear previous KPI linking info before fetching new data
+        $('#linked-kpi-measures-list-stream-' + streamSlug).html('<p><?php echo esc_js( __( "Loading linked KPIs...", "operations-organizer" ) ); ?></p>');
+        $('#add_kpi_measure_to_phase-stream-' + streamSlug)
+            .empty()
+            .append('<option value="">' + '<?php echo esc_js( __( "-- Select KPI Measure --", "operations-organizer" ) ); ?>' + '</option>')
+            .prop('disabled', true); // Disable dropdown until populated
 
         $.post(oo_data.ajax_url, {
             action: 'oo_get_phase',
             phase_id: phaseId,
-            _ajax_nonce_get_phase: oo_data.nonce_edit_phase // Reuse global nonce for getting phase data
+            _ajax_nonce_get_phase: oo_data.nonce_edit_phase 
         }, function(response) {
             if (response.success) {
-                editPhaseModal.find('#edit_phase_id-stream-' + streamSlug).val(response.data.phase_id);
-                // Stream is fixed, so no need to set stream_type_id dropdown
-                editPhaseModal.find('#edit_modal_phase_slug-stream-' + streamSlug).val(response.data.phase_slug);
-                editPhaseModal.find('#edit_modal_phase_name-stream-' + streamSlug).val(response.data.phase_name);
-                editPhaseModal.find('#edit_modal_phase_description-stream-' + streamSlug).val(response.data.phase_description);
-                editPhaseModal.find('#edit_modal_sort_order-stream-' + streamSlug).val(response.data.order_in_stream);
-                editPhaseModal.find('#edit_modal_includes_kpi-stream-' + streamSlug).prop('checked', parseInt(response.data.includes_kpi) === 1);
+                editPhaseModal_Stream.find('#edit_phase_id-stream-' + streamSlug).val(response.data.phase_id);
+                editPhaseModal_Stream.find('#edit_modal_phase_slug-stream-' + streamSlug).val(response.data.phase_slug);
+                editPhaseModal_Stream.find('#edit_modal_phase_name-stream-' + streamSlug).val(response.data.phase_name);
+                editPhaseModal_Stream.find('#edit_modal_phase_description-stream-' + streamSlug).val(response.data.phase_description);
+                editPhaseModal_Stream.find('#edit_modal_sort_order-stream-' + streamSlug).val(response.data.order_in_stream);
+                editPhaseModal_Stream.find('#edit_modal_includes_kpi-stream-' + streamSlug).prop('checked', parseInt(response.data.includes_kpi) === 1);
                 
-                if (phaseId) { $deleteButtonInModal.data('phase-id', phaseId).show(); } else { $deleteButtonInModal.hide(); }
-                editPhaseModal.show();
+                // Load linked KPIs and populate the "Add KPI" dropdown
+                loadAndDisplayPhaseKpis_StreamPage(phaseId, streamSlug); // Changed from loadAvailableAndLinkedKPIsForPhase_StreamPage
+                
+                editPhaseModal_Stream.show();
             } else {
                  showNotice('error', response.data.message || 'Could not load phase data.');
             }
@@ -632,32 +638,28 @@ jQuery(document).ready(function($) {
     $('#oo-edit-phase-form-stream-' + streamSlug).on('submit', function(e) {
         e.preventDefault();
         var $form = $(this);
-        var $submitButton = $form.find('input[type="submit"]');
-        $submitButton.prop('disabled', true);
-        var formData = $form.serialize() + '&action=oo_update_phase'; // Reuses global AJAX action
-         formData += '&return_to_stream=' + streamSlug; // Add return context
+        var $submitButton = $form.find('#submit_edit_phase-stream-' + streamSlug); // Corrected selector
+        $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Saving...", "operations-organizer")); ?>');
+        var formData = $form.serialize() + '&action=oo_update_phase'; 
+         formData += '&return_to_stream=' + streamSlug; 
          formData += '&return_sub_tab=phase_kpi_settings';
 
         $.post(oo_data.ajax_url, formData, function(response) {
             if (response.success) {
                 showNotice('success', response.data.message);
-                editPhaseModal.hide();
-                if(response.data && response.data.redirect_url) { 
-                    window.location.href = response.data.redirect_url; 
-                } else { 
-                    window.location.reload(); // Fallback if redirect_url not in response
-                }
+                editPhaseModal_Stream.hide();
+                if(response.data && response.data.redirect_url) { window.location.href = response.data.redirect_url; } else { window.location.reload(); }
             } else {
                 showNotice('error', response.data.message || 'An unknown error occurred.');
             }
         }).fail(function() {
             showNotice('error', 'Request failed. Please try again.');
         }).always(function() {
-            $submitButton.prop('disabled', false);
+            $submitButton.prop('disabled', false).val('<?php echo esc_js(__("Save Phase Changes", "operations-organizer")); ?>');
         });
     });
 
-    // Handle AJAX Delete Phase from table on Stream Page
+    // AJAX Delete Phase from table on Stream Page
     $('#phase-kpi-settings-content').on('click', '.oo-delete-phase-button-stream', function() { 
         var phaseId = $(this).data('phase-id');
         if (!phaseId) {
@@ -718,112 +720,179 @@ jQuery(document).ready(function($) {
         }).fail(function() { showNotice('error', 'Request to change phase status failed.'); });
     });
 
-    // --- Manage Phase KPIs Modal Logic for Stream Page (already moved, ensure selectors are correct) ---
-    var streamSlugForKPIModal = '<?php echo esc_js($current_stream_tab_slug); ?>';
-    var $manageKPIsModal = $('#manageOOPhaseKPIsModal-stream-' + streamSlugForKPIModal);
-    var $manageKPIsPhaseName = $('#manageKPIsPhaseName-stream-' + streamSlugForKPIModal);
-    var $manageKPIsPhaseIdInput = $('#manageKPIsPhaseId-stream-' + streamSlugForKPIModal);
-    var $availableKPIsContainer = $('#availableKPIsForPhaseList-stream-' + streamSlugForKPIModal);
-    var $saveKPILinksButton = $('#savePhaseKPILinksBtn-stream-' + streamSlugForKPIModal);
+    // Function to load and display linked KPI measures and populate Add KPI dropdown (Stream Page Edit Modal)
+    function loadAndDisplayPhaseKpis_StreamPage(phaseId, streamSlugContext) {
+        var linkedKpisContainer = $('#linked-kpi-measures-list-stream-' + streamSlugContext);
+        var addKpiDropdown = $('#add_kpi_measure_to_phase-stream-' + streamSlugContext);
 
-    // Open Manage Phase KPIs Modal 
-    $('#phase-kpi-settings-content').on('click', '.oo-manage-phase-kpis-button', function() { 
-        var phaseId = $(this).data('phase-id');
-        var phaseName = $(this).data('phase-name');
+        linkedKpisContainer.html('<p><?php echo esc_js( __( "Loading linked KPIs...", "operations-organizer" ) ); ?></p>');
+        addKpiDropdown.empty().append('<option value="">' + '<?php echo esc_js( __( "-- Select KPI Measure --", "operations-organizer" ) ); ?>' + '</option>').prop('disabled', true);
 
-        $manageKPIsPhaseName.text(phaseName);
-        $manageKPIsPhaseIdInput.val(phaseId);
-        $manageKPIsModal.show();
-        loadAvailableAndLinkedKPIsForPhase_StreamPage(phaseId, $availableKPIsContainer);
-    });
-
-    function loadAvailableAndLinkedKPIsForPhase_StreamPage(phaseId, container) {
-        container.html('<p><?php echo esc_js( __( 'Loading KPIs...', 'operations-organizer' ) ); ?></p>');
+        // Fetch all active KPI measures and then the phase-specific KPI links
         $.when(
             $.post(oo_data.ajax_url, { 
                 action: 'oo_get_kpi_measures', 
-                _ajax_nonce: oo_data.nonce_dashboard, 
-                is_active: 1,
+                _ajax_nonce: oo_data.nonce_get_kpi_measures, // Assumes a general nonce for getting kpis
+                is_active: 1, 
                 number: -1 
             }),
-            $.post(oo_data.ajax_url, {
-                action: 'oo_get_phase_kpi_links',
-                phase_id: phaseId,
+            $.post(oo_data.ajax_url, { 
+                action: 'oo_get_phase_kpi_links', 
+                phase_id: phaseId, 
                 _ajax_nonce: oo_data.nonce_get_phase_kpi_links 
             })
         ).done(function(allKpisResponse, linkedKpisResponse) {
-            container.empty();
             var allKpis = (allKpisResponse[0] && allKpisResponse[0].success) ? allKpisResponse[0].data : [];
             var linkedKpis = (linkedKpisResponse[0] && linkedKpisResponse[0].success) ? linkedKpisResponse[0].data : [];
+            var linkedKpiIds = linkedKpis.map(function(link) { return link.kpi_measure_id.toString(); });
 
-            if (allKpis.length === 0) {
-                container.html('<p><?php echo esc_js( __( "No active KPI measures defined. Please define KPIs first.", "operations-organizer" ) ); ?></p>');
-                return;
+            // Populate the "Add KPI" dropdown with available (not yet linked) KPIs
+            addKpiDropdown.prop('disabled', false);
+            if (allKpis.length > 0) {
+                var availableKpisCount = 0;
+                $.each(allKpis, function(index, kpi) {
+                    if (linkedKpiIds.indexOf(kpi.kpi_measure_id.toString()) === -1) {
+                        addKpiDropdown.append(
+                            $('<option>', { 
+                                value: kpi.kpi_measure_id, 
+                                text: esc_html(kpi.measure_name) + ' (' + esc_html(kpi.measure_key) + ')' 
+                            })
+                        );
+                        availableKpisCount++;
+                    }
+                });
+                if (availableKpisCount === 0 && addKpiDropdown.children().length <=1 ) { // Still only the default "--Select--"
+                     addKpiDropdown.append('<option value="" disabled><?php echo esc_js( __( "All KPIs linked or none available", "operations-organizer" ) ); ?></option>');
+                }
+            } else {
+                 addKpiDropdown.append('<option value="" disabled><?php echo esc_js( __( "No active KPIs available", "operations-organizer" ) ); ?></option>');
             }
-            var list = $('<ul style="list-style-type: none; padding-left: 0;">');
-            $.each(allKpis, function(index, kpi) {
-                var currentLink = linkedKpis.find(function(link) { return link.kpi_measure_id == kpi.kpi_measure_id; });
-                var isChecked = currentLink ? 'checked' : '';
-                var isMandatory = (currentLink && currentLink.is_mandatory == 1) ? 'checked' : '';
-                var displayOrder = (currentLink && typeof currentLink.display_order !== 'undefined') ? currentLink.display_order : 0;
-                var kpiIdForNames = 'kpi_stream_' + streamSlugForKPIModal + '_' + kpi.kpi_measure_id; 
+            // If only the default "-- Select --" option is present, add a disabled placeholder
+            if (addKpiDropdown.children('option:not([value=""])').length === 0 && addKpiDropdown.children().length === 1) {
+                addKpiDropdown.append('<option value="" disabled><?php echo esc_js( __( "No KPIs to add", "operations-organizer" ) ); ?></option>');
+            }
 
-                var listItem = $('<li style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee;">');
-                listItem.append(
-                    '<label style="display: block; margin-bottom: 5px;">' + 
-                    '<input type="checkbox" name="phase_kpis['+kpiIdForNames+'][]" value="' + kpi.kpi_measure_id + '" ' + isChecked + ' style="margin-right: 5px;" />' + 
-                    '<strong>' + esc_html(kpi.measure_name) + '</strong> (<code>' + esc_html(kpi.measure_key) + '</code>)' + 
-                    '</label>');
-                
-                var optionsDiv = $('<div style="margin-left: 25px;" class="kpi-link-options"></div>').toggle(isChecked !== '');
-                optionsDiv.append(
-                    '<label style="margin-right: 15px;">' + 
-                    '<input type="checkbox" name="kpi_mandatory[' + kpi.kpi_measure_id + ']" ' + isMandatory + ' style="margin-right: 3px;"/><?php echo esc_js( __("Mandatory?", "operations-organizer") ); ?>' + 
-                    '</label>');
-                optionsDiv.append(
-                    '<label><?php echo esc_js( __("Display Order:", "operations-organizer") ); ?> ' + 
-                    '<input type="number" name="kpi_display_order[' + kpi.kpi_measure_id + ']" value="' + displayOrder + '" style="width: 60px;" min="0"/>' + 
-                    '</label>');
-                listItem.append(optionsDiv);
-                list.append(listItem);
-            });
-            container.append(list);
-            container.find('input[name^="phase_kpis["]').on('change', function() {
-                $(this).closest('li').find('.kpi-link-options').toggle($(this).is(':checked'));
-            });
-        }).fail(function() { container.html('<p><?php echo esc_js( __( "Error loading KPI data.", "operations-organizer" ) ); ?></p>'); });
+            // Display the table of currently linked KPIs
+            linkedKpisContainer.empty();
+            if (linkedKpis.length > 0) {
+                var table = $('<table class="wp-list-table widefat striped oo-linked-kpis-table-stream"><thead><tr><th><?php echo esc_js( __("Measure Name", "operations-organizer") ); ?></th><th><?php echo esc_js( __("Mandatory", "operations-organizer") ); ?></th><th><?php echo esc_js( __("Order", "operations-organizer") ); ?></th><th><?php echo esc_js( __("Actions", "operations-organizer") ); ?></th></tr></thead><tbody></tbody></table>');
+                var tbody = table.find('tbody');
+                $.each(linkedKpis, function(index, link) {
+                    var row = $('<tr>');
+                    row.append('<td>' + esc_html(link.measure_name) + ' (<code>' + esc_html(link.measure_key) + '</code>)</td>');
+                    row.append('<td><input type="checkbox" class="is-mandatory-kpi-stream" data-link-id="' + link.link_id + '" ' + (link.is_mandatory == 1 ? 'checked' : '') + '></td>');
+                    row.append('<td><input type="number" class="display-order-kpi-stream" data-link-id="' + link.link_id + '" value="' + link.display_order + '" style="width: 60px;" min="0"></td>');
+                    row.append('<td><button type="button" class="button button-link-delete oo-remove-kpi-link-stream" data-link-id="' + link.link_id + '"><?php echo esc_js( __("Remove", "operations-organizer") ); ?></button></td>');
+                    tbody.append(row);
+                });
+                linkedKpisContainer.append(table);
+            } else {
+                linkedKpisContainer.html('<p><?php echo esc_js( __( "No KPI measures are currently linked to this phase.", "operations-organizer" ) ); ?></p>');
+            }
+
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            console.error("AJAX Error in loadAndDisplayPhaseKpis_StreamPage:", textStatus, errorThrown, jqXHR.responseText);
+            linkedKpisContainer.html('<p><?php echo esc_js( __( "Error loading KPI data. Check browser console.", "operations-organizer" ) ); ?></p>');
+            addKpiDropdown.prop('disabled', true).empty().append('<option value=""><?php echo esc_js( __( "Error loading KPIs", "operations-organizer" ) ); ?></option>');
+        });
     }
 
-    $saveKPILinksButton.on('click', function() {
-        var phaseId = $manageKPIsPhaseIdInput.val();
-        var links = [];
-        $manageKPIsModal.find('#availableKPIsForPhaseList-stream-' + streamSlugForKPIModal + ' input[name^="phase_kpis["]:checked').each(function() {
-            var kpiId = $(this).val();
-            var isMandatory = $manageKPIsModal.find('input[name="kpi_mandatory[' + kpiId + ']"]').is(':checked') ? 1 : 0;
-            var displayOrder = $manageKPIsModal.find('input[name="kpi_display_order[' + kpiId + ']"]').val();
-            links.push({ kpi_measure_id: kpiId, is_mandatory: isMandatory, display_order: displayOrder || 0 });
-        });
+    // Add Selected KPI to Phase (Stream Page)
+    $('#btn-add-kpi-to-phase-stream-' + streamSlug).on('click', function() {
+        var phaseId = editPhaseModal_Stream.data('current-phase-id');
+        var kpiMeasureId = $('#add_kpi_measure_to_phase-stream-' + streamSlug).val();
+
+        if (!phaseId || !kpiMeasureId) {
+            alert('<?php echo esc_js( __("Please select a KPI measure to add.", "operations-organizer" ) ); ?>');
+            return;
+        }
+
         $.post(oo_data.ajax_url, {
-            action: 'oo_save_phase_kpi_links',
+            action: 'oo_add_phase_kpi_link',
             phase_id: phaseId,
-            links: links,
+            kpi_measure_id: kpiMeasureId,
+            is_mandatory: 0, 
+            display_order: 0,  
+            _ajax_nonce: oo_data.nonce_manage_phase_kpi_links 
+        }, function(response) {
+            if (response.success) {
+                showNotice('success', '<?php echo esc_js( __("KPI measure linked.", "operations-organizer" ) ); ?>');
+                loadAndDisplayPhaseKpis_StreamPage(phaseId, streamSlug); // Reload KPI list and dropdown
+            } else {
+                showNotice('error', response.data.message || '<?php echo esc_js( __( "Could not link KPI measure.", "operations-organizer" ) ); ?>');
+            }
+        }).fail(function() {
+            showNotice('error', '<?php echo esc_js( __( "Request to link KPI measure failed.", "operations-organizer" ) ); ?>');
+        });
+    });
+
+    // Remove KPI Link from Phase (Stream Page - Event Delegation)
+    editPhaseModal_Stream.on('click', '.oo-remove-kpi-link-stream', function() {
+        var linkId = $(this).data('link-id'); 
+        var phaseId = editPhaseModal_Stream.data('current-phase-id');
+        if (!confirm('<?php echo esc_js( __("Are you sure you want to remove this KPI measure from the phase?", "operations-organizer" ) ); ?>')) { return; }
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_delete_phase_kpi_link',
+            link_id: linkId,
+            _ajax_nonce: oo_data.nonce_manage_phase_kpi_links 
+        }, function(response) {
+            if (response.success) {
+                showNotice('success', '<?php echo esc_js( __("KPI measure unlinked.", "operations-organizer" ) ); ?>');
+                loadAndDisplayPhaseKpis_StreamPage(phaseId, streamSlug);
+            } else { 
+                showNotice('error', response.data.message || '<?php echo esc_js( __( "Could not unlink KPI measure.", "operations-organizer" ) ); ?>'); 
+            }
+        }).fail(function() { 
+            showNotice('error', '<?php echo esc_js( __( "Request to unlink KPI measure failed.", "operations-organizer" ) ); ?>'); 
+        });
+    });
+    
+    // Update KPI Link (Mandatory/Order) on change (Stream Page - Event Delegation)
+    editPhaseModal_Stream.on('change', '.is-mandatory-kpi-stream, .display-order-kpi-stream', function() {
+        var $changedElement = $(this);
+        var linkId = $changedElement.data('link-id');
+        var isMandatory = $changedElement.closest('tr').find('.is-mandatory-kpi-stream').is(':checked') ? 1 : 0;
+        var displayOrder = $changedElement.closest('tr').find('.display-order-kpi-stream').val();
+        var phaseId = editPhaseModal_Stream.data('current-phase-id'); // For potential reload on error if needed
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_update_phase_kpi_link',
+            link_id: linkId,
+            is_mandatory: isMandatory,
+            display_order: displayOrder,
             _ajax_nonce: oo_data.nonce_manage_phase_kpi_links
         }, function(response) {
             if (response.success) {
-                showNotice('success', response.data.message || '<?php echo esc_js( __("KPI links saved successfully.", "operations-organizer") ); ?>');
-                $manageKPIsModal.hide();
-                // Optionally, refresh the phases table on the stream page if it shows KPI counts
-                // For now, just closes modal.
-            } else { showNotice('error', response.data.message || '<?php echo esc_js( __( "Could not save KPI links.", "operations-organizer") ); ?>'); }
-        }).fail(function() { showNotice('error', '<?php echo esc_js( __( "Request to save KPI links failed.", "operations-organizer") ); ?>'); });
-    });
-    
-    // Ensure modal close buttons work for this new modal too.
-    $manageKPIsModal.find('.oo-modal-close').on('click', function() {
-        $manageKPIsModal.hide();
+                showNotice('success', '<?php echo esc_js( __("KPI link updated.", "operations-organizer") ); ?>');
+                // Small update, no full list reload usually needed unless there's an error or complex dependency
+            } else {
+                showNotice('error', response.data.message || '<?php echo esc_js( __( "Could not update KPI link.", "operations-organizer") ); ?>');
+                // Optionally reload the list to revert visual change if save failed, uncomment if desired:
+                // loadAndDisplayPhaseKpis_StreamPage(phaseId, streamSlug);
+            }
+        }).fail(function() {
+            showNotice('error', '<?php echo esc_js( __( "Request to update KPI link failed.", "operations-organizer") ); ?>');
+            // Optionally reload the list to revert visual change if save failed, uncomment if desired:
+            // loadAndDisplayPhaseKpis_StreamPage(phaseId, streamSlug);
+        });
     });
 
-    // --- Start of Job Logs Table JS (to be moved/integrated from content-tab.php) ---
+    // Close stream-specific modals
+    $('.oo-modal-close').on('click', function() {
+        $(this).closest('.oo-modal').hide();
+    });
+
+    // --- End Phase Management for Stream Page ---
+
+    // --- Manage Phase KPIs Modal Logic (Old - to be removed) ---
+    /*
+    var $manageKPIsModal = $('#manageOOPhaseKPIsModal-stream-' + streamSlugForKPIModal);
+    var $manageKPIsPhaseName = $('#manageKPIsPhaseName-stream-' + streamSlugForKPIModal);
+    // ... other selectors and functions for the old separate modal ... 
+    */
+
+    // --- Start of Job Logs Table JS (already moved and adapted) ---
     if ($('#stream-job-logs-section').length > 0 && $('#content-dashboard-table').length > 0) {
         
         var initialContentColumns = getInitialContentColumns_StreamPage(); // Renamed for clarity
