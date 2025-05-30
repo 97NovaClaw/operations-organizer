@@ -177,7 +177,14 @@ class OO_Derived_KPI {
             foreach ($all_derived_kpis as $dkpi) {
                 if (in_array($dkpi->primary_kpi_measure_id, $stream_kpi_measure_ids)) {
                     $primary_kpi = OO_DB::get_kpi_measure($dkpi->primary_kpi_measure_id);
-                    $dkpi->primary_kpi_measure_name = $primary_kpi ? $primary_kpi->measure_name : 'Unknown KPI';
+                    $dkpi->primary_kpi_measure_name = $primary_kpi ? esc_html($primary_kpi->measure_name) : 'Unknown KPI';
+                    
+                    // Fetch Secondary KPI Name if applicable for AJAX refresh
+                    $dkpi->secondary_kpi_measure_name = 'N/A';
+                    if ($dkpi->calculation_type === 'ratio_to_kpi' && !empty($dkpi->secondary_kpi_measure_id)) {
+                        $secondary_kpi = OO_DB::get_kpi_measure($dkpi->secondary_kpi_measure_id);
+                        $dkpi->secondary_kpi_measure_name = $secondary_kpi ? esc_html($secondary_kpi->measure_name) : 'Unknown Secondary KPI';
+                    }
                     $stream_derived_kpis[] = $dkpi;
                 }
             }
@@ -191,8 +198,9 @@ class OO_Derived_KPI {
                 ?>
                 <tr class="<?php echo $row_classes; ?>">
                     <td><strong><button type="button" class="button-link oo-edit-derived-kpi-stream" data-derived-kpi-id="<?php echo esc_attr( $dkpi->derived_definition_id ); ?>"><?php echo esc_html( $dkpi->definition_name ); ?></button></strong></td>
-                    <td><?php echo esc_html( $dkpi->primary_kpi_measure_name ); ?></td>
+                    <td><?php echo $dkpi->primary_kpi_measure_name; // Already escaped ?></td>
                     <td><?php echo esc_html( ucfirst( str_replace('_', ' ', $dkpi->calculation_type ) ) ); ?></td>
+                    <td><?php echo $dkpi->secondary_kpi_measure_name; // Escaped during fetch or N/A ?></td>
                     <td><?php echo $dkpi->is_active ? __( 'Active', 'operations-organizer' ) : __( 'Inactive', 'operations-organizer' ); ?></td>
                     <td class="actions column-actions">
                         <button type="button" class="button-secondary oo-edit-derived-kpi-stream" data-derived-kpi-id="<?php echo esc_attr( $dkpi->derived_definition_id ); ?>"><?php esc_html_e( 'Edit', 'operations-organizer' ); ?></button>
@@ -219,7 +227,7 @@ class OO_Derived_KPI {
             <?php endforeach;
         else :
             ?>
-            <tr><td colspan="5"><?php esc_html_e('No Derived KPI definitions found relevant to this stream, or their primary KPIs are not linked to any phase in this stream.', 'operations-organizer'); ?></td></tr>
+            <tr><td colspan="6"><?php esc_html_e('No Derived KPI definitions found relevant to this stream, or their primary KPIs are not linked to any phase in this stream.', 'operations-organizer'); ?></td></tr>
             <?php
         endif;
         $html = ob_get_clean();

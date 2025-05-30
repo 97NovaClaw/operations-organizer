@@ -372,9 +372,14 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                 <?php
                 $stream_kpi_measures = array();
                 if (isset($current_stream_id)) {
-                    // Assuming OO_DB::get_kpi_measures_for_stream() is now available
-                    // We only want active KPIs for display and selection here initially.
-                    $stream_kpi_measures = OO_DB::get_kpi_measures_for_stream($current_stream_id, array('is_active' => 1));
+                    $kpis_from_db = OO_DB::get_kpi_measures_for_stream($current_stream_id, array('is_active' => 1));
+                    if (!empty($kpis_from_db)) {
+                        foreach($kpis_from_db as $kpi) {
+                            $phase_names = OO_DB::get_phase_names_for_kpi_in_stream($kpi->kpi_measure_id, $current_stream_id);
+                            $kpi->used_in_phases_in_stream = !empty($phase_names) ? implode(', ', $phase_names) : 'N/A';
+                            $stream_kpi_measures[] = $kpi;
+                        }
+                    }
                 }
                 oo_log('[Content Stream Page - KPI Tab] Fetched KPI Measures for Stream ' . $current_stream_id . ': ' . count($stream_kpi_measures), 'ContentStreamPageKPI');
                 ?>
@@ -383,6 +388,7 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                         <tr>
                             <th><?php esc_html_e('Measure Name', 'operations-organizer'); ?></th>
                             <th><?php esc_html_e('Key', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Phases Used In (This Stream)', 'operations-organizer'); ?></th>
                             <th><?php esc_html_e('Unit Type', 'operations-organizer'); ?></th>
                             <th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
                             <th><?php esc_html_e('Actions', 'operations-organizer'); ?></th>
@@ -394,6 +400,7 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                                 <tr class="kpi-measure-row-<?php echo esc_attr($kpi_measure->kpi_measure_id); ?> <?php echo $kpi_measure->is_active ? 'active' : 'inactive'; ?>">
                                     <td><strong><button type="button" class="button-link oo-edit-kpi-measure-stream" data-kpi-measure-id="<?php echo esc_attr( $kpi_measure->kpi_measure_id ); ?>"><?php echo esc_html( $kpi_measure->measure_name ); ?></button></strong></td>
                                     <td><code><?php echo esc_html( $kpi_measure->measure_key ); ?></code></td>
+                                    <td><?php echo esc_html( $kpi_measure->used_in_phases_in_stream ); ?></td>
                                     <td><?php echo esc_html( ucfirst( $kpi_measure->unit_type ) ); ?></td>
                                     <td>
                                         <?php echo $kpi_measure->is_active ? __('Active', 'operations-organizer') : __('Inactive', 'operations-organizer'); ?>
@@ -417,7 +424,7 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                                 </tr>
                             <?php endforeach; ?>
                         <?php else : ?>
-                            <tr><td colspan="5"><?php esc_html_e('No KPI measures found specifically linked to phases in this stream yet, or no active KPI Measures defined globally.', 'operations-organizer'); ?></td></tr>
+                            <tr><td colspan="6"><?php esc_html_e('No KPI measures found specifically linked to phases in this stream yet, or no active KPI Measures defined globally.', 'operations-organizer'); ?></td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -439,7 +446,14 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                         if (in_array($dkpi->primary_kpi_measure_id, $stream_kpi_measure_ids)) {
                             // For display, we need the primary KPI measure name
                             $primary_kpi = OO_DB::get_kpi_measure($dkpi->primary_kpi_measure_id);
-                            $dkpi->primary_kpi_measure_name = $primary_kpi ? $primary_kpi->measure_name : 'Unknown KPI';
+                            $dkpi->primary_kpi_measure_name = $primary_kpi ? esc_html($primary_kpi->measure_name) : 'Unknown KPI';
+                            
+                            // Fetch Secondary KPI Name if applicable
+                            $dkpi->secondary_kpi_measure_name = 'N/A';
+                            if ($dkpi->calculation_type === 'ratio_to_kpi' && !empty($dkpi->secondary_kpi_measure_id)) {
+                                $secondary_kpi = OO_DB::get_kpi_measure($dkpi->secondary_kpi_measure_id);
+                                $dkpi->secondary_kpi_measure_name = $secondary_kpi ? esc_html($secondary_kpi->measure_name) : 'Unknown Secondary KPI';
+                            }
                             $stream_derived_kpis[] = $dkpi;
                         }
                     }
@@ -452,6 +466,7 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                             <th><?php esc_html_e('Definition Name', 'operations-organizer'); ?></th>
                             <th><?php esc_html_e('Primary KPI', 'operations-organizer'); ?></th>
                             <th><?php esc_html_e('Calculation Type', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Secondary KPI (if Ratio)', 'operations-organizer'); ?></th>
                             <th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
                             <th><?php esc_html_e('Actions', 'operations-organizer'); ?></th>
                         </tr>
@@ -461,8 +476,9 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                             <?php foreach ( $stream_derived_kpis as $dkpi ) : ?>
                                 <tr class="derived-kpi-row-<?php echo esc_attr($dkpi->derived_definition_id); ?> <?php echo $dkpi->is_active ? 'active' : 'inactive'; ?>">
                                     <td><strong><button type="button" class="button-link oo-edit-derived-kpi-stream" data-derived-kpi-id="<?php echo esc_attr( $dkpi->derived_definition_id ); ?>"><?php echo esc_html( $dkpi->definition_name ); ?></button></strong></td>
-                                    <td><?php echo esc_html( $dkpi->primary_kpi_measure_name ); ?></td>
+                                    <td><?php echo $dkpi->primary_kpi_measure_name; // Already escaped ?></td>
                                     <td><?php echo esc_html( ucfirst( str_replace('_', ' ', $dkpi->calculation_type ) ) ); ?></td>
+                                    <td><?php echo $dkpi->secondary_kpi_measure_name; // Escaped during fetch or N/A ?></td>
                                     <td><?php echo $dkpi->is_active ? __('Active', 'operations-organizer') : __('Inactive', 'operations-organizer'); ?></td>
                                     <td class="actions column-actions">
                                         <button type="button" class="button-secondary oo-edit-derived-kpi-stream" data-derived-kpi-id="<?php echo esc_attr( $dkpi->derived_definition_id ); ?>"><?php esc_html_e('Edit', 'operations-organizer'); ?></button>
@@ -482,7 +498,7 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                                 </tr>
                             <?php endforeach; ?>
                         <?php else : ?>
-                            <tr><td colspan="5"><?php esc_html_e('No Derived KPI definitions found relevant to this stream, or their primary KPIs are not linked to any phase in this stream.', 'operations-organizer'); ?></td></tr>
+                            <tr><td colspan="6"><?php esc_html_e('No Derived KPI definitions found relevant to this stream, or their primary KPIs are not linked to any phase in this stream.', 'operations-organizer'); ?></td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>

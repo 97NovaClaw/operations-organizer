@@ -191,17 +191,26 @@ class OO_KPI_Measure {
         $stream_id = intval( $_POST['stream_id'] );
         $stream_slug = isset($_POST['stream_slug']) ? sanitize_key($_POST['stream_slug']) : '';
 
-        $stream_kpi_measures = OO_DB::get_kpi_measures_for_stream( $stream_id, array('is_active' => null) ); // Get all (active/inactive)
+        $kpis_from_db = OO_DB::get_kpi_measures_for_stream( $stream_id, array('is_active' => null) ); // Get all (active/inactive)
+        $stream_kpi_measures_processed = array();
+        if (!empty($kpis_from_db)) {
+            foreach($kpis_from_db as $kpi) {
+                $phase_names = OO_DB::get_phase_names_for_kpi_in_stream($kpi->kpi_measure_id, $stream_id);
+                $kpi->used_in_phases_in_stream = !empty($phase_names) ? esc_html(implode(', ', $phase_names)) : 'N/A';
+                $stream_kpi_measures_processed[] = $kpi;
+            }
+        }
 
         ob_start();
-        if ( ! empty( $stream_kpi_measures ) ) :
-            foreach ( $stream_kpi_measures as $kpi_measure ) :
+        if ( ! empty( $stream_kpi_measures_processed ) ) :
+            foreach ( $stream_kpi_measures_processed as $kpi_measure ) :
                 $row_classes = 'kpi-measure-row-' . esc_attr($kpi_measure->kpi_measure_id);
                 $row_classes .= $kpi_measure->is_active ? ' active' : ' inactive';
                 ?>
                 <tr class="<?php echo $row_classes; ?>">
                     <td><strong><button type="button" class="button-link oo-edit-kpi-measure-stream" data-kpi-measure-id="<?php echo esc_attr( $kpi_measure->kpi_measure_id ); ?>"><?php echo esc_html( $kpi_measure->measure_name ); ?></button></strong></td>
                     <td><code><?php echo esc_html( $kpi_measure->measure_key ); ?></code></td>
+                    <td><?php echo $kpi_measure->used_in_phases_in_stream; ?></td>
                     <td><?php echo esc_html( ucfirst( $kpi_measure->unit_type ) ); ?></td>
                     <td>
                         <?php echo $kpi_measure->is_active ? __( 'Active', 'operations-organizer' ) : __( 'Inactive', 'operations-organizer' ); ?>
@@ -232,7 +241,7 @@ class OO_KPI_Measure {
             <?php endforeach;
         else :
             ?>
-            <tr><td colspan="5"><?php esc_html_e( 'No KPI measures found specifically linked to phases in this stream yet, or no active KPI Measures defined globally.', 'operations-organizer' ); ?></td></tr>
+            <tr><td colspan="6"><?php esc_html_e( 'No KPI measures found specifically linked to phases in this stream yet, or no active KPI Measures defined globally.', 'operations-organizer' ); ?></td></tr>
             <?php
         endif;
         $html = ob_get_clean();
