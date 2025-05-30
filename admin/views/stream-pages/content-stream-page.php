@@ -341,18 +341,21 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                                     <td>
                                         <?php 
                                         $status_text = $phase->is_active ? __( 'Active', 'operations-organizer' ) : __( 'Inactive', 'operations-organizer' );
-                                        $toggle_nonce = wp_create_nonce('oo_toggle_phase_status_nonce_' . $phase->phase_id);
-                                        // Changed to button for AJAX handling
-                                        if ($phase->is_active) {
-                                            echo '<button type="button" class="button-link oo-toggle-status-phase-button-stream" data-phase-id="' . esc_attr($phase->phase_id) . '" data-new-status="0" data-nonce="' . esc_attr($toggle_nonce) . '" style="color: #d63638;">' . esc_html__('Deactivate', 'operations-organizer') . '</button>';
-                                        } else {
-                                            echo '<button type="button" class="button-link oo-toggle-status-phase-button-stream" data-phase-id="' . esc_attr($phase->phase_id) . '" data-new-status="1" data-nonce="' . esc_attr($toggle_nonce) . '" style="color: #2271b1;">' . esc_html__('Activate', 'operations-organizer') . '</button>';
-                                        }
+                                        // This cell will now be for actions, status text is shown via button text below or a separate status column if added later
+                                        // For now, status is implied by Activate/Deactivate button text
                                         ?>
                                     </td>
-                                    <td>
-                                        <button type="button" class="button-link oo-edit-phase-button-stream" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>"><?php esc_html_e( 'Edit', 'operations-organizer' ); ?></button> |
-                                        <button type="button" class="button-link oo-delete-phase-button-stream" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>" style="color:#b32d2e;"><?php esc_html_e( 'Delete', 'operations-organizer' ); ?></button>
+                                    <td class="actions column-actions">
+                                        <button type="button" class="button-secondary oo-edit-phase-button-stream" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>"><?php esc_html_e( 'Edit', 'operations-organizer' ); ?></button>
+                                        <?php 
+                                        $toggle_nonce = wp_create_nonce('oo_toggle_phase_status_nonce_' . $phase->phase_id);
+                                        if ($phase->is_active) {
+                                            echo '<button type="button" class="button-secondary oo-toggle-status-phase-button-stream oo-deactivate" data-phase-id="' . esc_attr($phase->phase_id) . '" data-new-status="0" data-nonce="' . esc_attr($toggle_nonce) . '">' . esc_html__('Deactivate', 'operations-organizer') . '</button>';
+                                        } else {
+                                            echo '<button type="button" class="button-secondary oo-toggle-status-phase-button-stream oo-activate" data-phase-id="' . esc_attr($phase->phase_id) . '" data-new-status="1" data-nonce="' . esc_attr($toggle_nonce) . '">' . esc_html__('Activate', 'operations-organizer') . '</button>';
+                                        }
+                                        ?>
+                                        | <a href="#" class="oo-delete-phase-button-stream" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>" style="color:#b32d2e; text-decoration: none;"><?php esc_html_e( 'Delete', 'operations-organizer' ); ?></a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
