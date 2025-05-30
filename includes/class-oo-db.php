@@ -4225,7 +4225,163 @@ class OO_DB { // Renamed class
         oo_log('Executing get_kpi_measures_count query: ' . $sql, __METHOD__);
         return (int) $wpdb->get_var( $sql );
     }
+        /**
+     * Get KPI Measures that are linked to at least one phase within a specific stream.
+     *
+     * @param int $stream_id The ID of the stream.
+     * @param array $args Optional. Additional arguments.
+     *        - 'is_active' (bool|null): Filter by KPI measure's active status. Default null (all).
+     *        - 'orderby' (string): Column to order by. Default 'km.measure_name'.
+     *        - 'order' (string): ASC or DESC. Default 'ASC'.
+     *        - 'search' (string): Search term for measure_name or measure_key.
+     *        - 'number' (int): Number of items to return. Default -1 (all).
+     *        - 'offset' (int): Offset for pagination. Default 0.
+     * @return array Array of KPI measure objects.
+     */
+    public static function get_kpi_measures_for_stream($stream_id, $args = array()) {
+        self::init();
+        global $wpdb;
 
+        $stream_id = intval($stream_id);
+        if ($stream_id <= 0) {
+            oo_log('Invalid stream_id provided to get_kpi_measures_for_stream: ' . $stream_id, __METHOD__);
+            return array(); // Return empty array for invalid stream_id
+        }
+
+        $defaults = array(
+            'is_active' => null,
+            'orderby'   => 'km.measure_name',
+            'order'     => 'ASC',
+            'search'    => '',
+            'number'    => -1,
+            'offset'    => 0,
+        );
+        $args = wp_parse_args($args, $defaults);
+
+        $kpi_measures_table = self::$kpi_measures_table;
+        $phases_table = self::$phases_table;
+        $phase_kpi_link_table = self::$phase_kpi_measures_link_table;
+
+        $sql_select = "SELECT DISTINCT km.*";
+        $sql_from = "FROM {$kpi_measures_table} km";
+        $sql_join = "INNER JOIN {$phase_kpi_link_table} pkl ON km.kpi_measure_id = pkl.kpi_measure_id";
+        $sql_join .= " INNER JOIN {$phases_table} p ON pkl.phase_id = p.phase_id";
+
+        $where_clauses = array("p.stream_id = %d");
+        $query_params = array($stream_id);
+
+        if ( !is_null($args['is_active']) ) {
+            $where_clauses[] = "km.is_active = %d";
+            $query_params[] = intval($args['is_active']);
+        }
+
+        if ( !empty($args['search']) ) {
+            $search_term = '%' . $wpdb->esc_like(trim($args['search'])) . '%';
+            $where_clauses[] = "(km.measure_name LIKE %s OR km.measure_key LIKE %s)";
+            $query_params[] = $search_term;
+            $query_params[] = $search_term;
+        }
+
+        $sql_where = "";
+        if ( !empty($where_clauses) ) {
+            $sql_where = " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        $sql_orderby = "";
+        if ( !empty($args['orderby']) ) {
+            // Basic sanitization for orderby to prevent SQL injection.
+            $allowed_orderby_columns = array('km.measure_name', 'km.measure_key', 'km.unit_type', 'km.is_active', 'km.kpi_measure_id');
+            $orderby_col = in_array(strtolower($args['orderby']), $allowed_orderby_columns, true) ? $args['orderby'] : 'km.measure_name';
+            
+            $order_val = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
+            $sql_orderby = " ORDER BY {$orderby_col} {$order_val}";
+        }
+
+        $sql_limit = "";
+        if ( isset($args['number']) && $args['number'] > 0 ) {
+            $sql_limit = $wpdb->prepare(" LIMIT %d OFFSET %d", intval($args['number']), intval($args['offset']));
+        }
+
+        $sql = $sql_select . " " . $sql_from . " " . $sql_join . $sql_where . $sql_orderby . $sql_limit;
+        
+        if (!empty($query_params)) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+
+        oo_log('Executing SQL for get_kpi_measures_for_stream: ' . $sql, __METHOD__);
+        $results = $wpdb->get_results( $sql );
+        oo_log('Number of KPI measures found for stream ' . $stream_id . ': ' . count($results), __METHOD__);
+
+        return $results;
+    }
+
+    /**
+     * Get count of KPI Measures that are linked to at least one phase within a specific stream.
+     *
+     * @param int $stream_id The ID of the stream.
+     * @param array $args Optional. Additional arguments.
+     *        - 'is_active' (bool|null): Filter by KPI measure's active status. Default null (all).
+     *        - 'search' (string): Search term for measure_name or measure_key.
+     * @return int Count of KPI measures.
+     */
+    public static function get_kpi_measures_for_stream_count($stream_id, $args = array()) {
+        self::init();
+        global $wpdb;
+
+        $stream_id = intval($stream_id);
+        if ($stream_id <= 0) {
+            oo_log('Invalid stream_id provided to get_kpi_measures_for_stream_count: ' . $stream_id, __METHOD__);
+            return 0; // Return 0 for invalid stream_id
+        }
+
+        $defaults = array(
+            'is_active' => null,
+            'search'    => '',
+        );
+        $args = wp_parse_args($args, $defaults);
+
+        $kpi_measures_table = self::$kpi_measures_table;
+        $phases_table = self::$phases_table;
+        $phase_kpi_link_table = self::$phase_kpi_measures_link_table;
+
+        // We need to count distinct kpi_measure_ids that match the criteria
+        $sql_select = "SELECT COUNT(DISTINCT km.kpi_measure_id)";
+        $sql_from = "FROM {$kpi_measures_table} km";
+        $sql_join = "INNER JOIN {$phase_kpi_link_table} pkl ON km.kpi_measure_id = pkl.kpi_measure_id";
+        $sql_join .= " INNER JOIN {$phases_table} p ON pkl.phase_id = p.phase_id";
+
+        $where_clauses = array("p.stream_id = %d");
+        $query_params = array($stream_id);
+
+        if ( !is_null($args['is_active']) ) {
+            $where_clauses[] = "km.is_active = %d";
+            $query_params[] = intval($args['is_active']);
+        }
+
+        if ( !empty($args['search']) ) {
+            $search_term = '%' . $wpdb->esc_like(trim($args['search'])) . '%';
+            $where_clauses[] = "(km.measure_name LIKE %s OR km.measure_key LIKE %s)";
+            $query_params[] = $search_term;
+            $query_params[] = $search_term;
+        }
+
+        $sql_where = "";
+        if ( !empty($where_clauses) ) {
+            $sql_where = " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        $sql = $sql_select . " " . $sql_from . " " . $sql_join . $sql_where;
+        
+        if (!empty($query_params)) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+
+        oo_log('Executing SQL for get_kpi_measures_for_stream_count: ' . $sql, __METHOD__);
+        $count = $wpdb->get_var( $sql );
+        oo_log('Count of KPI measures for stream ' . $stream_id . ': ' . $count, __METHOD__);
+        
+        return intval($count);
+    }
     // --- Phase KPI Measures Link CRUD Methods (NEW) ---
 
     /**
@@ -4918,7 +5074,7 @@ class OO_DB { // Renamed class
             $query_params[] = $search_term;
             $query_params[] = $search_term;
         }
-        
+
         $sql_where = "";
         if (!empty($where_clauses)) {
             $sql_where = " WHERE " . implode(" AND ", $where_clauses);

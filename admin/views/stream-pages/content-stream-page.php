@@ -364,6 +364,129 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                         <?php endif; ?>
                     </tbody>
                 </table>
+
+                <h4 style="margin-top: 40px;"><?php esc_html_e('KPI Measures in this Stream', 'operations-organizer'); ?></h4>
+                <button type="button" id="openAddKpiMeasureModalBtn-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="page-title-action">
+                    <?php esc_html_e('Add New KPI Measure to this Stream', 'operations-organizer'); ?>
+                </button>
+                <?php
+                $stream_kpi_measures = array();
+                if (isset($current_stream_id)) {
+                    // Assuming OO_DB::get_kpi_measures_for_stream() is now available
+                    // We only want active KPIs for display and selection here initially.
+                    $stream_kpi_measures = OO_DB::get_kpi_measures_for_stream($current_stream_id, array('is_active' => 1));
+                }
+                oo_log('[Content Stream Page - KPI Tab] Fetched KPI Measures for Stream ' . $current_stream_id . ': ' . count($stream_kpi_measures), 'ContentStreamPageKPI');
+                ?>
+                <table class="wp-list-table widefat fixed striped table-view-list kpi-measures-stream" style="margin-top:20px;">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e('Measure Name', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Key', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Unit Type', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Actions', 'operations-organizer'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody id="kpi-measures-list-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                        <?php if ( ! empty( $stream_kpi_measures ) ) : ?>
+                            <?php foreach ( $stream_kpi_measures as $kpi_measure ) : ?>
+                                <tr class="kpi-measure-row-<?php echo esc_attr($kpi_measure->kpi_measure_id); ?> <?php echo $kpi_measure->is_active ? 'active' : 'inactive'; ?>">
+                                    <td><strong><button type="button" class="button-link oo-edit-kpi-measure-stream" data-kpi-measure-id="<?php echo esc_attr( $kpi_measure->kpi_measure_id ); ?>"><?php echo esc_html( $kpi_measure->measure_name ); ?></button></strong></td>
+                                    <td><code><?php echo esc_html( $kpi_measure->measure_key ); ?></code></td>
+                                    <td><?php echo esc_html( ucfirst( $kpi_measure->unit_type ) ); ?></td>
+                                    <td>
+                                        <?php echo $kpi_measure->is_active ? __('Active', 'operations-organizer') : __('Inactive', 'operations-organizer'); ?>
+                                    </td>
+                                    <td class="actions column-actions">
+                                        <button type="button" class="button-secondary oo-edit-kpi-measure-stream" data-kpi-measure-id="<?php echo esc_attr( $kpi_measure->kpi_measure_id ); ?>"><?php esc_html_e('Edit', 'operations-organizer'); ?></button>
+                                        <?php
+                                        // Nonce for toggle status will be generated and added to oo_data if not present
+                                        $toggle_action_text = $kpi_measure->is_active ? __('Deactivate', 'operations-organizer') : __('Activate', 'operations-organizer');
+                                        $new_status_val = $kpi_measure->is_active ? 0 : 1;
+                                        ?>
+                                        <button type="button" 
+                                                class="button-secondary oo-toggle-kpi-measure-status-stream" 
+                                                data-kpi-measure-id="<?php echo esc_attr($kpi_measure->kpi_measure_id); ?>" 
+                                                data-new-status="<?php echo esc_attr($new_status_val); ?>"
+                                                data-nonce-action="oo_toggle_kpi_measure_status_<?php echo esc_attr($kpi_measure->kpi_measure_id); ?>">
+                                            <?php echo esc_html($toggle_action_text); ?>
+                                        </button>
+                                        | <a href="#" class="oo-delete-kpi-measure-stream" data-kpi-measure-id="<?php echo esc_attr( $kpi_measure->kpi_measure_id ); ?>" data-nonce-action="oo_delete_kpi_measure_<?php echo esc_attr($kpi_measure->kpi_measure_id); ?>" style="color:#b32d2e; text-decoration: none;"><?php esc_html_e('Delete', 'operations-organizer'); ?></a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <tr><td colspan="5"><?php esc_html_e('No KPI measures found specifically linked to phases in this stream yet, or no active KPI Measures defined globally.', 'operations-organizer'); ?></td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+
+                <h4 style="margin-top: 40px;"><?php esc_html_e('Derived KPI Definitions relevant to this Stream', 'operations-organizer'); ?></h4>
+                <button type="button" id="openAddDerivedKpiModalBtn-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="page-title-action">
+                    <?php esc_html_e('Add New Derived KPI Definition', 'operations-organizer'); ?>
+                </button>
+                <?php
+                $stream_derived_kpis = array();
+                $stream_kpi_measure_ids = array();
+                if (!empty($stream_kpi_measures)) { // $stream_kpi_measures is populated for the Primary KPI table above
+                    $stream_kpi_measure_ids = wp_list_pluck($stream_kpi_measures, 'kpi_measure_id');
+                }
+
+                if (!empty($stream_kpi_measure_ids)) {
+                    $all_derived_kpis = OO_DB::get_derived_kpi_definitions(array('is_active' => null, 'number' => -1)); 
+                    foreach ($all_derived_kpis as $dkpi) {
+                        if (in_array($dkpi->primary_kpi_measure_id, $stream_kpi_measure_ids)) {
+                            // For display, we need the primary KPI measure name
+                            $primary_kpi = OO_DB::get_kpi_measure($dkpi->primary_kpi_measure_id);
+                            $dkpi->primary_kpi_measure_name = $primary_kpi ? $primary_kpi->measure_name : 'Unknown KPI';
+                            $stream_derived_kpis[] = $dkpi;
+                        }
+                    }
+                }
+                oo_log('[Content Stream Page - Derived KPI Tab] Fetched Derived KPIs for Stream ' . $current_stream_id . ': ' . count($stream_derived_kpis), 'ContentStreamPageDerivedKPI');
+                ?>
+                <table class="wp-list-table widefat fixed striped table-view-list derived-kpi-definitions-stream" style="margin-top:20px;">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e('Definition Name', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Primary KPI', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Calculation Type', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
+                            <th><?php esc_html_e('Actions', 'operations-organizer'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody id="derived-kpi-definitions-list-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                        <?php if ( ! empty( $stream_derived_kpis ) ) : ?>
+                            <?php foreach ( $stream_derived_kpis as $dkpi ) : ?>
+                                <tr class="derived-kpi-row-<?php echo esc_attr($dkpi->derived_definition_id); ?> <?php echo $dkpi->is_active ? 'active' : 'inactive'; ?>">
+                                    <td><strong><button type="button" class="button-link oo-edit-derived-kpi-stream" data-derived-kpi-id="<?php echo esc_attr( $dkpi->derived_definition_id ); ?>"><?php echo esc_html( $dkpi->definition_name ); ?></button></strong></td>
+                                    <td><?php echo esc_html( $dkpi->primary_kpi_measure_name ); ?></td>
+                                    <td><?php echo esc_html( ucfirst( str_replace('_', ' ', $dkpi->calculation_type ) ) ); ?></td>
+                                    <td><?php echo $dkpi->is_active ? __('Active', 'operations-organizer') : __('Inactive', 'operations-organizer'); ?></td>
+                                    <td class="actions column-actions">
+                                        <button type="button" class="button-secondary oo-edit-derived-kpi-stream" data-derived-kpi-id="<?php echo esc_attr( $dkpi->derived_definition_id ); ?>"><?php esc_html_e('Edit', 'operations-organizer'); ?></button>
+                                        <?php
+                                        $dkpi_toggle_text = $dkpi->is_active ? __('Deactivate', 'operations-organizer') : __('Activate', 'operations-organizer');
+                                        $dkpi_new_status = $dkpi->is_active ? 0 : 1;
+                                        ?>
+                                        <button type="button" 
+                                                class="button-secondary oo-toggle-derived-kpi-status-stream" 
+                                                data-derived-kpi-id="<?php echo esc_attr($dkpi->derived_definition_id); ?>" 
+                                                data-new-status="<?php echo esc_attr($dkpi_new_status); ?>"
+                                                data-nonce-action="oo_toggle_derived_kpi_status_<?php echo esc_attr($dkpi->derived_definition_id); ?>">
+                                            <?php echo esc_html($dkpi_toggle_text); ?>
+                                        </button>
+                                        | <a href="#" class="oo-delete-derived-kpi-stream" data-derived-kpi-id="<?php echo esc_attr( $dkpi->derived_definition_id ); ?>" data-nonce-action="oo_delete_derived_kpi_<?php echo esc_attr($dkpi->derived_definition_id); ?>" style="color:#b32d2e; text-decoration: none;"><?php esc_html_e('Delete', 'operations-organizer'); ?></a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <tr><td colspan="5"><?php esc_html_e('No Derived KPI definitions found relevant to this stream, or their primary KPIs are not linked to any phase in this stream.', 'operations-organizer'); ?></td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+
             </div>
         <?php endif; ?>
     </div>
@@ -479,7 +602,251 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
     </div>
 </div>
 
-<!-- Manage Phase KPIs Modal Removed, its functionality is merged into Edit Phase Modal -->
+<!-- Add KPI Measure Modal for Stream Page -->
+<div id="addKpiMeasureModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
+    <div class="oo-modal-content">
+        <span class="oo-modal-close">&times;</span>
+        <h2><?php esc_html_e( 'Add New KPI Measure (Stream Specific Context)', 'operations-organizer' ); ?></h2>
+        <form id="oo-add-kpi-measure-form-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+            <?php // Nonce will be added via JS from oo_data ?>
+            <input type="hidden" name="oo_action" value="add_kpi_measure">
+            <input type="hidden" name="context" value="stream_page">
+            <input type="hidden" name="stream_id_context" value="<?php echo esc_attr($current_stream_id); ?>">
+
+
+            <div class="form-field form-required">
+                <label for="add_kpi_measure_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Measure Name', 'operations-organizer' ); ?></label>
+                <input type="text" name="measure_name" id="add_kpi_measure_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+                <p><?php esc_html_e( 'The human-readable name for this KPI (e.g., "Boxes Packed", "Items Scanned").', 'operations-organizer' ); ?></p>
+            </div>
+
+            <div class="form-field form-required">
+                <label for="add_kpi_measure_key-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Measure Key', 'operations-organizer' ); ?></label>
+                <input type="text" name="measure_key" id="add_kpi_measure_key-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+                <p><?php esc_html_e( 'A unique key for this KPI, used internally (e.g., "boxes_packed", "items_scanned"). Lowercase, underscores, no spaces. Cannot be changed after creation.', 'operations-organizer' ); ?></p>
+            </div>
+
+            <div class="form-field">
+                <label for="add_kpi_unit_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Unit Type', 'operations-organizer' ); ?></label>
+                <select name="unit_type" id="add_kpi_unit_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                    <?php 
+                    $unit_types = array( 'integer', 'decimal', 'text', 'boolean' ); // Define available unit types
+                    foreach ( $unit_types as $type ) : ?>
+                        <option value="<?php echo esc_attr( $type ); ?>" <?php selected( 'integer', $type ); ?>>
+                            <?php echo esc_html( ucfirst( $type ) ); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <p><?php esc_html_e( 'The type of data this KPI represents (e.g., Integer for counts, Decimal for amounts, Text for notes).', 'operations-organizer' ); ?></p>
+            </div>
+            
+            <div class="form-field">
+                <label for="add_kpi_is_active-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                    <input type="checkbox" name="is_active" id="add_kpi_is_active-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" value="1" checked>
+                    <?php esc_html_e( 'Active', 'operations-organizer' ); ?>
+                </label>
+                <p><?php esc_html_e( 'Inactive measures will not be available for new phase assignments.', 'operations-organizer' ); ?></p>
+            </div>
+
+            <?php submit_button( __( 'Add KPI Measure', 'operations-organizer' ), 'primary', 'submit_add_kpi_measure-stream-' . $current_stream_tab_slug ); ?>
+        </form>
+    </div>
+</div>
+
+<!-- Edit KPI Measure Modal for Stream Page -->
+<div id="editKpiMeasureModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
+    <div class="oo-modal-content">
+        <span class="oo-modal-close">&times;</span>
+        <h2><?php esc_html_e( 'Edit KPI Measure (Stream Specific Context)', 'operations-organizer' ); ?>: <span id="editKpiMeasureNameDisplay-<?php echo esc_attr($current_stream_tab_slug); ?>"></span></h2>
+        <form id="oo-edit-kpi-measure-form-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+            <?php // Nonce will be added via JS from oo_data ?>
+            <input type="hidden" name="oo_action" value="edit_kpi_measure">
+            <input type="hidden" name="context" value="stream_page">
+            <input type="hidden" name="stream_id_context" value="<?php echo esc_attr($current_stream_id); ?>">
+            <input type="hidden" id="edit_kpi_measure_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="kpi_measure_id" value="">
+
+            <div class="form-field form-required">
+                <label for="edit_kpi_measure_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Measure Name', 'operations-organizer' ); ?></label>
+                <input type="text" name="measure_name" id="edit_kpi_measure_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+                <p><?php esc_html_e( 'The human-readable name for this KPI.', 'operations-organizer' ); ?></p>
+            </div>
+
+            <div class="form-field form-required">
+                <label for="edit_kpi_measure_key-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Measure Key', 'operations-organizer' ); ?></label>
+                <input type="text" name="measure_key" id="edit_kpi_measure_key-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" readonly>
+                <p><?php esc_html_e( 'The unique key for this KPI. Cannot be changed after creation.', 'operations-organizer' ); ?></p>
+            </div>
+
+            <div class="form-field">
+                <label for="edit_kpi_unit_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Unit Type', 'operations-organizer' ); ?></label>
+                <select name="unit_type" id="edit_kpi_unit_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                    <?php 
+                    // $unit_types is already defined above for the Add modal, can reuse
+                    foreach ( $unit_types as $type ) : ?>
+                        <option value="<?php echo esc_attr( $type ); ?>">
+                            <?php echo esc_html( ucfirst( $type ) ); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <p><?php esc_html_e( 'The type of data this KPI represents.', 'operations-organizer' ); ?></p>
+            </div>
+            
+            <div class="form-field">
+                <label for="edit_kpi_is_active-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                    <input type="checkbox" name="is_active" id="edit_kpi_is_active-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" value="1">
+                    <?php esc_html_e( 'Active', 'operations-organizer' ); ?>
+                </label>
+                <p><?php esc_html_e( 'Inactive measures will not be available for new phase assignments.', 'operations-organizer' ); ?></p>
+            </div>
+
+            <?php submit_button( __( 'Save KPI Measure Changes', 'operations-organizer' ), 'primary', 'submit_edit_kpi_measure-stream-' . $current_stream_tab_slug ); ?>
+        </form>
+    </div>
+</div>
+
+<!-- Add Derived KPI Modal for Stream Page -->
+<div id="addDerivedKpiModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
+    <div class="oo-modal-content">
+        <span class="oo-modal-close">&times;</span>
+        <h2><?php esc_html_e( 'Add New Derived KPI Definition (Stream Context)', 'operations-organizer' ); ?></h2>
+        <form id="oo-add-derived-kpi-form-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+            <input type="hidden" name="oo_action" value="add_derived_kpi_definition"> <!-- Will be an AJAX action -->
+            <input type="hidden" name="context" value="stream_page">
+            <input type="hidden" name="stream_id_context" value="<?php echo esc_attr($current_stream_id); ?>">
+
+            <div class="form-field form-required">
+                <label for="add_derived_definition_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Definition Name', 'operations-organizer' ); ?></label>
+                <input type="text" name="derived_definition_name" id="add_derived_definition_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+                <p><?php esc_html_e( 'A descriptive name (e.g., "Items per Hour", "Cost per Item").', 'operations-organizer' ); ?></p>
+            </div>
+
+            <div class="form-field form-required">
+                <label for="add_derived_primary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Primary KPI Measure', 'operations-organizer' ); ?></label>
+                <select name="primary_kpi_measure_id" id="add_derived_primary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+                    <option value=""><?php esc_html_e( '-- Select Primary KPI --', 'operations-organizer' ); ?></option>
+                    <?php 
+                    if (!empty($stream_kpi_measures)) {
+                        foreach ($stream_kpi_measures as $kpi) {
+                            echo '<option value="' . esc_attr($kpi->kpi_measure_id) . '" data-unit-type="' . esc_attr($kpi->unit_type) . '">' . esc_html($kpi->measure_name) . ' (' . esc_html($kpi->unit_type) . ')</option>';
+                        }
+                    } else {
+                        echo '<option value="" disabled>' . esc_html__('No KPIs available in this stream. Add primary KPIs first.', 'operations-organizer') . '</option>';
+                    }
+                    ?>
+                </select>
+                <p><?php esc_html_e( 'Select the main KPI this calculation is based on. Must be a KPI present in this stream.', 'operations-organizer' ); ?></p>
+            </div>
+
+            <div class="form-field form-required">
+                <label for="add_derived_calculation_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Calculation Type', 'operations-organizer' ); ?></label>
+                <select name="derived_calculation_type" id="add_derived_calculation_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+                    <!-- Options populated by JS based on primary KPI unit type -->
+                </select>
+                 <p><?php esc_html_e( 'The method of calculation (e.g., Rate per Time, Ratio to another KPI).', 'operations-organizer' ); ?></p>
+            </div>
+
+            <div class="form-field derived-secondary-kpi-field-stream" style="display:none;">
+                <label for="add_derived_secondary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Secondary KPI (for Ratio)', 'operations-organizer' ); ?></label>
+                <select name="derived_secondary_kpi_measure_id" id="add_derived_secondary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                    <option value=""><?php esc_html_e( '-- Select Secondary KPI --', 'operations-organizer' ); ?></option>
+                     <?php 
+                    // Options populated by JS: all active KPIs in the system, excluding the chosen primary KPI.
+                    ?> 
+                </select>
+            </div>
+
+            <div class="form-field derived-time-unit-field-stream" style="display:none;">
+                <label for="add_derived_time_unit-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Time Unit (for Rate)', 'operations-organizer' ); ?></label>
+                <select name="derived_time_unit_for_rate" id="add_derived_time_unit-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                    <option value="hour"><?php esc_html_e( 'Hour', 'operations-organizer' ); ?></option>
+                    <option value="minute"><?php esc_html_e( 'Minute', 'operations-organizer' ); ?></option>
+                    <option value="day"><?php esc_html_e( 'Day', 'operations-organizer' ); ?></option>
+                </select>
+            </div>
+           
+            <div class="form-field">
+                <label for="add_derived_output_description-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Output Description (Optional)', 'operations-organizer' ); ?></label>
+                <textarea name="derived_output_description" id="add_derived_output_description-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" rows="2"></textarea>
+                <p><?php esc_html_e( 'Briefly describe what this calculation represents or its expected unit (e.g., "items/hr", "$/item").', 'operations-organizer' ); ?></p>
+            </div>
+
+             <div class="form-field">
+                <label for="add_derived_is_active-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                    <input type="checkbox" name="derived_is_active" id="add_derived_is_active-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" value="1" checked>
+                    <?php esc_html_e( 'Active', 'operations-organizer' ); ?>
+                </label>
+            </div>
+
+            <?php submit_button( __( 'Add Derived KPI', 'operations-organizer' ), 'primary', 'submit_add_derived_kpi-stream-' . $current_stream_tab_slug ); ?>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Derived KPI Modal for Stream Page -->
+<div id="editDerivedKpiModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
+    <div class="oo-modal-content">
+        <span class="oo-modal-close">&times;</span>
+        <h2><?php esc_html_e( 'Edit Derived KPI Definition (Stream Context)', 'operations-organizer' ); ?>: <span id="editDerivedKpiNameDisplay-<?php echo esc_attr($current_stream_tab_slug); ?>"></span></h2>
+        <form id="oo-edit-derived-kpi-form-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+            <input type="hidden" name="oo_action" value="update_derived_kpi_definition">
+            <input type="hidden" name="context" value="stream_page">
+            <input type="hidden" name="stream_id_context" value="<?php echo esc_attr($current_stream_id); ?>">
+            <input type="hidden" id="edit_derived_definition_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="derived_definition_id" value="">
+            
+            <div class="form-field form-required">
+                <label for="edit_derived_definition_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Definition Name', 'operations-organizer' ); ?></label>
+                <input type="text" name="derived_definition_name" id="edit_derived_definition_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+            </div>
+
+            <div class="form-field form-required">
+                <label><?php esc_html_e( 'Primary KPI Measure', 'operations-organizer' ); ?></label>
+                <span id="edit_derived_primary_kpi_name_display-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"></span> <!-- Display only, not editable -->
+                <input type="hidden" id="edit_derived_primary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>\" name="primary_kpi_measure_id" value="">
+                <input type="hidden" id="edit_derived_primary_kpi_unit_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>\" value="">
+            </div>
+
+            <div class="form-field form-required">
+                <label for="edit_derived_calculation_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Calculation Type', 'operations-organizer' ); ?></label>
+                <select name="derived_calculation_type" id="edit_derived_calculation_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+
+            <div class="form-field derived-secondary-kpi-field-stream" style="display:none;">
+                <label for="edit_derived_secondary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Secondary KPI (for Ratio)', 'operations-organizer' ); ?></label>
+                <select name="derived_secondary_kpi_measure_id" id="edit_derived_secondary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                    <option value=""><?php esc_html_e( '-- Select Secondary KPI --', 'operations-organizer' ); ?></option>
+                     <?php 
+                    // Options populated by JS
+                    ?> 
+                </select>
+            </div>
+
+            <div class="form-field derived-time-unit-field-stream" style="display:none;">
+                <label for="edit_derived_time_unit-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Time Unit (for Rate)', 'operations-organizer' ); ?></label>
+                <select name="derived_time_unit_for_rate" id="edit_derived_time_unit-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                    <option value="hour"><?php esc_html_e( 'Hour', 'operations-organizer' ); ?></option>
+                    <option value="minute"><?php esc_html_e( 'Minute', 'operations-organizer' ); ?></option>
+                    <option value="day"><?php esc_html_e( 'Day', 'operations-organizer' ); ?></option>
+                </select>
+            </div>
+           
+            <div class="form-field">
+                <label for="edit_derived_output_description-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Output Description (Optional)', 'operations-organizer' ); ?></label>
+                <textarea name="derived_output_description" id="edit_derived_output_description-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" rows="2"></textarea>
+            </div>
+
+             <div class="form-field">
+                <label for="edit_derived_is_active-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+                    <input type="checkbox" name="derived_is_active" id="edit_derived_is_active-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" value="1">
+                    <?php esc_html_e( 'Active', 'operations-organizer' ); ?>
+                </label>
+            </div>
+
+            <?php submit_button( __( 'Save Derived KPI Changes', 'operations-organizer' ), 'primary', 'submit_edit_derived_kpi-stream-' . $current_stream_tab_slug ); ?>
+        </form>
+    </div>
+</div>
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
@@ -1141,5 +1508,510 @@ jQuery(document).ready(function($) {
         // --- End: Copied from content-tab.php --- 
 
     } // End if ($('#stream-job-logs-section').length)
+
+    // --- KPI Measure Management for this Stream Page (NEW) ---
+    var addKpiMeasureModal_Stream = $('#addKpiMeasureModal-stream-' + streamSlug);
+    var editKpiMeasureModal_Stream = $('#editKpiMeasureModal-stream-' + streamSlug);
+    var kpiMeasuresListContainer_Stream = $('#kpi-measures-list-stream-' + streamSlug);
+
+    // Function to refresh the KPI Measures list in the tab via AJAX
+    function refreshKpiMeasuresList_Stream(streamId, streamSlugContext) {
+        kpiMeasuresListContainer_Stream.html('<tr><td colspan="5"><?php echo esc_js( __("Loading KPI Measures...", "operations-organizer") ); ?></td></tr>');
+        
+        $.post(oo_data.ajax_url, {
+            action: 'oo_get_kpi_measures_for_stream_html', // New AJAX action to get HTML
+            stream_id: streamId,
+            stream_slug: streamSlugContext, // Pass slug for button/modal IDs in refreshed HTML
+            _ajax_nonce: oo_data.nonce_get_kpi_measures // Re-use a generic nonce or create a specific one
+        }, function(response) {
+            if (response.success) {
+                kpiMeasuresListContainer_Stream.html(response.data.html);
+            } else {
+                kpiMeasuresListContainer_Stream.html('<tr><td colspan="5">' + (response.data.message || '<?php echo esc_js( __("Error loading KPI Measures.", "operations-organizer") ); ?>') + '</td></tr>');
+                showNotice('error', response.data.message || '<?php echo esc_js( __("Could not refresh KPI list.", "operations-organizer") ); ?>');
+            }
+        }).fail(function() {
+            kpiMeasuresListContainer_Stream.html('<tr><td colspan="5"><?php echo esc_js( __("Request failed while refreshing KPI Measures.", "operations-organizer") ); ?></td></tr>');
+            showNotice('error', '<?php echo esc_js( __("Request failed. Please try again.", "operations-organizer") ); ?>');
+        });
+    }
+
+    // Open Add KPI Measure Modal
+    $('#openAddKpiMeasureModalBtn-stream-' + streamSlug).on('click', function() {
+        addKpiMeasureModal_Stream.find('form')[0].reset();
+        addKpiMeasureModal_Stream.find('#add_kpi_measure_key-stream-' + streamSlug).prop('readonly', false); // Ensure key is editable for new
+        addKpiMeasureModal_Stream.show();
+    });
+
+    // Handle Add KPI Measure Form Submission
+    $('#oo-add-kpi-measure-form-stream-' + streamSlug).on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $submitButton = $form.find('#submit_add_kpi_measure-stream-' + streamSlug);
+        $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Adding...", "operations-organizer")); ?>');
+        
+        var formData = $form.serializeArray();
+        formData.push({ name: 'action', value: 'oo_add_kpi_measure' }); // Ensure correct main action
+        formData.push({ name: '_ajax_nonce', value: oo_data.nonce_add_kpi_measure }); // Use nonce from oo_data
+
+        $.post(oo_data.ajax_url, $.param(formData), function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                addKpiMeasureModal_Stream.hide();
+                refreshKpiMeasuresList_Stream(<?php echo intval($current_stream_id); ?>, streamSlug);
+            } else {
+                showNotice('error', response.data.message || '<?php echo esc_js(__("An unknown error occurred.", "operations-organizer")); ?>');
+            }
+        }).fail(function() {
+            showNotice('error', '<?php echo esc_js(__("Request failed. Please try again.", "operations-organizer")); ?>');
+        }).always(function() {
+            $submitButton.prop('disabled', false).val('<?php echo esc_js(__("Add KPI Measure", "operations-organizer")); ?>');
+        });
+    });
+
+    // Handle Edit KPI Measure Button Click
+    kpiMeasuresListContainer_Stream.on('click', '.oo-edit-kpi-measure-stream', function() {
+        var kpiMeasureId = $(this).data('kpi-measure-id');
+        editKpiMeasureModal_Stream.find('#editKpiMeasureNameDisplay-' + streamSlug).text('<?php echo esc_js(__("Loading...", "operations-organizer")); ?>');
+        
+        $.post(oo_data.ajax_url, {
+            action: 'oo_get_kpi_measure_details', // New AJAX action
+            kpi_measure_id: kpiMeasureId,
+            _ajax_nonce: oo_data.nonce_get_kpi_measure_details // New Nonce
+        }, function(response) {
+            if (response.success) {
+                var kpi = response.data.kpi_measure;
+                editKpiMeasureModal_Stream.find('#edit_kpi_measure_id-stream-' + streamSlug).val(kpi.kpi_measure_id);
+                editKpiMeasureModal_Stream.find('#editKpiMeasureNameDisplay-' + streamSlug).text(esc_html(kpi.measure_name));
+                editKpiMeasureModal_Stream.find('#edit_kpi_measure_name-stream-' + streamSlug).val(kpi.measure_name);
+                editKpiMeasureModal_Stream.find('#edit_kpi_measure_key-stream-' + streamSlug).val(kpi.measure_key); // Key is readonly
+                editKpiMeasureModal_Stream.find('#edit_kpi_unit_type-stream-' + streamSlug).val(kpi.unit_type);
+                editKpiMeasureModal_Stream.find('#edit_kpi_is_active-stream-' + streamSlug).prop('checked', parseInt(kpi.is_active) === 1);
+                editKpiMeasureModal_Stream.show();
+            } else {
+                showNotice('error', response.data.message || '<?php echo esc_js(__("Could not load KPI Measure data.", "operations-organizer")); ?>');
+            }
+        }).fail(function() {
+            showNotice('error', '<?php echo esc_js(__("Request to load KPI Measure data failed.", "operations-organizer")); ?>');
+        });
+    });
+
+    // Handle Edit KPI Measure Form Submission
+    $('#oo-edit-kpi-measure-form-stream-' + streamSlug).on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $submitButton = $form.find('#submit_edit_kpi_measure-stream-' + streamSlug);
+        $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Saving...", "operations-organizer")); ?>');
+        
+        var formData = $form.serializeArray();
+        // measure_key is readonly and should not be submitted for update,
+        // but the oo_update_kpi_measure AJAX handler should ideally ignore it if sent.
+        // We already set it as readonly in the form.
+        formData.push({ name: 'action', value: 'oo_update_kpi_measure' });
+        formData.push({ name: '_ajax_nonce', value: oo_data.nonce_edit_kpi_measure });
+
+        $.post(oo_data.ajax_url, $.param(formData), function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                editKpiMeasureModal_Stream.hide();
+                refreshKpiMeasuresList_Stream(<?php echo intval($current_stream_id); ?>, streamSlug);
+            } else {
+                showNotice('error', response.data.message || '<?php echo esc_js(__("An unknown error occurred.", "operations-organizer")); ?>');
+            }
+        }).fail(function() {
+            showNotice('error', '<?php echo esc_js(__("Request failed. Please try again.", "operations-organizer")); ?>');
+        }).always(function() {
+            $submitButton.prop('disabled', false).val('<?php echo esc_js(__("Save KPI Measure Changes", "operations-organizer")); ?>');
+        });
+    });
+    
+    // Handle Toggle KPI Measure Status Button Click
+    kpiMeasuresListContainer_Stream.on('click', '.oo-toggle-kpi-measure-status-stream', function() {
+        var $button = $(this);
+        var kpiMeasureId = $button.data('kpi-measure-id');
+        var newStatus = $button.data('new-status');
+        var nonceAction = 'oo_toggle_kpi_measure_status_' + kpiMeasureId; // Specific nonce action
+        // Assuming nonce is available in oo_data.nonces[nonceAction] or similar, or use a general toggle nonce
+        // For now, let's assume a general nonce 'nonce_toggle_kpi_status' is available in oo_data
+        // If not, this needs adjustment for how nonces are passed.
+        var nonceValue = oo_data.nonces && oo_data.nonces[nonceAction] ? oo_data.nonces[nonceAction] : oo_data.nonce_toggle_kpi_status;
+
+
+        var confirmMessage = newStatus == 1 ?
+            '<?php echo esc_js(__("Are you sure you want to activate this KPI Measure?", "operations-organizer")); ?>' :
+            '<?php echo esc_js(__("Are you sure you want to deactivate this KPI Measure? Deactivating might affect its usage in phase configurations.", "operations-organizer")); ?>';
+
+        if (!confirm(confirmMessage)) { return; }
+        
+        $button.prop('disabled', true);
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_toggle_kpi_measure_status',
+            kpi_measure_id: kpiMeasureId,
+            is_active: newStatus,
+            _ajax_nonce: nonceValue, // Use the retrieved nonce
+            nonce_action_check: nonceAction // Send for server-side verification against this specific action
+        }, function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                refreshKpiMeasuresList_Stream(<?php echo intval($current_stream_id); ?>, streamSlug);
+            } else {
+                showNotice('error', response.data.message || '<?php echo esc_js(__("Could not change KPI Measure status.", "operations-organizer")); ?>');
+                 $button.prop('disabled', false);
+            }
+        }).fail(function() {
+            showNotice('error', '<?php echo esc_js(__("Request to change KPI Measure status failed.", "operations-organizer")); ?>');
+            $button.prop('disabled', false);
+        });
+    });
+
+    // Handle Delete KPI Measure Button Click
+    kpiMeasuresListContainer_Stream.on('click', '.oo-delete-kpi-measure-stream', function(e) {
+        e.preventDefault();
+        var $link = $(this);
+        var kpiMeasureId = $link.data('kpi-measure-id');
+        var nonceAction = 'oo_delete_kpi_measure_' + kpiMeasureId;
+        // Similar to toggle, retrieve nonce. Assuming a general delete nonce for now if specific one not found.
+        var nonceValue = oo_data.nonces && oo_data.nonces[nonceAction] ? oo_data.nonces[nonceAction] : oo_data.nonce_delete_kpi_measure;
+
+
+        if (!confirm('<?php echo esc_js(__("Are you sure you want to permanently delete this KPI Measure? This action cannot be undone and might affect phases currently using it. The system will attempt to unlink it from phases first.", "operations-organizer")); ?>')) {
+            return;
+        }
+        
+        $link.css('color', '#ccc'); // Visually indicate processing
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_delete_kpi_measure',
+            kpi_measure_id: kpiMeasureId,
+            _ajax_nonce: nonceValue,
+            nonce_action_check: nonceAction, // Send for server-side verification
+            context: 'stream_page' // Inform the backend about the context if needed for specific handling
+        }, function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                refreshKpiMeasuresList_Stream(<?php echo intval($current_stream_id); ?>, streamSlug);
+            } else {
+                showNotice('error', response.data.message || '<?php echo esc_js(__("Could not delete KPI Measure.", "operations-organizer")); ?>');
+                $link.css('color', '#b32d2e'); // Reset color on failure
+            }
+        }).fail(function() {
+            showNotice('error', '<?php echo esc_js(__("Request to delete KPI Measure failed.", "operations-organizer")); ?>');
+            $link.css('color', '#b32d2e'); // Reset color on failure
+        });
+    });
+    
+    // Auto-generate kpi measure key from name in Add Modal
+    $('#add_kpi_measure_name-stream-' + streamSlug).on('input', function() {
+        var slug = $(this).val().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]+/g, '').replace(/__+/g, '_').replace(/^_|_$/g, '');
+        $('#add_kpi_measure_key-stream-' + streamSlug).val(slug);
+    });
+
+    // --- End KPI Measure Management for Stream Page ---
+
+    // --- Derived KPI Definition Management for this Stream Page (NEW) ---
+    var addDerivedKpiModal_Stream = $('#addDerivedKpiModal-stream-' + streamSlug);
+    var editDerivedKpiModal_Stream = $('#editDerivedKpiModal-stream-' + streamSlug);
+    var derivedKpiListContainer_Stream = $('#derived-kpi-definitions-list-stream-' + streamSlug);
+    
+    // Helper: Populate calculation type options based on primary KPI unit type
+    function populateCalculationTypes_Stream(primaryKpiUnitType, $selectElement) {
+        $selectElement.empty();
+        $selectElement.append($('<option>', { value: '', text: '<?php echo esc_js(__("-- Select Calculation Type --", "operations-organizer")); ?>' }));
+
+        // Define available calculation types (can be extended)
+        var calcTypes = {
+            all: [
+                { value: 'sum_value', text: '<?php echo esc_js(__("Sum of Primary KPI Value")); ?>' },
+                { value: 'average_value', text: '<?php echo esc_js(__("Average of Primary KPI Value")); ?>' },
+            ],
+            numeric: [
+                { value: 'rate_per_time', text: '<?php echo esc_js(__("Rate: Primary KPI per Time Unit")); ?>' },
+                { value: 'ratio_to_kpi', text: '<?php echo esc_js(__("Ratio: Primary KPI to Secondary KPI")); ?>' },
+            ],
+            boolean: [
+                { value: 'count_if_true', text: '<?php echo esc_js(__("Count occurrences if Primary KPI is TRUE")); ?>' },
+                { value: 'count_if_false', text: '<?php echo esc_js(__("Count occurrences if Primary KPI is FALSE")); ?>' },
+            ]
+        };
+
+        var options = [].concat(calcTypes.all);
+        if (primaryKpiUnitType === 'integer' || primaryKpiUnitType === 'decimal') {
+            options = options.concat(calcTypes.numeric);
+        } else if (primaryKpiUnitType === 'boolean') {
+            options = options.concat(calcTypes.boolean);
+        }
+        // Add more specific types for 'text' if needed later
+
+        $.each(options, function(i, type) {
+            $selectElement.append($('<option>', { value: type.value, text: type.text }));
+        });
+        $selectElement.trigger('change'); // Trigger change to show/hide conditional fields
+    }
+
+    // Helper: Show/hide conditional fields based on calculation type
+    function handleDerivedKpiCalcTypeChange_Stream($modal) {
+        var calcType = $modal.find('select[name="derived_calculation_type"]').val();
+        var $secondaryKpiField = $modal.find('.derived-secondary-kpi-field-stream');
+        var $timeUnitField = $modal.find('.derived-time-unit-field-stream');
+
+        $secondaryKpiField.hide().find('select').prop('required', false);
+        $timeUnitField.hide().find('select').prop('required', false);
+
+        if (calcType === 'rate_per_time') {
+            $timeUnitField.show().find('select').prop('required', true);
+        } else if (calcType === 'ratio_to_kpi') {
+            $secondaryKpiField.show().find('select').prop('required', true);
+        }
+    }
+
+    // Populate Secondary KPI dropdown (all active KPIs excluding primary)
+    function populateSecondaryKpis_Stream($selectElement, primaryKpiIdToExclude) {
+        $selectElement.empty().append($('<option>', { value: '', text: '<?php echo esc_js(__("-- Select Secondary KPI --", "operations-organizer")); ?>' }));
+        if (oo_data.all_kpi_measures && oo_data.all_kpi_measures.length > 0) {
+            $.each(oo_data.all_kpi_measures, function(i, kpi) {
+                if (kpi.kpi_measure_id.toString() !== primaryKpiIdToExclude.toString()) {
+                    $selectElement.append($('<option>', { 
+                        value: kpi.kpi_measure_id, 
+                        text: esc_html(kpi.measure_name) + ' (' + esc_html(kpi.unit_type) + ')' 
+                    }));
+                }
+            });
+        }
+        if ($selectElement.children().length === 1) { // Only the default option
+             $selectElement.append('<option value="" disabled><?php echo esc_js(__( "No other KPIs available", "operations-organizer" )); ?></option>');
+        }
+    }
+
+    // Open Add Derived KPI Modal
+    $('#openAddDerivedKpiModalBtn-stream-' + streamSlug).on('click', function() {
+        addDerivedKpiModal_Stream.find('form')[0].reset();
+        var $primaryKpiSelect = addDerivedKpiModal_Stream.find('#add_derived_primary_kpi_id-stream-' + streamSlug);
+        var $calcTypeSelect = addDerivedKpiModal_Stream.find('#add_derived_calculation_type-stream-' + streamSlug);
+        
+        // Reset and repopulate Primary KPI dropdown (it is static in the modal HTML but good practice if it could change)
+        // $primaryKpiSelect.val(''); // Already reset by form[0].reset()
+        
+        // Initial population of calc types based on no selection for primary KPI (or first option)
+        var initialPrimaryKpiUnit = $primaryKpiSelect.find('option:selected').data('unit-type') || '';
+        populateCalculationTypes_Stream(initialPrimaryKpiUnit, $calcTypeSelect);
+        handleDerivedKpiCalcTypeChange_Stream(addDerivedKpiModal_Stream);
+        populateSecondaryKpis_Stream(addDerivedKpiModal_Stream.find('#add_derived_secondary_kpi_id-stream-' + streamSlug), $primaryKpiSelect.val());
+        addDerivedKpiModal_Stream.show();
+    });
+
+    // Handle Primary KPI change in Add Derived KPI Modal
+    addDerivedKpiModal_Stream.on('change', '#add_derived_primary_kpi_id-stream-' + streamSlug, function() {
+        var unitType = $(this).find('option:selected').data('unit-type') || '';
+        var primaryKpiId = $(this).val();
+        populateCalculationTypes_Stream(unitType, addDerivedKpiModal_Stream.find('#add_derived_calculation_type-stream-' + streamSlug));
+        populateSecondaryKpis_Stream(addDerivedKpiModal_Stream.find('#add_derived_secondary_kpi_id-stream-' + streamSlug), primaryKpiId);
+    });
+
+    // Handle Calculation Type change in Add Derived KPI Modal
+    addDerivedKpiModal_Stream.on('change', '#add_derived_calculation_type-stream-' + streamSlug, function() {
+        handleDerivedKpiCalcTypeChange_Stream(addDerivedKpiModal_Stream);
+    });
+
+    // Function to refresh the Derived KPI list in the tab via AJAX
+    function refreshDerivedKpiList_Stream(streamId, streamSlugContext) {
+        derivedKpiListContainer_Stream.html('<tr><td colspan="5"><?php echo esc_js( __("Loading Derived KPIs...", "operations-organizer") ); ?></td></tr>');
+        
+        $.post(oo_data.ajax_url, {
+            action: 'oo_get_derived_kpis_for_stream_html', // New AJAX action
+            stream_id: streamId,
+            stream_slug: streamSlugContext,
+            _ajax_nonce: oo_data.nonce_get_derived_kpi_definitions // New or existing nonce
+        }, function(response) {
+            if (response.success) {
+                derivedKpiListContainer_Stream.html(response.data.html);
+            } else {
+                derivedKpiListContainer_Stream.html('<tr><td colspan="5">' + (response.data.message || '<?php echo esc_js( __("Error loading Derived KPIs.", "operations-organizer") ); ?>') + '</td></tr>');
+                showNotice('error', response.data.message || '<?php echo esc_js( __("Could not refresh Derived KPI list.", "operations-organizer") ); ?>');
+            }
+        }).fail(function() {
+            derivedKpiListContainer_Stream.html('<tr><td colspan="5"><?php echo esc_js( __("Request failed while refreshing Derived KPIs.", "operations-organizer") ); ?></td></tr>');
+            showNotice('error', '<?php echo esc_js( __("Request failed. Please try again.", "operations-organizer") ); ?>');
+        });
+    }
+
+    // Handle Add Derived KPI Form Submission
+    $('#oo-add-derived-kpi-form-stream-' + streamSlug).on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $submitButton = $form.find('#submit_add_derived_kpi-stream-' + streamSlug);
+        $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Adding...", "operations-organizer")); ?>');
+        
+        var formData = $form.serializeArray();
+        formData.push({ name: 'action', value: 'oo_add_derived_kpi_definition' });
+        formData.push({ name: '_ajax_nonce', value: oo_data.nonce_add_derived_kpi }); // New Nonce
+
+        $.post(oo_data.ajax_url, $.param(formData), function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                addDerivedKpiModal_Stream.hide();
+                refreshDerivedKpiList_Stream(<?php echo intval($current_stream_id); ?>, streamSlug);
+            } else {
+                showNotice('error', response.data.message || '<?php echo esc_js(__("An unknown error occurred.", "operations-organizer")); ?>');
+            }
+        }).fail(function() {
+            showNotice('error', '<?php echo esc_js(__("Request failed. Please try again.", "operations-organizer")); ?>');
+        }).always(function() {
+            $submitButton.prop('disabled', false).val('<?php echo esc_js(__("Add Derived KPI", "operations-organizer")); ?>');
+        });
+    });
+
+    // Handle Edit Derived KPI Button Click
+    derivedKpiListContainer_Stream.on('click', '.oo-edit-derived-kpi-stream', function() {
+        var derivedKpiId = $(this).data('derived-kpi-id');
+        editDerivedKpiModal_Stream.find('#editDerivedKpiNameDisplay-' + streamSlug).text('<?php echo esc_js(__("Loading...", "operations-organizer")); ?>');
+        
+        $.post(oo_data.ajax_url, {
+            action: 'oo_get_derived_kpi_definition_details', // Existing global action
+            derived_definition_id: derivedKpiId,
+            _ajax_nonce: oo_data.nonce_get_derived_kpi_details // Existing global nonce
+        }, function(response) {
+            if (response.success) {
+                var dkpi = response.data.definition;
+                var primary_kpi = response.data.primary_kpi; // Expecting this from backend now
+
+                editDerivedKpiModal_Stream.find('#edit_derived_definition_id-stream-' + streamSlug).val(dkpi.derived_definition_id);
+                editDerivedKpiModal_Stream.find('#editDerivedKpiNameDisplay-' + streamSlug).text(esc_html(dkpi.definition_name));
+                editDerivedKpiModal_Stream.find('#edit_derived_definition_name-stream-' + streamSlug).val(dkpi.definition_name);
+                
+                editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_id-stream-' + streamSlug).val(dkpi.primary_kpi_measure_id);
+                editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_name_display-stream-' + streamSlug).text(primary_kpi ? esc_html(primary_kpi.measure_name) : 'Unknown KPI');
+                editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_unit_type-stream-' + streamSlug).val(primary_kpi ? primary_kpi.unit_type : '');
+                
+                populateCalculationTypes_Stream(primary_kpi ? primary_kpi.unit_type : '', editDerivedKpiModal_Stream.find('#edit_derived_calculation_type-stream-' + streamSlug));
+                editDerivedKpiModal_Stream.find('#edit_derived_calculation_type-stream-' + streamSlug).val(dkpi.calculation_type);
+                // Trigger change to ensure conditional fields are updated based on loaded calc_type
+                editDerivedKpiModal_Stream.find('#edit_derived_calculation_type-stream-' + streamSlug).trigger('change');
+
+                populateSecondaryKpis_Stream(editDerivedKpiModal_Stream.find('#edit_derived_secondary_kpi_id-stream-' + streamSlug), dkpi.primary_kpi_measure_id);
+                if (dkpi.calculation_type === 'ratio_to_kpi' && dkpi.secondary_kpi_measure_id) {
+                    editDerivedKpiModal_Stream.find('#edit_derived_secondary_kpi_id-stream-' + streamSlug).val(dkpi.secondary_kpi_measure_id);
+                }
+                if (dkpi.calculation_type === 'rate_per_time' && dkpi.time_unit_for_rate) {
+                    editDerivedKpiModal_Stream.find('#edit_derived_time_unit-stream-' + streamSlug).val(dkpi.time_unit_for_rate);
+                }
+                
+                editDerivedKpiModal_Stream.find('#edit_derived_output_description-stream-' + streamSlug).val(dkpi.output_description);
+                editDerivedKpiModal_Stream.find('#edit_derived_is_active-stream-' + streamSlug).prop('checked', parseInt(dkpi.is_active) === 1);
+                
+                editDerivedKpiModal_Stream.show();
+            } else {
+                showNotice('error', response.data.message || '<?php echo esc_js(__("Could not load Derived KPI data.", "operations-organizer")); ?>');
+            }
+        }).fail(function() {
+            showNotice('error', '<?php echo esc_js(__("Request to load Derived KPI data failed.", "operations-organizer")); ?>');
+        });
+    });
+
+    // Handle Calculation Type change in Edit Derived KPI Modal
+    editDerivedKpiModal_Stream.on('change', '#edit_derived_calculation_type-stream-' + streamSlug, function() {
+        handleDerivedKpiCalcTypeChange_Stream(editDerivedKpiModal_Stream);
+        // If changing to a type that doesn\'t need secondary KPI, clear its value
+        if ($(this).val() !== 'ratio_to_kpi') {
+            editDerivedKpiModal_Stream.find('#edit_derived_secondary_kpi_id-stream-' + streamSlug).val('');
+        }
+        // If changing to a type that doesn\'t need time unit, clear its value (though it defaults)
+        if ($(this).val() !== 'rate_per_time') {
+             editDerivedKpiModal_Stream.find('#edit_derived_time_unit-stream-' + streamSlug).val('hour'); // Reset to default
+        }
+    });
+
+    // Handle Edit Derived KPI Form Submission
+    $('#oo-edit-derived-kpi-form-stream-' + streamSlug).on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $submitButton = $form.find('#submit_edit_derived_kpi-stream-' + streamSlug);
+        $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Saving...", "operations-organizer")); ?>');
+        
+        var formData = $form.serializeArray();
+        formData.push({ name: 'action', value: 'oo_update_derived_kpi_definition' });
+        formData.push({ name: '_ajax_nonce', value: oo_data.nonce_edit_derived_kpi }); // New Nonce
+
+        $.post(oo_data.ajax_url, $.param(formData), function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                editDerivedKpiModal_Stream.hide();
+                refreshDerivedKpiList_Stream(<?php echo intval($current_stream_id); ?>, streamSlug);
+            } else {
+                showNotice('error', response.data.message || '<?php echo esc_js(__("An unknown error occurred.", "operations-organizer")); ?>');
+            }
+        }).fail(function() {
+            showNotice('error', '<?php echo esc_js(__("Request failed. Please try again.", "operations-organizer")); ?>');
+        }).always(function() {
+            $submitButton.prop('disabled', false).val('<?php echo esc_js(__("Save Derived KPI Changes", "operations-organizer")); ?>');
+        });
+    });
+
+    // Handle Toggle Derived KPI Status Button Click
+    derivedKpiListContainer_Stream.on('click', '.oo-toggle-derived-kpi-status-stream', function() {
+        var $button = $(this);
+        var derivedKpiId = $button.data('derived-kpi-id');
+        var newStatus = $button.data('new-status');
+        var nonceAction = 'oo_toggle_derived_kpi_status_' + derivedKpiId;
+        var nonceValue = oo_data.nonces && oo_data.nonces[nonceAction] ? oo_data.nonces[nonceAction] : oo_data.nonce_toggle_derived_kpi_status; // General fallback
+
+        if (!confirm(newStatus == 1 ? '<?php echo esc_js(__("Activate this Derived KPI?", "operations-organizer")); ?>' : '<?php echo esc_js(__("Deactivate this Derived KPI?", "operations-organizer")); ?>')) return;
+        
+        $button.prop('disabled', true);
+        $.post(oo_data.ajax_url, {
+            action: 'oo_toggle_derived_kpi_status', // New AJAX action
+            derived_definition_id: derivedKpiId,
+            is_active: newStatus,
+            _ajax_nonce: nonceValue, // Use appropriate nonce
+            nonce_action_check: nonceAction
+        }, function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                refreshDerivedKpiList_Stream(<?php echo intval($current_stream_id); ?>, streamSlug);
+            } else {
+                showNotice('error', response.data.message || 'Error toggling status.');
+                $button.prop('disabled', false);
+            }
+        }).fail(function() {
+            showNotice('error', 'Request failed.');
+            $button.prop('disabled', false);
+        });
+    });
+
+    // Handle Delete Derived KPI Button Click
+    derivedKpiListContainer_Stream.on('click', '.oo-delete-derived-kpi-stream', function(e) {
+        e.preventDefault();
+        var $link = $(this);
+        var derivedKpiId = $link.data('derived-kpi-id');
+        var nonceAction = 'oo_delete_derived_kpi_' + derivedKpiId;
+        var nonceValue = oo_data.nonces && oo_data.nonces[nonceAction] ? oo_data.nonces[nonceAction] : oo_data.nonce_delete_derived_kpi; // General fallback
+
+        if (!confirm('<?php echo esc_js(__("Are you sure you want to permanently delete this Derived KPI definition? This cannot be undone.", "operations-organizer")); ?>')) return;
+        
+        $link.css('color', '#ccc');
+        $.post(oo_data.ajax_url, {
+            action: 'oo_delete_derived_kpi_definition', // New AJAX action
+            derived_definition_id: derivedKpiId,
+            _ajax_nonce: nonceValue, // Use appropriate nonce
+            nonce_action_check: nonceAction
+        }, function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                refreshDerivedKpiList_Stream(<?php echo intval($current_stream_id); ?>, streamSlug);
+            } else {
+                showNotice('error', response.data.message || 'Could not delete Derived KPI.');
+                $link.css('color', '#b32d2e');
+            }
+        }).fail(function() {
+            showNotice('error', 'Request to delete Derived KPI failed.');
+            $link.css('color', '#b32d2e');
+        });
+    });
+
+    // --- End Derived KPI Definition Management ---
+
+    // --- Start of Job Logs Table JS (already moved and adapted) ---
+// ... existing code ...
+
 });
 </script> 

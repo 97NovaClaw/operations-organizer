@@ -32,6 +32,8 @@ require_once OO_PLUGIN_DIR . 'includes/class-oo-phase.php';
 require_once OO_PLUGIN_DIR . 'includes/class-oo-stream.php'; // Renamed class for Streams
 require_once OO_PLUGIN_DIR . 'includes/class-oo-admin-pages.php';
 require_once OO_PLUGIN_DIR . 'includes/class-oo-dashboard.php';
+require_once OO_PLUGIN_DIR . 'includes/class-oo-kpi-measure.php'; // Include the new KPI Measure class
+require_once OO_PLUGIN_DIR . 'includes/class-oo-derived-kpi.php'; // Include the new Derived KPI class
 require_once OO_PLUGIN_DIR . 'includes/functions.php'; // Functions will also be prefixed
 require_once OO_PLUGIN_DIR . 'fix-database.php'; // Load database fix utilities
 
@@ -102,7 +104,7 @@ if ( is_admin() ) {
                 'dashboard_url'   => admin_url( 'admin.php?page=oo_dashboard' ),
                 'nonce_add_employee' => wp_create_nonce('oo_add_employee_nonce'),
                 'nonce_edit_employee' => wp_create_nonce('oo_edit_employee_nonce'),
-                'nonce_toggle_status' => wp_create_nonce('oo_toggle_status_nonce'),
+                'nonce_toggle_status' => wp_create_nonce('oo_toggle_status_nonce'), // General toggle, might be overridden by specific ones
                 'nonce_add_phase'     => wp_create_nonce('oo_add_phase_nonce'),
                 'nonce_edit_phase'    => wp_create_nonce('oo_edit_phase_nonce'),
                 'nonce_add_stream' => wp_create_nonce('oo_add_stream_nonce'), 
@@ -110,7 +112,7 @@ if ( is_admin() ) {
                 'nonce_edit_log'      => wp_create_nonce('oo_edit_log_nonce'),      
                 'nonce_delete_log'    => wp_create_nonce('oo_delete_log_nonce'),
                 'nonce_dashboard'     => wp_create_nonce('oo_dashboard_nonce'),
-                'nonce_get_kpi_measures' => wp_create_nonce('oo_get_kpi_measures_nonce'),
+                'nonce_get_kpi_measures' => wp_create_nonce('oo_get_kpi_measures_nonce'), // Used for ajax_get_kpi_measures_for_stream_html
                 'nonce_get_phase_kpi_links' => wp_create_nonce('oo_get_phase_kpi_links_nonce'),
                 'nonce_manage_phase_kpi_links' => wp_create_nonce('oo_manage_phase_kpi_links_nonce'),
                 'nonce_get_derived_kpi_details' => wp_create_nonce('oo_get_derived_kpi_details_nonce'),
@@ -118,6 +120,21 @@ if ( is_admin() ) {
                 'nonce_delete_phase_ajax' => wp_create_nonce('oo_delete_phase_ajax_nonce'),
                 'nonce_save_column_prefs' => wp_create_nonce('oo_save_column_prefs_nonce'),
                 'nonce_get_stream_jobs' => wp_create_nonce('oo_get_stream_jobs_nonce'),
+                
+                // Nonces for Stream Page KPI Management
+                'nonce_add_kpi_measure' => wp_create_nonce('oo_add_kpi_measure_nonce'),
+                'nonce_edit_kpi_measure' => wp_create_nonce('oo_edit_kpi_measure_nonce'),
+                'nonce_get_kpi_measure_details' => wp_create_nonce('oo_get_kpi_measure_details_nonce'),
+                'nonce_toggle_kpi_status' => wp_create_nonce('oo_toggle_kpi_measure_status_nonce'), // General for toggle, specific ones generated in HTML/JS logic for now
+                'nonce_delete_kpi_measure' => wp_create_nonce('oo_delete_kpi_measure_nonce'), // General for delete
+
+                // Nonces for Stream Page Derived KPI Management
+                'nonce_add_derived_kpi' => wp_create_nonce('oo_add_derived_kpi_nonce'),
+                'nonce_edit_derived_kpi' => wp_create_nonce('oo_edit_derived_kpi_nonce'),
+                'nonce_get_derived_kpi_definitions' => wp_create_nonce('oo_get_derived_kpi_definitions_nonce'), // For refreshing list
+                'nonce_toggle_derived_kpi_status' => wp_create_nonce('oo_toggle_derived_kpi_status_nonce'),
+                'nonce_delete_derived_kpi' => wp_create_nonce('oo_delete_derived_kpi_nonce'),
+
                 'text_please_select_employee' => __('Please select an employee.', 'operations-organizer'),
                 'text_please_enter_emp_no' => __('Please enter an employee number.', 'operations-organizer'),
                 'text_add_derived_kpi' => __( 'Add Derived Calculation', 'operations-organizer' ),
@@ -129,8 +146,18 @@ if ( is_admin() ) {
                 'text_error_ajax' => __( 'AJAX request failed.', 'operations-organizer' ),
                 'text_kpi_values' => __( 'KPI Values', 'operations-organizer' ),
                 'all_kpi_measures' => OO_DB::get_kpi_measures(array('is_active' => 1)),
-                'user_content_default_columns' => OO_Admin_Pages::get_user_table_column_defaults('content_stream_table')
+                'user_content_default_columns' => OO_Admin_Pages::get_user_table_column_defaults('content_stream_table'),
+                'nonces' => array() // Placeholder for dynamically generated nonces if needed later by JS
             );
+
+            // Dynamically generate nonces for individual KPI measure toggle/delete actions if needed by JS
+            // This is an example if we decide to pre-generate all possible nonces.
+            // However, the current JS for toggle/delete relies on nonce_action_check passed to PHP, 
+            // and PHP creating those specific nonces for buttons or oo_data.nonces if populated here.
+            // For now, the AJAX handlers in OO_KPI_Measure use check_ajax_referer with the specific nonce action string passed from JS.
+            // The $localized_data['nonces'] array can be populated with specific nonces if a different strategy is chosen.
+            // Example: if $all_kpis = OO_DB::get_kpi_measures(); foreach($all_kpis as $kpi){ $localized_data['nonces']['oo_toggle_kpi_measure_status_'.$kpi->kpi_measure_id] = wp_create_nonce('oo_toggle_kpi_measure_status_'.$kpi->kpi_measure_id); }
+
             wp_localize_script( 'oo-admin-scripts', 'oo_data', $localized_data );
 
             wp_enqueue_script('datatables', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', array('jquery'), '1.13.6', true);
@@ -189,7 +216,20 @@ add_action('wp_ajax_oo_save_user_column_preference', array('OO_Admin_Pages', 'aj
 // AJAX for getting jobs for a stream (NEW)
 add_action('wp_ajax_oo_get_stream_jobs', array('OO_Admin_Pages', 'ajax_get_stream_jobs'));
 
-// TODO: Update admin menu registration with new structure and OO_Admin_Menus class 
+// AJAX handlers for KPI Measure Management (NEW - for Stream Page)
+add_action('wp_ajax_oo_add_kpi_measure', array('OO_KPI_Measure', 'ajax_add_kpi_measure'));
+add_action('wp_ajax_oo_get_kpi_measure_details', array('OO_KPI_Measure', 'ajax_get_kpi_measure_details'));
+add_action('wp_ajax_oo_update_kpi_measure', array('OO_KPI_Measure', 'ajax_update_kpi_measure'));
+add_action('wp_ajax_oo_toggle_kpi_measure_status', array('OO_KPI_Measure', 'ajax_toggle_kpi_measure_status'));
+add_action('wp_ajax_oo_delete_kpi_measure', array('OO_KPI_Measure', 'ajax_delete_kpi_measure'));
+add_action('wp_ajax_oo_get_kpi_measures_for_stream_html', array('OO_KPI_Measure', 'ajax_get_kpi_measures_for_stream_html'));
+
+// AJAX handlers for Derived KPI Definition Management (NEW - for Stream Page)
+add_action('wp_ajax_oo_add_derived_kpi_definition', array('OO_Derived_KPI', 'ajax_add_derived_kpi_definition'));
+add_action('wp_ajax_oo_update_derived_kpi_definition', array('OO_Derived_KPI', 'ajax_update_derived_kpi_definition'));
+add_action('wp_ajax_oo_toggle_derived_kpi_status', array('OO_Derived_KPI', 'ajax_toggle_derived_kpi_status'));
+add_action('wp_ajax_oo_delete_derived_kpi_definition', array('OO_Derived_KPI', 'ajax_delete_derived_kpi_definition'));
+add_action('wp_ajax_oo_get_derived_kpis_for_stream_html', array('OO_Derived_KPI', 'ajax_get_derived_kpis_for_stream_html'));
 
 /**
  * Initialize hardcoded streams in the database.

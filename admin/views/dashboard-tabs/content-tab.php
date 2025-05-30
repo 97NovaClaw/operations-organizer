@@ -10,9 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Or, this whole tab might be deprecated by the new stream-specific pages.
 $content_phases = array();
 if (isset($phases) && is_array($phases)) { // Check if $phases is set and is an array
-    foreach ($phases as $phase) {
-        if ($phase->stream_id == 4 && !empty($phase->includes_kpi)) {
-            $content_phases[] = $phase;
+foreach ($phases as $phase) {
+    if ($phase->stream_id == 4 && !empty($phase->includes_kpi)) {
+        $content_phases[] = $phase;
         }
     }
 }

@@ -414,7 +414,7 @@ class OO_Admin_Pages { // Renamed class
             return;
         }
 
-        $definition_id = isset($_POST['definition_id']) ? intval($_POST['definition_id']) : 0;
+        $definition_id = isset($_POST['derived_definition_id']) ? intval($_POST['derived_definition_id']) : 0;
         if ($definition_id <= 0) {
             wp_send_json_error(['message' => __('Invalid Derived KPI Definition ID.', 'operations-organizer')]);
             return;
@@ -427,14 +427,22 @@ class OO_Admin_Pages { // Renamed class
         }
 
         // Also fetch the primary KPI details to get its name and unit type for the modal
-        $primary_kpi = null;
+        $primary_kpi_details = null;
         if ($definition->primary_kpi_measure_id > 0) {
-            $primary_kpi = OO_DB::get_kpi_measure($definition->primary_kpi_measure_id);
+            $primary_kpi_db_object = OO_DB::get_kpi_measure($definition->primary_kpi_measure_id);
+            if ($primary_kpi_db_object) {
+                $primary_kpi_details = array(
+                    'kpi_measure_id' => $primary_kpi_db_object->kpi_measure_id,
+                    'measure_name'   => $primary_kpi_db_object->measure_name,
+                    'measure_key'    => $primary_kpi_db_object->measure_key,
+                    'unit_type'      => $primary_kpi_db_object->unit_type
+                );
+            }
         }
 
         wp_send_json_success(array(
             'definition' => $definition,
-            'primary_kpi' => $primary_kpi
+            'primary_kpi' => $primary_kpi_details
         ));
     }
 
