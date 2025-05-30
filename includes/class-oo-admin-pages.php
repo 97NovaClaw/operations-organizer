@@ -183,6 +183,11 @@ class OO_Admin_Pages { // Renamed class
             return;
         }
 
+        // Set them as globals for the view
+        $GLOBALS['current_stream_id'] = $current_stream_id;
+        $GLOBALS['current_stream_name'] = $current_stream_name;
+        $GLOBALS['current_stream_tab_slug'] = $current_stream_tab_slug;
+
         // Pass $current_stream_id, $current_stream_name, $current_stream_tab_slug to the view
         // The view will handle the internal tabs
         // Example: include_once OO_PLUGIN_DIR . 'admin/views/stream-pages/stream-page-template.php';
