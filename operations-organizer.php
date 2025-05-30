@@ -116,6 +116,7 @@ if ( is_admin() ) {
                 'nonce_get_current_site_time' => wp_create_nonce('oo_get_current_site_time_nonce'),
                 'nonce_delete_phase_ajax' => wp_create_nonce('oo_delete_phase_ajax_nonce'),
                 'nonce_save_column_prefs' => wp_create_nonce('oo_save_column_prefs_nonce'),
+                'nonce_get_stream_jobs' => wp_create_nonce('oo_get_stream_jobs_nonce'),
                 'text_please_select_employee' => __('Please select an employee.', 'operations-organizer'),
                 'text_please_enter_emp_no' => __('Please enter an employee number.', 'operations-organizer'),
                 'text_add_derived_kpi' => __( 'Add Derived Calculation', 'operations-organizer' ),
@@ -184,6 +185,8 @@ add_action('wp_ajax_oo_get_current_site_time', array('OO_Admin_Pages', 'ajax_get
 add_action('wp_ajax_oo_delete_phase_ajax', array('OO_Phase', 'ajax_delete_phase'));
 // AJAX for saving user column preferences (NEW)
 add_action('wp_ajax_oo_save_user_column_preference', array('OO_Admin_Pages', 'ajax_save_user_column_preference'));
+// AJAX for getting jobs for a stream (NEW)
+add_action('wp_ajax_oo_get_stream_jobs', array('OO_Admin_Pages', 'ajax_get_stream_jobs'));
 
 // TODO: Update admin menu registration with new structure and OO_Admin_Menus class 
 

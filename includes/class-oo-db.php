@@ -4827,6 +4827,110 @@ class OO_DB { // Renamed class
         return intval($deleted_rows); // Return number of logs deleted
     }
 
+    /**
+     * Get jobs associated with a specific stream, with filtering, sorting, and pagination.
+     * @param array $params Parameters: stream_id (required), number, offset, orderby, order, search_general.
+     * @return array Array of job objects.
+     */
+    public static function get_jobs_for_stream( $params = array() ) {
+        self::init(); global $wpdb;
+
+        if (empty($params['stream_id'])) {
+            oo_log('get_jobs_for_stream called without a stream_id', __METHOD__);
+            return array();
+        }
+
+        $defaults = array(
+            'orderby' => 'j.job_number', // Default to job_number from jobs table
+            'order' => 'DESC',
+            'number' => 10,
+            'offset' => 0,
+            'search_general' => null 
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql_select = "SELECT DISTINCT j.* "; // Select distinct jobs
+        $sql_from = "FROM " . self::$jobs_table . " j ";
+        $sql_join = "INNER JOIN " . self::$job_streams_link_table . " jsl ON j.job_id = jsl.job_id ";
+        
+        $where_clauses = array("jsl.stream_id = %d");
+        $query_params = array(intval($args['stream_id']));
+
+        if ( !empty($args['search_general']) ) {
+            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search_general'])) . '%';
+            // Search in job_number, client_name, notes from jobs table
+            $where_clauses[] = "(j.job_number LIKE %s OR j.client_name LIKE %s OR j.notes LIKE %s)";
+            $query_params[] = $search_term; 
+            $query_params[] = $search_term;
+            $query_params[] = $search_term;
+        }
+        
+        $sql_where = "";
+        if (!empty($where_clauses)) {
+            $sql_where = " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        $sql = $sql_select . $sql_from . $sql_join . $sql_where;
+        
+        $allowed_orderby = ['j.job_number', 'j.client_name', 'j.overall_status', 'j.due_date', 'j.created_at'];
+        $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'j.job_number';
+        $order = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
+        $sql .= " ORDER BY $orderby $order";
+
+        if ( $args['number'] > 0 ) {
+            $sql .= $wpdb->prepare(" LIMIT %d OFFSET %d", intval($args['number']), intval($args['offset']));
+        }
+        
+        $prepared_sql = $wpdb->prepare($sql, $query_params); // Prepare the whole query at the end
+        oo_log('Executing get_jobs_for_stream query: ' . $prepared_sql, __METHOD__);
+        return $wpdb->get_results( $prepared_sql );
+    }
+
+    /**
+     * Get the count of jobs associated with a specific stream, with filtering.
+     * @param array $params Parameters: stream_id (required), search_general.
+     * @return int Count of jobs.
+     */
+    public static function get_jobs_for_stream_count( $params = array() ) {
+        self::init(); global $wpdb;
+
+        if (empty($params['stream_id'])) {
+            oo_log('get_jobs_for_stream_count called without a stream_id', __METHOD__);
+            return 0;
+        }
+
+        $defaults = array(
+            'search_general' => null 
+        );
+        $args = wp_parse_args( $params, $defaults );
+
+        $sql_select = "SELECT COUNT(DISTINCT j.job_id) ";
+        $sql_from = "FROM " . self::$jobs_table . " j ";
+        $sql_join = "INNER JOIN " . self::$job_streams_link_table . " jsl ON j.job_id = jsl.job_id ";
+
+        $where_clauses = array("jsl.stream_id = %d");
+        $query_params = array(intval($args['stream_id']));
+
+        if ( !empty($args['search_general']) ) {
+            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search_general'])) . '%';
+            $where_clauses[] = "(j.job_number LIKE %s OR j.client_name LIKE %s OR j.notes LIKE %s)";
+            $query_params[] = $search_term; 
+            $query_params[] = $search_term;
+            $query_params[] = $search_term;
+        }
+        
+        $sql_where = "";
+        if (!empty($where_clauses)) {
+            $sql_where = " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        $sql = $sql_select . $sql_from . $sql_join . $sql_where;
+        $prepared_sql = $wpdb->prepare($sql, $query_params);
+
+        oo_log('Executing get_jobs_for_stream_count query: ' . $prepared_sql, __METHOD__);
+        return (int) $wpdb->get_var( $prepared_sql );
+    }
+
 }
 
 // Initialize table names on load with new class name

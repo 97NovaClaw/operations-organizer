@@ -511,4 +511,80 @@ class OO_Admin_Pages { // Renamed class
         update_user_meta($user_id, $meta_key, $columns_config_json); // Store as JSON string
         wp_send_json_success(['message' => __('Default column settings saved.', 'operations-organizer')]);
     }
+
+    public static function ajax_get_stream_jobs() {
+        check_ajax_referer('oo_get_stream_jobs_nonce', 'nonce');
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => __('Permission denied.', 'operations-organizer')], 403);
+            return;
+        }
+
+        $stream_id = isset($_POST['stream_id']) ? intval($_POST['stream_id']) : 0;
+        if ($stream_id <= 0) {
+            wp_send_json_error(['message' => __('Invalid Stream ID.', 'operations-organizer')]);
+            return;
+        }
+
+        // Basic DataTables server-side parameters
+        $draw = isset($_POST['draw']) ? intval($_POST['draw']) : 1;
+        $start = isset($_POST['start']) ? intval($_POST['start']) : 0;
+        $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
+        if ($length === -1) $length = 99999; 
+
+        $search_value = isset($_POST['search']['value']) ? sanitize_text_field($_POST['search']['value']) : '';
+        
+        // Column ordering (simplified for now, can be expanded)
+        $order_column_index = isset($_POST['order'][0]['column']) ? intval($_POST['order'][0]['column']) : 0;
+        $order_dir = isset($_POST['order'][0]['dir']) ? sanitize_text_field($_POST['order'][0]['dir']) : 'desc';
+        
+        $dt_columns = isset($_POST['columns']) ? $_POST['columns'] : array();
+        $orderby_db_col = 'j.job_number'; // Default
+        if(isset($dt_columns[$order_column_index]['data'])) {
+            $order_col_name = sanitize_text_field($dt_columns[$order_column_index]['data']);
+            // Map DataTables column data name to DB column name
+            $column_map = [
+                'job_number' => 'j.job_number',
+                'client_name' => 'j.client_name',
+                'overall_status' => 'j.overall_status',
+                'due_date' => 'j.due_date'
+            ];
+            if (array_key_exists($order_col_name, $column_map)) {
+                $orderby_db_col = $column_map[$order_col_name];
+            }
+        }
+
+        $params = array(
+            'stream_id' => $stream_id,
+            'number' => $length,
+            'offset' => $start,
+            'orderby' => $orderby_db_col,
+            'order' => $order_dir,
+            'search_general' => $search_value // Assuming get_jobs_for_stream handles this
+        );
+
+        $jobs = OO_DB::get_jobs_for_stream($params); // We need this new DB method
+        $total_records = OO_DB::get_jobs_for_stream_count(array('stream_id' => $stream_id)); // Total for this stream
+        $total_filtered_records = OO_DB::get_jobs_for_stream_count($params); // Filtered for this stream
+
+        $data_array = array();
+        if (!empty($jobs)) {
+            foreach ($jobs as $job) {
+                // Format data as needed for the table
+                $data_array[] = array(
+                    'job_id' => $job->job_id,
+                    'job_number' => esc_html($job->job_number),
+                    'client_name' => esc_html($job->client_name),
+                    'overall_status' => esc_html($job->overall_status),
+                    'due_date' => !empty($job->due_date) ? esc_html(date_i18n(get_option('date_format'), strtotime($job->due_date))) : 'N/A',
+                );
+            }
+        }
+
+        wp_send_json_success(array(
+            'draw'            => $draw,
+            'recordsTotal'    => $total_records,
+            'recordsFiltered' => $total_filtered_records,
+            'data'            => $data_array,
+        ));
+    }
 } 
