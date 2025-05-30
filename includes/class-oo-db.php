@@ -416,13 +416,7 @@ class OO_DB { // Renamed class
             calculated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (log_derived_value_id),
             INDEX idx_log_id (log_id),
-            INDEX idx_derived_definition_id (derived_definition_id),
-            KEY fk_log_derived_log_id (log_id),
-            KEY fk_log_derived_definition_id (derived_definition_id)
-            /* -- We might add actual foreign key constraints if DB engine supports it and ON DELETE CASCADE is desired
-            -- FOREIGN KEY (log_id) REFERENCES " . self::$job_logs_table . "(log_id) ON DELETE CASCADE,
-            -- FOREIGN KEY (derived_definition_id) REFERENCES " . self::$derived_kpi_definitions_table . "(derived_definition_id) ON DELETE CASCADE
-            */
+            INDEX idx_derived_definition_id (derived_definition_id)
         ) $charset_collate;";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';

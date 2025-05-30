@@ -22,10 +22,14 @@ if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase' && isset( $_
 
         if ($job_logs_using_phase > 0) {
             $delete_logs_and_phase_url = wp_nonce_url( admin_url( 'admin.php?page=oo_phases&action=delete_phase_and_logs&phase_id=' . $phase_id_to_delete ), 'oo_delete_phase_and_logs_nonce_' . $phase_id_to_delete );
+            
+            $confirm_message_template = esc_js(__('WARNING: This will delete ALL %s job logs associated with this phase AND then delete the phase itself. This action cannot be undone. Are you absolutely sure?', 'operations-organizer'));
+            $confirm_message = sprintf($confirm_message_template, $job_logs_using_phase);
+
             $action_message = '<div class="notice notice-error is-dismissible"><p>' . 
                 sprintf(esc_html__('Cannot delete phase. It is currently associated with %d job log(s).', 'operations-organizer'), $job_logs_using_phase) . 
                 ' ' . esc_html__('Please reassign or delete these logs first.', 'operations-organizer') . 
-                '<br><a href="' . esc_url($delete_logs_and_phase_url) . '" class="button button-link-delete" style="margin-top:10px;" onclick="return confirm(\''.esc_attr__('WARNING: This will delete ALL %s job logs associated with this phase AND then delete the phase itself. This action cannot be undone. Are you absolutely sure?', 'operations-organizer').replace('%s', ''.$job_logs_using_phase.'') .'\');">' . 
+                '<br><a href="' . esc_url($delete_logs_and_phase_url) . '" class="button button-link-delete" style="margin-top:10px;" onclick="return confirm(\'' . $confirm_message . '\');">' . 
                 sprintf(esc_html__('Delete %d Job Logs & This Phase', 'operations-organizer'), $job_logs_using_phase) . 
                 '</a></p></div>';
             $_GET['action'] = null; 
