@@ -110,6 +110,7 @@ if ( is_admin() ) {
                 'nonce_edit_log'      => wp_create_nonce('oo_edit_log_nonce'),      
                 'nonce_delete_log'    => wp_create_nonce('oo_delete_log_nonce'),
                 'nonce_dashboard'     => wp_create_nonce('oo_dashboard_nonce'),
+                'nonce_get_kpi_measures' => wp_create_nonce('oo_get_kpi_measures_nonce'),
                 'nonce_get_phase_kpi_links' => wp_create_nonce('oo_get_phase_kpi_links_nonce'),
                 'nonce_manage_phase_kpi_links' => wp_create_nonce('oo_manage_phase_kpi_links_nonce'),
                 'nonce_get_derived_kpi_details' => wp_create_nonce('oo_get_derived_kpi_details_nonce'),

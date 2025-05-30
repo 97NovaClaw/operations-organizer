@@ -701,8 +701,8 @@ class OO_Phase {
     // AJAX handler to get all active KPI measures for populating select lists etc.
     public static function ajax_get_kpi_measures() {
         oo_log('AJAX call: ajax_get_kpi_measures', __METHOD__);
-        // Using nonce_dashboard for now, consider a more specific one if sensitive.
-        check_ajax_referer('oo_dashboard_nonce', '_ajax_nonce');
+        // Using specific nonce for this action.
+        check_ajax_referer('oo_get_kpi_measures_nonce', '_ajax_nonce');
 
         if ( ! current_user_can( oo_get_capability() ) ) {
             wp_send_json_error( ['message' => 'Permission denied.'], 403 );
