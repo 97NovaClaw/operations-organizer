@@ -802,24 +802,46 @@ jQuery(document).ready(function($) {
     
     // Set current time for end_time field
     $('#set_end_time_now').on('click', function() {
-        var now = new Date();
-        var formattedDateTime = now.getFullYear() + '-' + 
-                               padNumber(now.getMonth() + 1) + '-' + 
-                               padNumber(now.getDate()) + 'T' + 
-                               padNumber(now.getHours()) + ':' + 
-                               padNumber(now.getMinutes());
-        $('#edit_log_end_time').val(formattedDateTime);
+        var $button = $(this);
+        var $inputField = $('#edit_log_end_time');
+        $button.text('Fetching...').prop('disabled', true);
+
+        $.post(oo_data.ajax_url, { 
+            action: 'oo_get_current_site_time',
+            _ajax_nonce: oo_data.nonce_get_current_site_time
+        }, function(response) {
+            if (response.success && response.data && response.data.formatted_time) {
+                $inputField.val(response.data.formatted_time);
+            } else {
+                alert( (response.data && response.data.message) || 'Could not fetch server time.');
+            }
+        }).fail(function(){
+            alert('AJAX error fetching server time.');
+        }).always(function(){
+            $button.text('Now').prop('disabled', false);
+        });
     });
-    
+
     // Set current time for start_time field (NEW)
     $('#set_start_time_now').on('click', function() {
-        var now = new Date();
-        var formattedDateTime = now.getFullYear() + '-' + 
-                               padNumber(now.getMonth() + 1) + '-' + 
-                               padNumber(now.getDate()) + 'T' + 
-                               padNumber(now.getHours()) + ':' + 
-                               padNumber(now.getMinutes());
-        $('#edit_log_start_time_editable').val(formattedDateTime);
+        var $button = $(this);
+        var $inputField = $('#edit_log_start_time_editable');
+        $button.text('Fetching...').prop('disabled', true);
+
+        $.post(oo_data.ajax_url, { 
+            action: 'oo_get_current_site_time',
+            _ajax_nonce: oo_data.nonce_get_current_site_time
+        }, function(response) {
+            if (response.success && response.data && response.data.formatted_time) {
+                $inputField.val(response.data.formatted_time);
+            } else {
+                alert( (response.data && response.data.message) || 'Could not fetch server time.');
+            }
+        }).fail(function(){
+            alert('AJAX error fetching server time.');
+        }).always(function(){
+            $button.text('Now').prop('disabled', false);
+        });
     });
     
     // Function to reset all button states

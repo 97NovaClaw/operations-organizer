@@ -333,4 +333,24 @@ class OO_Admin_Pages { // Renamed class
             'primary_kpi' => $primary_kpi
         ));
     }
+
+    public static function ajax_get_current_site_time() {
+        check_ajax_referer('oo_get_current_site_time_nonce', '_ajax_nonce');
+        if (!current_user_can(oo_get_form_access_capability())) { // Or a more general capability
+            wp_send_json_error(['message' => __('Permission denied.', 'operations-organizer')], 403);
+            return;
+        }
+
+        // Get current time based on WordPress timezone settings
+        // 'mysql' format is YYYY-MM-DD HH:MM:SS. We need YYYY-MM-DDTHH:MM for datetime-local.
+        $site_time_mysql = current_time('mysql'); // This is already in site's configured timezone
+        try {
+            $datetime_obj = new DateTime($site_time_mysql, new DateTimeZone(wp_timezone_string()));
+            $formatted_time = $datetime_obj->format('Y-m-d\TH:i');
+            wp_send_json_success(['formatted_time' => $formatted_time]);
+        } catch (Exception $e) {
+            oo_log('Error formatting site time: ' . $e->getMessage(), __METHOD__);
+            wp_send_json_error(['message' => __('Error fetching server time.', 'operations-organizer')]);
+        }
+    }
 } 
