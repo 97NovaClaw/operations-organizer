@@ -291,9 +291,9 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                 <h3><?php printf(esc_html__('Phase & KPI Settings for %s Stream', 'operations-organizer'), esc_html($current_stream_name)); ?></h3>
                 
                 <h4><?php esc_html_e('Phases in this Stream', 'operations-organizer'); ?></h4>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=oo_phases&action=add_new_ui&stream_id=' . $current_stream_id . '&return_to_stream=' . $current_stream_tab_slug . '&return_sub_tab=phase_kpi_settings')); ?>" class="page-title-action">
+                <button type="button" id="openAddOOPhaseModalBtn-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="page-title-action">
                     <?php esc_html_e('Add New Phase to this Stream', 'operations-organizer'); ?>
-                </a>
+                </button>
                 <?php 
                 $current_stream_phases_for_table = array(); 
                 if (isset($current_stream_id)) { // Ensure current_stream_id is set
@@ -334,7 +334,7 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                         <?php if ( ! empty( $current_stream_phases_for_table ) ) : ?>
                             <?php foreach ( $current_stream_phases_for_table as $phase ) : ?>
                                 <tr class="<?php echo $phase->is_active ? 'active' : 'inactive'; ?>">
-                                    <td><strong><a href="<?php echo esc_url( admin_url( 'admin.php?page=oo_phases&action=edit_kpi_measure&phase_id=' . $phase->phase_id . '&return_to_stream=' . $current_stream_tab_slug ) ); ?>"><?php echo esc_html( $phase->phase_name ); ?></a></strong></td>
+                                    <td><strong><button type="button" class="button-link oo-edit-phase-button-stream" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>"><?php echo esc_html( $phase->phase_name ); ?></button></strong></td>
                                     <td><code><?php echo esc_html( $phase->phase_slug ); ?></code></td>
                                     <td><?php echo esc_html( $phase->phase_description ); ?></td>
                                     <td><?php echo intval( $phase->order_in_stream ); ?></td>
@@ -352,15 +352,17 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                                         <?php 
                                         $status_text = $phase->is_active ? __( 'Active', 'operations-organizer' ) : __( 'Inactive', 'operations-organizer' );
                                         $toggle_nonce = wp_create_nonce('oo_toggle_phase_status_nonce_' . $phase->phase_id);
-                                        $toggle_action_url = admin_url( 'admin.php?page=oo_phases&action=toggle_phase_status&phase_id=' . $phase->phase_id . '&_wpnonce='.$toggle_nonce . '&return_to_stream=' . $current_stream_tab_slug );
-                                        echo '<a href="' . esc_url( $toggle_action_url ) . '">' . esc_html( $status_text ) . '</a>';
+                                        // Changed to button for AJAX handling
+                                        if ($phase->is_active) {
+                                            echo '<button type="button" class="button-link oo-toggle-status-phase-button-stream" data-phase-id="' . esc_attr($phase->phase_id) . '" data-new-status="0" data-nonce="' . esc_attr($toggle_nonce) . '" style="color: #d63638;">' . esc_html__('Deactivate', 'operations-organizer') . '</button>';
+                                        } else {
+                                            echo '<button type="button" class="button-link oo-toggle-status-phase-button-stream" data-phase-id="' . esc_attr($phase->phase_id) . '" data-new-status="1" data-nonce="' . esc_attr($toggle_nonce) . '" style="color: #2271b1;">' . esc_html__('Activate', 'operations-organizer') . '</button>';
+                                        }
                                         ?>
                                     </td>
                                     <td>
-                                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=oo_phases&action=edit_kpi_measure&phase_id=' . $phase->phase_id . '&return_to_stream=' . $current_stream_tab_slug ) ); ?>"><?php esc_html_e( 'Edit', 'operations-organizer' ); ?></a> |
-                                        <a href="<?php echo wp_nonce_url( admin_url( 'admin.php?page=oo_phases&action=delete_phase&phase_id=' . $phase->phase_id . '&return_to_stream=' . $current_stream_tab_slug), 'oo_delete_phase_nonce_' . $phase->phase_id ); ?>" 
-                                           onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this phase? This action cannot be undone and may affect existing job logs if not handled carefully by the system.', 'operations-organizer' ); ?>');" 
-                                           style="color:#b32d2e;"><?php esc_html_e( 'Delete', 'operations-organizer' ); ?></a>
+                                        <button type="button" class="button-link oo-edit-phase-button-stream" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>"><?php esc_html_e( 'Edit', 'operations-organizer' ); ?></button> |
+                                        <button type="button" class="button-link oo-delete-phase-button-stream" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>" style="color:#b32d2e;"><?php esc_html_e( 'Delete', 'operations-organizer' ); ?></button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -369,13 +371,97 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                         <?php endif; ?>
                     </tbody>
                 </table>
-                 <!-- Note: The Manage KPIs modal and Edit Phase Modal are defined on the global oo_phases page -->
-                 <!-- We might need to duplicate/re-trigger them here if actions are to stay on this stream page -->
             </div>
         <?php endif; ?>
     </div>
 
 </div> 
+
+<!-- Add Phase Modal for Stream Page -->
+<div id="addOOPhaseModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
+    <div class="oo-modal-content">
+        <span class="oo-modal-close">&times;</span>
+        <h2><?php esc_html_e( 'Add New Phase to', 'operations-organizer' ); ?> <?php echo esc_html($current_stream_name); ?></h2>
+        <form id="oo-add-phase-form-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+            <?php wp_nonce_field( 'oo_add_phase_nonce', 'oo_add_phase_nonce' ); // Can reuse existing nonce for add_phase action ?>
+            <input type="hidden" name="stream_type_id" value="<?php echo esc_attr($current_stream_id); ?>" />
+            <input type="hidden" id="add_phase_slug-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="phase_slug" value="">
+            <table class="form-table oo-form-table">
+                <tr valign="top">
+                    <th scope="row"><?php esc_html_e( 'Stream Type', 'operations-organizer' ); ?></th>
+                    <td><strong><?php echo esc_html($current_stream_name); ?></strong></td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row"><label for="add_phase_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Phase Name', 'operations-organizer' ); ?></label></th>
+                    <td><input type="text" id="add_phase_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="phase_name" required /></td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row"><label for="add_phase_description-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Description', 'operations-organizer' ); ?></label></th>
+                    <td><textarea id="add_phase_description-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="phase_description"></textarea></td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row"><label for="add_sort_order-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Sort Order', 'operations-organizer' ); ?></label></th>
+                    <td><input type="number" id="add_sort_order-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="sort_order" value="0" /></td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row"><?php esc_html_e( 'Operations KPIs', 'operations-organizer' ); ?></th>
+                    <td>
+                        <label>
+                            <input type="checkbox" id="add_includes_kpi-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="includes_kpi" value="1" checked>
+                            <?php esc_html_e( 'Includes operations KPIs', 'operations-organizer' ); ?>
+                        </label>
+                        <p class="description"><?php esc_html_e('If checked, this phase will appear in the stream page and users can input tracking data.', 'operations-organizer'); ?></p>
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button( __( 'Add Phase', 'operations-organizer' ), 'primary', 'submit_add_phase-stream-' . $current_stream_tab_slug ); ?>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Phase Modal for Stream Page -->
+<div id="editOOPhaseModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
+    <div class="oo-modal-content">
+        <span class="oo-modal-close">&times;</span>
+        <h2><?php esc_html_e( 'Edit Phase for', 'operations-organizer' ); ?> <?php echo esc_html($current_stream_name); ?></h2>
+        <form id="oo-edit-phase-form-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+            <?php wp_nonce_field( 'oo_edit_phase_nonce', 'oo_edit_phase_nonce' ); // Can reuse existing nonce for edit_phase action ?>
+            <input type="hidden" id="edit_phase_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="edit_phase_id" value="" />
+            <input type="hidden" id="edit_modal_phase_slug-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="edit_phase_slug" value="" />
+            <input type="hidden" name="edit_stream_type_id" value="<?php echo esc_attr($current_stream_id); ?>" /> <!-- Stream ID is fixed here -->
+            
+            <table class="form-table oo-form-table">
+                <tr valign="top">
+                    <th scope="row"><?php esc_html_e( 'Stream Type', 'operations-organizer' ); ?></th>
+                    <td><strong><?php echo esc_html($current_stream_name); ?></strong></td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row"><label for="edit_modal_phase_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Phase Name', 'operations-organizer' ); ?></label></th>
+                    <td><input type="text" id="edit_modal_phase_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="edit_phase_name" required /></td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row"><label for="edit_modal_phase_description-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Description', 'operations-organizer' ); ?></label></th>
+                    <td><textarea id="edit_modal_phase_description-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="edit_phase_description"></textarea></td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row"><label for="edit_modal_sort_order-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Sort Order', 'operations-organizer' ); ?></label></th>
+                    <td><input type="number" id="edit_modal_sort_order-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="edit_sort_order" /></td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row"><?php esc_html_e( 'Operations KPIs', 'operations-organizer' ); ?></th>
+                    <td>
+                        <label>
+                            <input type="checkbox" id="edit_modal_includes_kpi-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="edit_includes_kpi" value="1">
+                            <?php esc_html_e( 'Includes operations KPIs', 'operations-organizer' ); ?>
+                        </label>
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button( __( 'Save Changes', 'operations-organizer' ), 'primary', 'submit_edit_phase-stream-' . $current_stream_tab_slug ); ?>
+            <button type="button" id="oo-ajax-delete-phase-from-modal-button-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="button button-link is-destructive" style="margin-left: 10px; vertical-align: middle; display:none;"><?php esc_html_e( 'Delete This Phase', 'operations-organizer' ); ?></button>
+        </form>
+    </div>
+</div>
 
 <!-- Manage Phase KPIs Modal (Copied from phase-management-page.php) -->
 <div id="manageOOPhaseKPIsModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
@@ -427,7 +513,8 @@ jQuery(document).ready(function($) {
     });
 
     // --- Initialize Jobs Table for this Stream --- 
-    var streamJobsTable_<?php echo esc_js($current_stream_tab_slug); ?> = $('#stream-jobs-table-<?php echo esc_js($current_stream_tab_slug); ?>').DataTable({
+    var streamSlugForTable = '<?php echo esc_js($current_stream_tab_slug); ?>';
+    var streamJobsTable = $('#stream-jobs-table-' + streamSlugForTable).DataTable({
         processing: true,
         serverSide: true,
         ajax: {
@@ -471,7 +558,167 @@ jQuery(document).ready(function($) {
         }
     });
 
-    // --- Manage Phase KPIs Modal Logic for Stream Page ---
+    // --- Phase Management for this Stream Page (NEW) ---
+    var streamSlug = '<?php echo esc_js($current_stream_tab_slug); ?>';
+    var addPhaseModal = $('#addOOPhaseModal-stream-' + streamSlug);
+    var editPhaseModal = $('#editOOPhaseModal-stream-' + streamSlug);
+
+    // Open Add Phase Modal for Stream
+    $('#openAddOOPhaseModalBtn-stream-' + streamSlug).on('click', function() {
+        addPhaseModal.find('form')[0].reset();
+        // Stream is pre-set and disabled, value is in hidden field already
+        addPhaseModal.show();
+    });
+
+    // Auto-generate slug for Add Phase Modal on Stream Page
+    $('#add_phase_name-stream-' + streamSlug).on('input', function() {
+        var slug = $(this).val().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        $('#add_phase_slug-stream-' + streamSlug).val(slug);
+    });
+
+    // Handle Add Phase Form Submission for Stream Page
+    $('#oo-add-phase-form-stream-' + streamSlug).on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $submitButton = $form.find('input[type="submit"]');
+        $submitButton.prop('disabled', true);
+        var formData = $form.serialize() + '&action=oo_add_phase'; // Reuses global AJAX action
+
+        $.post(oo_data.ajax_url, formData, function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                addPhaseModal.hide();
+                window.location.reload(); // Reload to see new phase in table
+            } else {
+                showNotice('error', response.data.message || 'An unknown error occurred.');
+            }
+        }).fail(function() {
+            showNotice('error', 'Request failed. Please try again.');
+        }).always(function() {
+            $submitButton.prop('disabled', false);
+        });
+    });
+
+    // Handle Edit Phase Button Click on Stream Page table
+    $('#phase-kpi-settings-content').on('click', '.oo-edit-phase-button-stream', function() { 
+        var phaseId = $(this).data('phase-id');
+        editPhaseModal.data('current-phase-id', phaseId); 
+        var $deleteButtonInModal = $('#oo-ajax-delete-phase-from-modal-button-stream-' + streamSlug);
+        $deleteButtonInModal.hide(); // Hide delete from modal, use table row delete
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_get_phase',
+            phase_id: phaseId,
+            _ajax_nonce_get_phase: oo_data.nonce_edit_phase // Reuse global nonce for getting phase data
+        }, function(response) {
+            if (response.success) {
+                editPhaseModal.find('#edit_phase_id-stream-' + streamSlug).val(response.data.phase_id);
+                // Stream is fixed, so no need to set stream_type_id dropdown
+                editPhaseModal.find('#edit_modal_phase_slug-stream-' + streamSlug).val(response.data.phase_slug);
+                editPhaseModal.find('#edit_modal_phase_name-stream-' + streamSlug).val(response.data.phase_name);
+                editPhaseModal.find('#edit_modal_phase_description-stream-' + streamSlug).val(response.data.phase_description);
+                editPhaseModal.find('#edit_modal_sort_order-stream-' + streamSlug).val(response.data.order_in_stream);
+                editPhaseModal.find('#edit_modal_includes_kpi-stream-' + streamSlug).prop('checked', parseInt(response.data.includes_kpi) === 1);
+                
+                if (phaseId) { $deleteButtonInModal.data('phase-id', phaseId).show(); } else { $deleteButtonInModal.hide(); }
+                editPhaseModal.show();
+            } else {
+                 showNotice('error', response.data.message || 'Could not load phase data.');
+            }
+        }).fail(function() { showNotice('error', 'Request to load phase data failed.'); });
+    });
+
+    // Handle Edit Phase Form Submission for Stream Page
+    $('#oo-edit-phase-form-stream-' + streamSlug).on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $submitButton = $form.find('input[type="submit"]');
+        $submitButton.prop('disabled', true);
+        var formData = $form.serialize() + '&action=oo_update_phase'; // Reuses global AJAX action
+         formData += '&return_to_stream=' + streamSlug; // Add return context
+         formData += '&return_sub_tab=phase_kpi_settings';
+
+        $.post(oo_data.ajax_url, formData, function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                editPhaseModal.hide();
+                if(response.data && response.data.redirect_url) { 
+                    window.location.href = response.data.redirect_url; 
+                } else { 
+                    window.location.reload(); // Fallback if redirect_url not in response
+                }
+            } else {
+                showNotice('error', response.data.message || 'An unknown error occurred.');
+            }
+        }).fail(function() {
+            showNotice('error', 'Request failed. Please try again.');
+        }).always(function() {
+            $submitButton.prop('disabled', false);
+        });
+    });
+
+    // Handle AJAX Delete Phase from table on Stream Page
+    $('#phase-kpi-settings-content').on('click', '.oo-delete-phase-button-stream', function() { 
+        var phaseId = $(this).data('phase-id');
+        if (!phaseId) {
+            alert('Error: Phase ID not found for deletion.');
+            return;
+        }
+
+        if (!confirm('<?php echo esc_js( __("Are you sure you want to permanently delete this phase? This action cannot be undone and may affect existing job logs if not handled carefully by the system.", "operations-organizer") ); ?>')) {
+            return;
+        }
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_delete_phase_ajax',
+            phase_id: phaseId,
+            _ajax_nonce: oo_data.nonce_delete_phase_ajax,
+            return_to_stream: streamSlug,      // For PHP redirect logic if any
+            return_sub_tab: 'phase_kpi_settings' // For PHP redirect logic if any
+        }, function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                window.location.reload(); // Reload to update the phase list
+            } else {
+                showNotice('error', response.data.message || 'Could not delete phase.');
+            }
+        }).fail(function() {
+            showNotice('error', 'Request to delete phase failed.');
+        });
+    });
+
+    // Handle Toggle Status Button Click on Stream Page table (AJAX)
+    $('#phase-kpi-settings-content').on('click', '.oo-toggle-status-phase-button-stream', function() { 
+        var phaseId = $(this).data('phase-id');
+        var newStatus = $(this).data('new-status');
+        var confirmMessage = newStatus == 1 ? 
+            '<?php echo esc_js(__("Are you sure you want to activate this phase?", "operations-organizer")); ?>' : 
+            '<?php echo esc_js(__("Are you sure you want to deactivate this phase?", "operations-organizer")); ?>';
+
+        if (!confirm(confirmMessage)) { return; }
+        
+        $.post(oo_data.ajax_url, {
+            action: 'oo_toggle_phase_status', // Reuses global AJAX action
+            phase_id: phaseId,
+            is_active: newStatus,
+            _ajax_nonce: $(this).data('nonce'),
+            return_to_stream: streamSlug, // For potential PHP redirect if needed
+            return_sub_tab: 'phase_kpi_settings'
+        }, function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                if(response.data && response.data.redirect_url) { 
+                    window.location.href = response.data.redirect_url; 
+                } else { 
+                    window.location.reload(); // Fallback if redirect_url not in response
+                }
+            } else {
+                showNotice('error', response.data.message || 'Could not change phase status.');
+            }
+        }).fail(function() { showNotice('error', 'Request to change phase status failed.'); });
+    });
+
+    // --- Manage Phase KPIs Modal Logic for Stream Page (already moved, ensure selectors are correct) ---
     var streamSlugForKPIModal = '<?php echo esc_js($current_stream_tab_slug); ?>';
     var $manageKPIsModal = $('#manageOOPhaseKPIsModal-stream-' + streamSlugForKPIModal);
     var $manageKPIsPhaseName = $('#manageKPIsPhaseName-stream-' + streamSlugForKPIModal);
@@ -480,7 +727,7 @@ jQuery(document).ready(function($) {
     var $saveKPILinksButton = $('#savePhaseKPILinksBtn-stream-' + streamSlugForKPIModal);
 
     // Open Manage Phase KPIs Modal 
-    $(document).on('click', '.oo-stream-page .oo-manage-phase-kpis-button', function() {
+    $('#phase-kpi-settings-content').on('click', '.oo-manage-phase-kpis-button', function() { 
         var phaseId = $(this).data('phase-id');
         var phaseName = $(this).data('phase-name');
 
@@ -550,10 +797,10 @@ jQuery(document).ready(function($) {
     $saveKPILinksButton.on('click', function() {
         var phaseId = $manageKPIsPhaseIdInput.val();
         var links = [];
-        $availableKPIsContainer.find('input[name^="phase_kpis["]:checked').each(function() {
+        $manageKPIsModal.find('#availableKPIsForPhaseList-stream-' + streamSlugForKPIModal + ' input[name^="phase_kpis["]:checked').each(function() {
             var kpiId = $(this).val();
-            var isMandatory = $availableKPIsContainer.find('input[name="kpi_mandatory[' + kpiId + ']"]').is(':checked') ? 1 : 0;
-            var displayOrder = $availableKPIsContainer.find('input[name="kpi_display_order[' + kpiId + ']"]').val();
+            var isMandatory = $manageKPIsModal.find('input[name="kpi_mandatory[' + kpiId + ']"]').is(':checked') ? 1 : 0;
+            var displayOrder = $manageKPIsModal.find('input[name="kpi_display_order[' + kpiId + ']"]').val();
             links.push({ kpi_measure_id: kpiId, is_mandatory: isMandatory, display_order: displayOrder || 0 });
         });
         $.post(oo_data.ajax_url, {

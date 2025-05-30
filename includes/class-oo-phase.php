@@ -452,7 +452,29 @@ class OO_Phase {
             wp_send_json_error( array( 'message' => 'Error: ' . $result->get_error_message() ) );
         } else {
             oo_log('AJAX Success: Phase updated. ID: ' . $phase_id, __METHOD__);
-            wp_send_json_success( array( 'message' => 'Phase updated successfully.' ) );
+            $return_to_stream_slug = isset($_POST['return_to_stream']) ? sanitize_key($_POST['return_to_stream']) : '';
+            $return_sub_tab = isset($_POST['return_sub_tab']) ? sanitize_key($_POST['return_sub_tab']) : '';
+            $redirect_url = admin_url('admin.php?page=oo_phases'); // Default
+
+            if (!empty($return_to_stream_slug)) {
+                $stream_configs = OO_Admin_Pages::get_stream_page_configs_for_redirect();
+                if (isset($stream_configs[$return_to_stream_slug]['slug'])) { // Check if key exists by tab_slug
+                     $stream_page_slug = $stream_configs[$return_to_stream_slug]['slug'];
+                     $redirect_url = admin_url('admin.php?page=' . $stream_page_slug);
+                     if (!empty($return_sub_tab)) {
+                         $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
+                     }
+                } elseif (array_reduce($stream_configs, function($carry, $item) use ($return_to_stream_slug) { return $carry || $item['slug'] === $return_to_stream_slug; }, false)) {
+                     // Fallback if $return_to_stream_slug was the page slug itself.
+                     $redirect_url = admin_url('admin.php?page=' . $return_to_stream_slug);
+                     if (!empty($return_sub_tab)) {
+                         $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
+                     }
+                }
+            }
+            $redirect_url = add_query_arg(array('message' => 'phase_updated'), $redirect_url); // Add success message regardless
+
+            wp_send_json_success( array( 'message' => 'Phase updated successfully.', 'redirect_url' => $redirect_url ) );
         }
     }
 
@@ -477,7 +499,29 @@ class OO_Phase {
         } else {
             $message = $new_status ? 'Phase activated.' : 'Phase deactivated.';
             oo_log('AJAX Success: ' . $message . ' ID: ' . $phase_id, __METHOD__);
-            wp_send_json_success( array( 'message' => $message, 'new_status' => $new_status ) );
+            
+            $return_to_stream_slug = isset($_POST['return_to_stream']) ? sanitize_key($_POST['return_to_stream']) : '';
+            $return_sub_tab = isset($_POST['return_sub_tab']) ? sanitize_key($_POST['return_sub_tab']) : '';
+            $redirect_url = admin_url('admin.php?page=oo_phases'); // Default
+
+            if (!empty($return_to_stream_slug)) {
+                $stream_configs = OO_Admin_Pages::get_stream_page_configs_for_redirect();
+                 if (isset($stream_configs[$return_to_stream_slug]['slug'])) { // Check if key exists by tab_slug
+                     $stream_page_slug = $stream_configs[$return_to_stream_slug]['slug'];
+                     $redirect_url = admin_url('admin.php?page=' . $stream_page_slug);
+                     if (!empty($return_sub_tab)) {
+                         $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
+                     }
+                 } elseif (array_reduce($stream_configs, function($carry, $item) use ($return_to_stream_slug) { return $carry || $item['slug'] === $return_to_stream_slug; }, false)) {
+                     $redirect_url = admin_url('admin.php?page=' . $return_to_stream_slug);
+                     if (!empty($return_sub_tab)) {
+                         $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
+                     }
+                 }
+            }
+            $redirect_url = add_query_arg(array('message' => 'phase_status_updated'), $redirect_url); // Add success message regardless
+
+            wp_send_json_success( array( 'message' => $message, 'new_status' => $new_status, 'redirect_url' => $redirect_url ) );
         }
     }
 
