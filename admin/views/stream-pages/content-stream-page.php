@@ -465,7 +465,7 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                             </select>
                             <button type="button" id="btn-add-kpi-to-phase-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="button"><?php esc_html_e( 'Add Selected KPI', 'operations-organizer' ); ?></button>
                         </div>
-                        <p class="description"><?php esc_html_e( 'Select a predefined KPI measure and add it to this phase. You can then set if it\\'s mandatory and its display order.', 'operations-organizer' ); ?></p>
+                        <p class="description"><?php esc_html_e( 'Select a predefined KPI measure and add it to this phase. You can then set if it\'s mandatory and its display order.', 'operations-organizer' ); ?></p>
                     </td>
                 </tr>
                 <!-- End Section for Managing Linked KPIs -->
