@@ -794,4 +794,41 @@ class OO_Phase {
         oo_log('Fetched ' . count($active_form_kpis) . ' active KPI(s) for phase ID ' . $phase_id . ' for form.', $active_form_kpis);
         wp_send_json_success( $active_form_kpis );
     }
+
+    public static function ajax_delete_phase() {
+        check_ajax_referer( 'oo_delete_phase_ajax_nonce', '_ajax_nonce' );
+
+        if ( ! current_user_can( oo_get_capability() ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'operations-organizer' ) ), 403 );
+            return;
+        }
+
+        $phase_id = isset( $_POST['phase_id'] ) ? intval( $_POST['phase_id'] ) : 0;
+
+        if ( $phase_id <= 0 ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid Phase ID.', 'operations-organizer' ) ) );
+            return;
+        }
+
+        // Check if the phase is used in any job logs
+        $job_logs_using_phase = OO_DB::get_job_logs_count(array('phase_id' => $phase_id, 'number' => 1));
+        if ($job_logs_using_phase > 0) {
+            wp_send_json_error( array( 'message' => sprintf(esc_html__('Cannot delete phase. It is currently associated with %d job log(s). Please reassign or delete these logs first.', 'operations-organizer'), $job_logs_using_phase) ) );
+            return;
+        }
+
+        // Clean up linked KPI measures for this phase
+        OO_DB::delete_phase_kpi_links_for_phase($phase_id);
+        
+        // Placeholder for deleting derived KPI definitions if they become phase-specific in the future
+        // OO_DB::delete_derived_kpi_definitions_for_phase($phase_id);
+
+        $result = OO_DB::delete_phase( $phase_id );
+
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+        } else {
+            wp_send_json_success( array( 'message' => __( 'Phase deleted successfully.', 'operations-organizer' ) ) );
+        }
+    }
 } 

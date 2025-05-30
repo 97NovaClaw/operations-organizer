@@ -114,6 +114,7 @@ if ( is_admin() ) {
                 'nonce_manage_phase_kpi_links' => wp_create_nonce('oo_manage_phase_kpi_links_nonce'),
                 'nonce_get_derived_kpi_details' => wp_create_nonce('oo_get_derived_kpi_details_nonce'),
                 'nonce_get_current_site_time' => wp_create_nonce('oo_get_current_site_time_nonce'),
+                'nonce_delete_phase_ajax' => wp_create_nonce('oo_delete_phase_ajax_nonce'),
                 'text_please_select_employee' => __('Please select an employee.', 'operations-organizer'),
                 'text_please_enter_emp_no' => __('Please enter an employee number.', 'operations-organizer'),
                 'text_add_derived_kpi' => __( 'Add Derived Calculation', 'operations-organizer' ),
@@ -177,6 +178,8 @@ add_action('wp_ajax_oo_get_kpis_for_phase_form', array('OO_Phase', 'ajax_get_kpi
 add_action('wp_ajax_oo_get_derived_kpi_definition_details', array('OO_Admin_Pages', 'ajax_get_derived_kpi_definition_details'));
 // AJAX for getting current site time (NEW)
 add_action('wp_ajax_oo_get_current_site_time', array('OO_Admin_Pages', 'ajax_get_current_site_time'));
+// AJAX for deleting a phase (NEW)
+add_action('wp_ajax_oo_delete_phase_ajax', array('OO_Phase', 'ajax_delete_phase'));
 
 // TODO: Update admin menu registration with new structure and OO_Admin_Menus class 
 

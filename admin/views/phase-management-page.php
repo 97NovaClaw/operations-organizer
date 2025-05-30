@@ -5,12 +5,90 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
+// Ensure OO_DB class is available
+if ( ! class_exists( 'OO_DB' ) ) {
+    echo '<div class="error"><p>Operations Organizer: OO_DB class not found. Please ensure the plugin is installed correctly.</p></div>';
+    return;
+}
+
+$action_message = '';
+
+// Handle main KPI Measure delete action (This was a copy-paste error, should be Phase delete)
+// Handle Phase delete action
+if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase' && isset( $_GET['phase_id'] ) ) {
+    $phase_id_to_delete = intval( $_GET['phase_id'] );
+    if ( check_admin_referer( 'oo_delete_phase_nonce_' . $phase_id_to_delete ) ) {
+        $job_logs_using_phase = OO_DB::get_job_logs_count(array('phase_id' => $phase_id_to_delete, 'number' => 1)); // Check if at least one exists
+
+        if ($job_logs_using_phase > 0) {
+            $action_message = '<div class="notice notice-error is-dismissible"><p>' . sprintf(esc_html__('Cannot delete phase. It is currently associated with %d job log(s). Please reassign or delete these logs first.', 'operations-organizer'), $job_logs_using_phase) . '</p></div>';
+            $_GET['action'] = null; // Reset action to show list view
+            unset($_GET['phase_id']);
+        } else {
+            OO_DB::delete_phase_kpi_links_for_phase($phase_id_to_delete); // Clean up KPI links first
+            $result = OO_DB::delete_phase( $phase_id_to_delete );
+            $redirect_url = admin_url( 'admin.php?page=oo_phases' );
+            if ( is_wp_error( $result ) ) {
+                $redirect_url = add_query_arg( array('message' => 'phase_delete_error', 'error_code' => urlencode($result->get_error_message())), $redirect_url );
+            } else {
+                $redirect_url = add_query_arg( array('message' => 'phase_deleted'), $redirect_url );
+            }
+            wp_redirect($redirect_url);
+            exit;
+        }
+    } else {
+        $action_message = '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Security check failed. Could not delete phase.', 'operations-organizer' ) . '</p></div>';
+    }
+}
+
+// Handle toggle status action for main Phase
+if ( isset( $_GET['action'] ) && $_GET['action'] === 'toggle_phase_status' && isset( $_GET['phase_id'] ) && isset($_GET['_wpnonce']) ) {
+    $phase_id_to_toggle = intval( $_GET['phase_id'] );
+    if ( wp_verify_nonce( $_GET['_wpnonce'], 'oo_toggle_phase_status_nonce_' . $phase_id_to_toggle ) ) {
+        $phase = OO_DB::get_phase( $phase_id_to_toggle );
+        if ( $phase ) {
+            $new_status = $phase->is_active ? 0 : 1;
+            OO_DB::toggle_phase_status( $phase_id_to_toggle, $new_status );
+            $redirect_url = admin_url( 'admin.php?page=oo_phases' );
+            $redirect_url = add_query_arg( array('message' => 'phase_status_updated'), $redirect_url );
+            wp_redirect($redirect_url);
+            exit;
+        }
+    } else {
+         $action_message = '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Security check failed. Could not toggle phase status.', 'operations-organizer' ) . '</p></div>';
+    }
+}
+
+// Display messages based on GET parameters
+if (isset($_GET['message'])) {
+    switch ($_GET['message']) {
+        // ... existing cases ...
+        case 'phase_deleted':
+            $action_message = '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Phase deleted successfully.', 'operations-organizer' ) . '</p></div>';
+            break;
+        case 'phase_delete_error':
+            $error_message = isset($_GET['error_code']) ? esc_html(urldecode($_GET['error_code'])) : esc_html__( 'Unknown error.', 'operations-organizer' );
+            $action_message = '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Error deleting phase:', 'operations-organizer' ) . ' ' . $error_message . '</p></div>';
+            break;
+        case 'phase_status_updated':
+            $action_message = '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Phase status updated successfully.', 'operations-organizer' ) . '</p></div>';
+            break;
+    }
+}
+
 global $phases, $total_phases, $current_page, $per_page, $search_term, $active_filter;
+// Fetch data for the table view if not already populated by OO_Admin_Pages
+// This ensures data is available if we land here after a redirect or error on this page itself.
+if (empty($phases)) { 
+    OO_Admin_Pages::prepare_phase_list_data();
+}
 
 ?>
 <div class="wrap oo-phase-management-page">
     <h1><?php esc_html_e( 'Job Phase Management', 'operations-organizer' ); ?></h1>
     
+    <?php echo $action_message; // Display any action messages ?>
+
     <div class="oo-notice oo-info">
         <p><?php esc_html_e('Phases are specific to each stream type. Each phase belongs to one stream and will appear in that stream\'s tab on the dashboard.', 'operations-organizer'); ?></p>
         <p><?php esc_html_e('For the best organization, make sure to assign each phase to the appropriate stream type using the selector below.', 'operations-organizer'); ?></p>
@@ -128,10 +206,11 @@ global $phases, $total_phases, $current_page, $per_page, $search_term, $active_f
                             <td class="actions column-actions" data-colname="<?php esc_attr_e('Actions', 'operations-organizer'); ?>">
                                 <button class="button-secondary oo-edit-phase-button" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>"><?php esc_html_e('Edit', 'operations-organizer'); ?></button>
                                 <?php if ( $phase->is_active ) : ?>
-                                    <button class="button-secondary oo-toggle-status-phase-button oo-deactivate" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>" data-new-status="0"><?php esc_html_e('Deactivate', 'operations-organizer'); ?></button>
+                                    <button class="button-secondary oo-toggle-status-phase-button oo-deactivate" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>" data-new-status="0" data-nonce="<?php echo wp_create_nonce('oo_toggle_phase_status_nonce_' . $phase->phase_id); ?>"><?php esc_html_e('Deactivate', 'operations-organizer'); ?></button>
                                 <?php else : ?>
-                                    <button class="button-secondary oo-toggle-status-phase-button oo-activate" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>" data-new-status="1"><?php esc_html_e('Activate', 'operations-organizer'); ?></button>
+                                    <button class="button-secondary oo-toggle-status-phase-button oo-activate" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>" data-new-status="1" data-nonce="<?php echo wp_create_nonce('oo_toggle_phase_status_nonce_' . $phase->phase_id); ?>"><?php esc_html_e('Activate', 'operations-organizer'); ?></button>
                                 <?php endif; ?>
+                                | <a href="<?php echo wp_nonce_url( admin_url( 'admin.php?page=oo_phases&action=delete_phase&phase_id=' . $phase->phase_id ), 'oo_delete_phase_nonce_' . $phase->phase_id ); ?>" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this phase? This action cannot be undone and may affect existing job logs if not handled carefully by the system.', 'operations-organizer' ); ?>');" style="color:#b32d2e;"><?php esc_html_e( 'Delete', 'operations-organizer' ); ?></a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -304,6 +383,7 @@ global $phases, $total_phases, $current_page, $per_page, $search_term, $active_f
                     
                 </table>
                 <?php submit_button( __( 'Save Changes', 'operations-organizer' ), 'primary', 'submit_edit_phase' ); ?>
+                <button type="button" id="oo-ajax-delete-phase-from-modal-button" class="button button-link is-destructive" style="margin-left: 10px; vertical-align: middle; display:none;"><?php esc_html_e( 'Delete This Phase', 'operations-organizer' ); ?></button>
             </form>
         </div>
     </div>
@@ -357,6 +437,14 @@ jQuery(document).ready(function($) {
                 // Load and display linked KPI measures
                 loadLinkedKpiMeasures(phaseId);
                 
+                // Show/Hide Delete button in modal
+                var $deleteButton = $('#oo-ajax-delete-phase-from-modal-button');
+                if (phaseId) {
+                    $deleteButton.data('phase-id', phaseId).show();
+                } else {
+                    $deleteButton.hide();
+                }
+
                 $('#editOOPhaseModal').show();
             } else {
                  showNotice('error', response.data.message || 'Could not load phase data.');
@@ -521,6 +609,35 @@ jQuery(document).ready(function($) {
         });
     });
     
+    // AJAX Delete Phase from Modal
+    $('#oo-ajax-delete-phase-from-modal-button').on('click', function() {
+        var phaseId = $(this).data('phase-id');
+        if (!phaseId) {
+            alert('Error: Phase ID not found for deletion.');
+            return;
+        }
+
+        if (!confirm('<?php echo esc_js( __("Are you sure you want to permanently delete this phase? This action cannot be undone and may affect existing job logs if not handled carefully by the system.", "operations-organizer") ); ?>')) {
+            return;
+        }
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_delete_phase_ajax',
+            phase_id: phaseId,
+            _ajax_nonce: oo_data.nonce_delete_phase_ajax 
+        }, function(response) {
+            if (response.success) {
+                showNotice('success', response.data.message);
+                $('#editOOPhaseModal').hide();
+                loadPhasesTable(); // Reload the list table
+            } else {
+                showNotice('error', response.data.message || 'Could not delete phase.');
+            }
+        }).fail(function() {
+            showNotice('error', 'Request to delete phase failed.');
+        });
+    });
+
     // Common function to display notices
     if (typeof showNotice !== 'function') {
         window.showNotice = function(type, message) {
