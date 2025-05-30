@@ -18,14 +18,20 @@ $action_message = '';
 if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase' && isset( $_GET['phase_id'] ) ) {
     $phase_id_to_delete = intval( $_GET['phase_id'] );
     if ( check_admin_referer( 'oo_delete_phase_nonce_' . $phase_id_to_delete ) ) {
-        $job_logs_using_phase = OO_DB::get_job_logs_count(array('phase_id' => $phase_id_to_delete, 'number' => 1)); // Check if at least one exists
+        $job_logs_using_phase = OO_DB::get_job_logs_count(array('phase_id' => $phase_id_to_delete, 'number' => 1));
 
         if ($job_logs_using_phase > 0) {
-            $action_message = '<div class="notice notice-error is-dismissible"><p>' . sprintf(esc_html__('Cannot delete phase. It is currently associated with %d job log(s). Please reassign or delete these logs first.', 'operations-organizer'), $job_logs_using_phase) . '</p></div>';
-            $_GET['action'] = null; // Reset action to show list view
+            $delete_logs_and_phase_url = wp_nonce_url( admin_url( 'admin.php?page=oo_phases&action=delete_phase_and_logs&phase_id=' . $phase_id_to_delete ), 'oo_delete_phase_and_logs_nonce_' . $phase_id_to_delete );
+            $action_message = '<div class="notice notice-error is-dismissible"><p>' . 
+                sprintf(esc_html__('Cannot delete phase. It is currently associated with %d job log(s).', 'operations-organizer'), $job_logs_using_phase) . 
+                ' ' . esc_html__('Please reassign or delete these logs first.', 'operations-organizer') . 
+                '<br><a href="' . esc_url($delete_logs_and_phase_url) . '" class="button button-link-delete" style="margin-top:10px;" onclick="return confirm(\''.esc_attr__('WARNING: This will delete ALL %s job logs associated with this phase AND then delete the phase itself. This action cannot be undone. Are you absolutely sure?', 'operations-organizer').replace('%s', ''.$job_logs_using_phase.'') .'\');">' . 
+                sprintf(esc_html__('Delete %d Job Logs & This Phase', 'operations-organizer'), $job_logs_using_phase) . 
+                '</a></p></div>';
+            $_GET['action'] = null; 
             unset($_GET['phase_id']);
         } else {
-            OO_DB::delete_phase_kpi_links_for_phase($phase_id_to_delete); // Clean up KPI links first
+            OO_DB::delete_phase_kpi_links_for_phase($phase_id_to_delete); 
             $result = OO_DB::delete_phase( $phase_id_to_delete );
             $redirect_url = admin_url( 'admin.php?page=oo_phases' );
             if ( is_wp_error( $result ) ) {
@@ -38,6 +44,29 @@ if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase' && isset( $_
         }
     } else {
         $action_message = '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Security check failed. Could not delete phase.', 'operations-organizer' ) . '</p></div>';
+    }
+} elseif ( isset( $_GET['action'] ) && $_GET['action'] === 'delete_phase_and_logs' && isset( $_GET['phase_id'] ) ) {
+    $phase_id_to_delete_with_logs = intval( $_GET['phase_id'] );
+    if ( check_admin_referer( 'oo_delete_phase_and_logs_nonce_' . $phase_id_to_delete_with_logs ) ) {
+        $logs_deleted_count = OO_DB::delete_job_logs_for_phase($phase_id_to_delete_with_logs);
+        
+        if (is_wp_error($logs_deleted_count)) {
+            $action_message = '<div class="notice notice-error is-dismissible"><p>' . sprintf(esc_html__('Error deleting job logs for phase: %s', 'operations-organizer'), $logs_deleted_count->get_error_message()) . '</p></div>';
+        } else {
+            OO_DB::delete_phase_kpi_links_for_phase($phase_id_to_delete_with_logs);
+            $phase_delete_result = OO_DB::delete_phase( $phase_id_to_delete_with_logs );
+            
+            $redirect_url = admin_url( 'admin.php?page=oo_phases' );
+            if ( is_wp_error( $phase_delete_result ) ) {
+                $redirect_url = add_query_arg( array('message' => 'phase_delete_error', 'error_code' => urlencode($phase_delete_result->get_error_message())), $redirect_url );
+            } else {
+                $redirect_url = add_query_arg( array('message' => 'phase_and_logs_deleted', 'logs_deleted' => $logs_deleted_count), $redirect_url );
+            }
+            wp_redirect($redirect_url);
+            exit;
+        }
+    } else {
+        $action_message = '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Security check failed. Could not delete phase and logs.', 'operations-organizer' ) . '</p></div>';
     }
 }
 
@@ -69,6 +98,10 @@ if (isset($_GET['message'])) {
         case 'phase_delete_error':
             $error_message = isset($_GET['error_code']) ? esc_html(urldecode($_GET['error_code'])) : esc_html__( 'Unknown error.', 'operations-organizer' );
             $action_message = '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Error deleting phase:', 'operations-organizer' ) . ' ' . $error_message . '</p></div>';
+            break;
+        case 'phase_and_logs_deleted':
+            $logs_count = isset($_GET['logs_deleted']) ? intval($_GET['logs_deleted']) : 0;
+            $action_message = '<div class="notice notice-success is-dismissible"><p>' . sprintf(esc_html__('Successfully deleted phase and %d associated job log(s).', 'operations-organizer'), $logs_count) . '</p></div>';
             break;
         case 'phase_status_updated':
             $action_message = '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Phase status updated successfully.', 'operations-organizer' ) . '</p></div>';
