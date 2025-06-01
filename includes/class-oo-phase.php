@@ -458,18 +458,33 @@ class OO_Phase {
 
             if (!empty($return_to_stream_slug)) {
                 $stream_configs = OO_Admin_Pages::get_stream_page_configs_for_redirect();
-                if (isset($stream_configs[$return_to_stream_slug]['slug'])) { // Check if key exists by tab_slug
-                     $stream_page_slug = $stream_configs[$return_to_stream_slug]['slug'];
-                     $redirect_url = admin_url('admin.php?page=' . $stream_page_slug);
+                $found_stream_page_slug = '';
+                foreach ($stream_configs as $s_id => $config) {
+                    if (isset($config['tab_slug']) && $config['tab_slug'] === $return_to_stream_slug) {
+                        $found_stream_page_slug = $config['slug'];
+                        break;
+                    }
+                }
+                
+                if (!empty($found_stream_page_slug)) {
+                     $redirect_url = admin_url('admin.php?page=' . $found_stream_page_slug);
                      if (!empty($return_sub_tab)) {
                          $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
                      }
-                } elseif (array_reduce($stream_configs, function($carry, $item) use ($return_to_stream_slug) { return $carry || $item['slug'] === $return_to_stream_slug; }, false)) {
-                     // Fallback if $return_to_stream_slug was the page slug itself.
-                     $redirect_url = admin_url('admin.php?page=' . $return_to_stream_slug);
-                     if (!empty($return_sub_tab)) {
-                         $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
-                     }
+                } else {
+                    // Fallback if tab_slug didn't match, try if $return_to_stream_slug was the page slug itself (less likely for this specific call)
+                    foreach ($stream_configs as $s_id => $config) {
+                        if (isset($config['slug']) && $config['slug'] === $return_to_stream_slug) {
+                            $found_stream_page_slug = $config['slug'];
+                            break;
+                        }
+                    }
+                    if (!empty($found_stream_page_slug)) {
+                        $redirect_url = admin_url('admin.php?page=' . $found_stream_page_slug);
+                        if (!empty($return_sub_tab)) {
+                            $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
+                        }
+                    }
                 }
             }
             $redirect_url = add_query_arg(array('message' => 'phase_updated'), $redirect_url); // Add success message regardless

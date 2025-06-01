@@ -340,9 +340,7 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                                     <td><?php echo $phase->includes_kpi ? 'Yes' : 'No'; ?></td>
                                     <td>
                                         <?php 
-                                        $status_text = $phase->is_active ? __( 'Active', 'operations-organizer' ) : __( 'Inactive', 'operations-organizer' );
-                                        // This cell will now be for actions, status text is shown via button text below or a separate status column if added later
-                                        // For now, status is implied by Activate/Deactivate button text
+                                        echo $phase->is_active ? __( 'Active', 'operations-organizer' ) : __( 'Inactive', 'operations-organizer' );
                                         ?>
                                     </td>
                                     <td class="actions column-actions">
