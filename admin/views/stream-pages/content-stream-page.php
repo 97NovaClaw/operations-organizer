@@ -811,8 +811,8 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
             <div class="form-field form-required">
                 <label><?php esc_html_e( 'Primary KPI Measure', 'operations-organizer' ); ?></label>
                 <span id="edit_derived_primary_kpi_name_display-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"></span> <!-- Display only, not editable -->
-                <input type="hidden" id="edit_derived_primary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>\" name="primary_kpi_measure_id" value="">
-                <input type="hidden" id="edit_derived_primary_kpi_unit_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>\" value="">
+                <input type="hidden" id="edit_derived_primary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" name="primary_kpi_measure_id" value="">
+                <input type="hidden" id="edit_derived_primary_kpi_unit_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" value="">
             </div>
 
             <div class="form-field form-required">
