@@ -1973,13 +1973,24 @@ jQuery(document).ready(function($) {
         $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Saving...", "operations-organizer")); ?>');
         
         var targetHiddenInputId = '#edit_derived_primary_kpi_id-stream-' + streamSlug;
-        console.log('[Derived KPI Edit] Attempting to find input with ID within $form:', targetHiddenInputId); // DEBUG
-        var $foundInput = $form.find(targetHiddenInputId);
-        console.log('[Derived KPI Edit] Found input with ID ' + targetHiddenInputId + '? Length: ' + $foundInput.length); // DEBUG length
-        var primaryKpiIdVal = $foundInput.val(); 
-        console.log('[Derived KPI Edit] Value of hidden input ' + targetHiddenInputId + ' before serialize:', primaryKpiIdVal);
+        var primaryKpiIdVal = $(targetHiddenInputId).val(); // Use global jQuery selector for the ID
+        console.log('[Derived KPI Edit] Value of hidden input ' + targetHiddenInputId + ' (globally selected) before serialize:', primaryKpiIdVal);
 
         var formData = $form.serializeArray();
+        
+        // Ensure primary_kpi_measure_id is correctly in formData
+        // Remove any existing (potentially empty) primary_kpi_measure_id from serializeArray
+        formData = formData.filter(function(item) {
+            return item.name !== 'primary_kpi_measure_id';
+        });
+        // Add the one we explicitly fetched (if it has a value)
+        if (typeof primaryKpiIdVal !== 'undefined' && primaryKpiIdVal !== null && primaryKpiIdVal !== '') {
+            formData.push({ name: 'primary_kpi_measure_id', value: primaryKpiIdVal });
+        } else {
+            // If it's still undefined or empty, we log it, and it will likely fail server-side validation as expected
+            console.warn('[Derived KPI Edit] primary_kpi_measure_id is still empty or undefined before adding to formData. Value:', primaryKpiIdVal);
+        }
+
         formData.push({ name: 'action', value: 'oo_update_derived_kpi_definition' });
         formData.push({ name: '_ajax_nonce', value: oo_data.nonce_edit_derived_kpi }); 
         console.log('[Derived KPI Edit] FormData to be sent:', $.param(formData)); // DEBUG
