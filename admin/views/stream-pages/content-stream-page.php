@@ -630,7 +630,7 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                 <p><?php esc_html_e( 'The human-readable name for this KPI (e.g., "Boxes Packed", "Items Scanned").', 'operations-organizer' ); ?></p>
             </div>
 
-            <div class="form-field form-required">
+            <div class="form-field form-required" style="display:none;"> <!-- Hiding the measure key field -->
                 <label for="add_kpi_measure_key-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Measure Key', 'operations-organizer' ); ?></label>
                 <input type="text" name="measure_key" id="add_kpi_measure_key-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
                 <p><?php esc_html_e( 'A unique key for this KPI, used internally (e.g., "boxes_packed", "items_scanned"). Lowercase, underscores, no spaces. Cannot be changed after creation.', 'operations-organizer' ); ?></p>
@@ -1955,15 +1955,18 @@ jQuery(document).ready(function($) {
     // Handle Edit Derived KPI Form Submission
     $('#oo-edit-derived-kpi-form-stream-' + streamSlug).on('submit', function(e) {
         e.preventDefault();
+        console.log('[Derived KPI Edit] Form submitted.'); // DEBUG
         var $form = $(this);
         var $submitButton = $form.find('#submit_edit_derived_kpi-stream-' + streamSlug);
         $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Saving...", "operations-organizer")); ?>');
         
         var formData = $form.serializeArray();
         formData.push({ name: 'action', value: 'oo_update_derived_kpi_definition' });
-        formData.push({ name: '_ajax_nonce', value: oo_data.nonce_edit_derived_kpi }); // New Nonce
+        formData.push({ name: '_ajax_nonce', value: oo_data.nonce_edit_derived_kpi }); 
+        console.log('[Derived KPI Edit] FormData to be sent:', $.param(formData)); // DEBUG
 
         $.post(oo_data.ajax_url, $.param(formData), function(response) {
+            console.log('[Derived KPI Edit] AJAX success response:', response); // DEBUG
             if (response.success) {
                 showNotice('success', response.data.message);
                 editDerivedKpiModal_Stream.hide();
@@ -1971,9 +1974,11 @@ jQuery(document).ready(function($) {
             } else {
                 showNotice('error', response.data.message || '<?php echo esc_js(__("An unknown error occurred.", "operations-organizer")); ?>');
             }
-        }).fail(function() {
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('[Derived KPI Edit] AJAX fail. Status: ' + textStatus + ', Error: ' + errorThrown, jqXHR); // DEBUG
             showNotice('error', '<?php echo esc_js(__("Request failed. Please try again.", "operations-organizer")); ?>');
         }).always(function() {
+            console.log('[Derived KPI Edit] AJAX always finished.'); // DEBUG
             $submitButton.prop('disabled', false).val('<?php echo esc_js(__("Save Derived KPI Changes", "operations-organizer")); ?>');
         });
     });
