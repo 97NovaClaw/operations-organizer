@@ -894,6 +894,7 @@ class OO_Phase {
         }
 
         $phase_id = isset( $_POST['phase_id'] ) ? intval( $_POST['phase_id'] ) : 0;
+        $force_delete_logs = isset( $_POST['force_delete_logs'] ) && $_POST['force_delete_logs'] === 'true';
 
         if ( $phase_id <= 0 ) {
             wp_send_json_error( array( 'message' => __( 'Invalid Phase ID.', 'operations-organizer' ) ) );
@@ -901,10 +902,31 @@ class OO_Phase {
         }
 
         // Check if the phase is used in any job logs
-        $job_logs_using_phase = OO_DB::get_job_logs_count(array('phase_id' => $phase_id, 'number' => 1));
-        if ($job_logs_using_phase > 0) {
-            wp_send_json_error( array( 'message' => sprintf(esc_html__('Cannot delete phase. It is currently associated with %d job log(s). Please reassign or delete these logs first.', 'operations-organizer'), $job_logs_using_phase) ) );
+        $job_logs_count = OO_DB::get_job_logs_count(array('phase_id' => $phase_id)); 
+
+        if ( $job_logs_count > 0 && !$force_delete_logs ) {
+            wp_send_json_success( array( 
+                'message' => sprintf(
+                    esc_html__('This phase is associated with %d job log(s). Are you sure you want to delete this phase AND all its associated job logs? This action cannot be undone.', 'operations-organizer'), 
+                    $job_logs_count
+                ),
+                'confirmation_needed' => true, // Flag for JS to show second confirm
+                'usage_count' => $job_logs_count
+            ) );
             return;
+        }
+
+        // If force_delete_logs is true (and logs exist), or if no logs exist in the first place
+        if ($job_logs_count > 0 && $force_delete_logs) {
+            oo_log('Force deleting job logs for phase ID: ' . $phase_id, __METHOD__);
+            $delete_logs_result = OO_DB::delete_job_logs_for_phase($phase_id);
+            if (is_wp_error($delete_logs_result)) {
+                wp_send_json_error(array(
+                    'message' => sprintf(esc_html__('Could not delete associated job logs for phase %d. Error: %s', 'operations-organizer'), $phase_id, $delete_logs_result->get_error_message())
+                ));
+                return;
+            }
+            oo_log('Successfully deleted ' . $delete_logs_result . ' job logs for phase ID: ' . $phase_id, __METHOD__);
         }
 
         // Clean up linked KPI measures for this phase
@@ -918,7 +940,11 @@ class OO_Phase {
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         } else {
-            wp_send_json_success( array( 'message' => __( 'Phase deleted successfully.', 'operations-organizer' ) ) );
+            if ($result === true || $result === 0) { // $result can be 0 if already deleted but links were cleaned
+                 wp_send_json_success( array( 'message' => __( 'Phase and associated data deleted successfully.', 'operations-organizer' ) ) );
+            } else {
+                 wp_send_json_error( array( 'message' => __( 'Could not delete phase. An unexpected error occurred.', 'operations-organizer' ) ) );
+            }
         }
     }
 } 

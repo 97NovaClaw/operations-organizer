@@ -1047,26 +1047,47 @@ jQuery(document).ready(function($) {
             return;
         }
 
-        if (!confirm('<?php echo esc_js( __("Are you sure you want to permanently delete this phase? This action cannot be undone and may affect existing job logs if not handled carefully by the system.", "operations-organizer") ); ?>')) {
+        // Initial confirmation
+        if (!confirm('<?php echo esc_js( __("Are you sure you want to delete this phase? Associated job logs will be checked.", "operations-organizer") ); ?>')) {
             return;
         }
 
-        $.post(oo_data.ajax_url, {
+        var ajaxData = {
             action: 'oo_delete_phase_ajax',
             phase_id: phaseId,
             _ajax_nonce: oo_data.nonce_delete_phase_ajax,
-            return_to_stream: streamSlug,      // For PHP redirect logic if any
-            return_sub_tab: 'phase_kpi_settings' // For PHP redirect logic if any
-        }, function(response) {
-            if (response.success) {
-                showNotice('success', response.data.message);
-                window.location.reload(); // Reload to update the phase list
-            } else {
-                showNotice('error', response.data.message || 'Could not delete phase.');
-            }
-        }).fail(function() {
-            showNotice('error', 'Request to delete phase failed.');
-        });
+            return_to_stream: streamSlug,      
+            return_sub_tab: 'phase_kpi_settings' 
+        };
+
+        function performDeleteRequest(data) {
+            $.post(oo_data.ajax_url, data, function(response) {
+                if (response.success) {
+                    if (response.data && response.data.confirmation_needed) {
+                        // Second confirmation needed
+                        if (confirm(response.data.message)) {
+                            // User confirmed to delete logs as well
+                            var forceDeleteData = $.extend({}, data); // Create a new object
+                            forceDeleteData.force_delete_logs = 'true';
+                            performDeleteRequest(forceDeleteData); // Call recursively with force flag
+                        } else {
+                            // User cancelled the second confirmation
+                            showNotice('info', '<?php echo esc_js( __("Phase deletion cancelled.", "operations-organizer") ); ?>');
+                        }
+                    } else {
+                        // Deletion was successful (either no logs, or force delete was successful)
+                        showNotice('success', response.data.message);
+                        window.location.reload(); // Reload to update the phase list
+                    }
+                } else {
+                    showNotice('error', response.data.message || '<?php echo esc_js( __("Could not delete phase.", "operations-organizer") ); ?>');
+                }
+            }).fail(function() {
+                showNotice('error', '<?php echo esc_js( __("Request to delete phase failed.", "operations-organizer") ); ?>');
+            });
+        }
+
+        performDeleteRequest(ajaxData); // Initial delete request
     });
 
     // Handle Toggle Status Button Click on Stream Page table (AJAX)
