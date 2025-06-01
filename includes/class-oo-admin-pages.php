@@ -118,14 +118,31 @@ class OO_Admin_Pages { // Renamed class
 
     // Getter for stream page configurations, primarily for redirect logic
     public static function get_stream_page_configs_for_redirect() {
-        // Ensure $stream_pages_config is populated if accessed before add_admin_menu_pages (e.g. during an early hook)
-        // However, for redirects from admin pages, add_admin_menu_pages should have already run.
         if (empty(self::$stream_pages_config)) {
-            // Potentially re-populate if called very early, though less likely for this specific use case.
-            // For robustness, ensure oo_get_hardcoded_streams() is available here if needed.
-            // $streams = oo_get_hardcoded_streams(); 
-            // foreach ($streams as $stream) { ... fill self::$stream_pages_config ... }
-            // For now, assuming it's populated by the time redirects occur from within admin pages.
+            oo_log('[RedirectDebug] stream_pages_config was empty in get_stream_page_configs_for_redirect. Attempting to populate.', __CLASS__);
+            // Ensure oo_get_hardcoded_streams() is available and OO_DB is loaded if direct DB call is needed.
+            // This assumes oo_get_hardcoded_streams() is safe to call here and returns the expected structure.
+            $streams = function_exists('oo_get_hardcoded_streams') ? oo_get_hardcoded_streams() : array();
+            if (empty($streams) && class_exists('OO_DB')) {
+                // Fallback if hardcoded streams function isn't suitable or if we prefer live DB data.
+                // This part might need adjustment if oo_get_hardcoded_streams is the sole source of truth for menu creation.
+                // For robustness, this function should ideally rely on the same source as add_admin_menu_pages.
+                $streams = OO_DB::get_streams(array('number' => -1)); // Get all streams
+            }
+
+            if (!empty($streams)) {
+                foreach ($streams as $stream) {
+                    if (!$stream || !isset($stream->stream_id) || !isset($stream->stream_name)) continue;
+                    self::$stream_pages_config[$stream->stream_id] = array(
+                        'slug' => 'oo_stream_' . sanitize_key($stream->stream_name), 
+                        'name' => $stream->stream_name,
+                        'tab_slug' => sanitize_key($stream->stream_name) 
+                    );
+                }
+                oo_log('[RedirectDebug] Repopulated stream_pages_config: ', self::$stream_pages_config);
+            } else {
+                oo_log('[RedirectDebug] Failed to repopulate stream_pages_config, streams data was empty.', __CLASS__);
+            }
         }
         return self::$stream_pages_config;
     }

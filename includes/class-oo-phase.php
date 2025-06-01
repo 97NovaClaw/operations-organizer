@@ -539,23 +539,33 @@ class OO_Phase {
             $return_to_stream_slug = isset($_POST['return_to_stream']) ? sanitize_key($_POST['return_to_stream']) : '';
             $return_sub_tab = isset($_POST['return_sub_tab']) ? sanitize_key($_POST['return_sub_tab']) : '';
             $redirect_url = admin_url('admin.php?page=oo_phases'); // Default
+            oo_log('[ToggleRedirectDebug] Initial redirect_url: ' . $redirect_url, __METHOD__);
+            oo_log('[ToggleRedirectDebug] Received return_to_stream (tab_slug): ' . $return_to_stream_slug, __METHOD__);
 
             if (!empty($return_to_stream_slug)) {
                 $stream_configs = OO_Admin_Pages::get_stream_page_configs_for_redirect();
-                 if (isset($stream_configs[$return_to_stream_slug]['slug'])) { // Check if key exists by tab_slug
-                     $stream_page_slug = $stream_configs[$return_to_stream_slug]['slug'];
-                     $redirect_url = admin_url('admin.php?page=' . $stream_page_slug);
+                oo_log('[ToggleRedirectDebug] Stream Configs: ', $stream_configs);
+                $found_stream_page_slug = '';
+                if (is_array($stream_configs)) {
+                    foreach ($stream_configs as $s_id => $config) {
+                        if (isset($config['tab_slug']) && $config['tab_slug'] === $return_to_stream_slug) {
+                            $found_stream_page_slug = $config['slug'];
+                            break;
+                        }
+                    }
+                }
+                
+                if (!empty($found_stream_page_slug)) {
+                     $redirect_url = admin_url('admin.php?page=' . $found_stream_page_slug);
                      if (!empty($return_sub_tab)) {
                          $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
                      }
-                 } elseif (array_reduce($stream_configs, function($carry, $item) use ($return_to_stream_slug) { return $carry || $item['slug'] === $return_to_stream_slug; }, false)) {
-                     $redirect_url = admin_url('admin.php?page=' . $return_to_stream_slug);
-                     if (!empty($return_sub_tab)) {
-                         $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
-                     }
-                 }
+                } else {
+                    oo_log('[ToggleRedirectDebug] No matching stream page slug for tab_slug: ' . $return_to_stream_slug . '. Using default.', __METHOD__);
+                }
             }
-            $redirect_url = add_query_arg(array('message' => 'phase_status_updated'), $redirect_url); // Add success message regardless
+            $redirect_url = add_query_arg(array('message' => 'phase_status_updated'), $redirect_url);
+            oo_log('[ToggleRedirectDebug] Final redirect_url: ' . $redirect_url, __METHOD__);
 
             wp_send_json_success( array( 'message' => $message, 'new_status' => $new_status, 'redirect_url' => $redirect_url ) );
         }
