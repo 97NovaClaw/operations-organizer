@@ -1062,7 +1062,7 @@ jQuery(document).ready(function($) {
 
         function performDeleteRequest(data) {
             $.post(oo_data.ajax_url, data, function(response) {
-                if (response.success) {
+            if (response.success) {
                     if (response.data && response.data.confirmation_needed) {
                         // Second confirmation needed
                         if (confirm(response.data.message)) {
@@ -1076,15 +1076,15 @@ jQuery(document).ready(function($) {
                         }
                     } else {
                         // Deletion was successful (either no logs, or force delete was successful)
-                        showNotice('success', response.data.message);
-                        window.location.reload(); // Reload to update the phase list
+                showNotice('success', response.data.message);
+                window.location.reload(); // Reload to update the phase list
                     }
-                } else {
+            } else {
                     showNotice('error', response.data.message || '<?php echo esc_js( __("Could not delete phase.", "operations-organizer") ); ?>');
-                }
-            }).fail(function() {
+            }
+        }).fail(function() {
                 showNotice('error', '<?php echo esc_js( __("Request to delete phase failed.", "operations-organizer") ); ?>');
-            });
+        });
         }
 
         performDeleteRequest(ajaxData); // Initial delete request
@@ -1967,14 +1967,17 @@ jQuery(document).ready(function($) {
     // Handle Edit Derived KPI Form Submission
     $('#oo-edit-derived-kpi-form-stream-' + streamSlug).on('submit', function(e) {
         e.preventDefault();
-        console.log('[Derived KPI Edit] Form submitted.'); // DEBUG
+        console.log('[Derived KPI Edit] Form submitted. Current streamSlug:', streamSlug); // DEBUG
         var $form = $(this);
         var $submitButton = $form.find('#submit_edit_derived_kpi-stream-' + streamSlug);
         $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Saving...", "operations-organizer")); ?>');
         
-        // Debug: Explicitly check the value of the hidden field just before serializing
-        var primaryKpiIdVal = $form.find('#edit_derived_primary_kpi_id-stream-' + streamSlug).val(); // Use ID selector
-        console.log('[Derived KPI Edit] Value of hidden input #edit_derived_primary_kpi_id-stream- before serialize:', primaryKpiIdVal);
+        var targetHiddenInputId = '#edit_derived_primary_kpi_id-stream-' + streamSlug;
+        console.log('[Derived KPI Edit] Attempting to find input with ID within $form:', targetHiddenInputId); // DEBUG
+        var $foundInput = $form.find(targetHiddenInputId);
+        console.log('[Derived KPI Edit] Found input with ID ' + targetHiddenInputId + '? Length: ' + $foundInput.length); // DEBUG length
+        var primaryKpiIdVal = $foundInput.val(); 
+        console.log('[Derived KPI Edit] Value of hidden input ' + targetHiddenInputId + ' before serialize:', primaryKpiIdVal);
 
         var formData = $form.serializeArray();
         formData.push({ name: 'action', value: 'oo_update_derived_kpi_definition' });
