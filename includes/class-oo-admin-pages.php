@@ -215,10 +215,15 @@ class OO_Admin_Pages { // Renamed class
             // This is a temporary measure until a proper generic stream page template is built.
             $GLOBALS['phases'] = OO_DB::get_phases(array('is_active' => 1, 'orderby' => 'stream_id, order_in_stream'));
             $GLOBALS['employees'] = OO_DB::get_employees(array('is_active' => 1, 'orderby' => 'last_name', 'order' => 'ASC', 'number' => -1));
-            include_once OO_PLUGIN_DIR . 'admin/views/stream-pages/content-stream-page.php';
+            include_once OO_PLUGIN_DIR . 'admin/views/stream-pages/single-stream-page-template.php'; // New generic template
         } else {
+            // For other streams, also load the phases and employees and the generic template
+            // They will also need $phases and $employees for the 'Phase & KPI Settings' tab to function correctly.
+            $GLOBALS['phases'] = OO_DB::get_phases(array('is_active' => 1, 'orderby' => 'stream_id, order_in_stream'));
+            $GLOBALS['employees'] = OO_DB::get_employees(array('is_active' => 1, 'orderby' => 'last_name', 'order' => 'ASC', 'number' => -1));
             // Placeholder for other stream pages
-            echo '<div class="wrap"><h1>' . esc_html($current_stream_name) . ' Stream Page</h1><p>Content for this stream page (ID: ' . esc_html($current_stream_id) . ') will be built here.</p></div>';
+            // echo '<div class="wrap"><h1>' . esc_html($current_stream_name) . ' Stream Page</h1><p>Content for this stream page (ID: ' . esc_html($current_stream_id) . ') will be built here.</p></div>';
+            include_once OO_PLUGIN_DIR . 'admin/views/stream-pages/single-stream-page-template.php'; // New generic template
         }
     }
 
