@@ -1971,6 +1971,9 @@ jQuery(document).ready(function($) {
         var $submitButton = $form.find('#submit_edit_derived_kpi-stream-' + streamSlug);
         $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Saving...", "operations-organizer")); ?>');
         
+        // Log the entire modal's inner HTML at the point of submission
+        console.log('[Derived KPI Edit] Edit Modal innerHTML at submit time:', editDerivedKpiModal_Stream.find('.oo-modal-content').html()); 
+
         var targetHiddenInputIdString = 'edit_derived_primary_kpi_id-stream-' + streamSlug; // Just the ID, no #
         var $targetHiddenInputObject = $('#' + targetHiddenInputIdString); // Global selection
 
