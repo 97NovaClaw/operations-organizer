@@ -1902,9 +1902,12 @@ jQuery(document).ready(function($) {
             derived_definition_id: derivedKpiId,
             _ajax_nonce: oo_data.nonce_get_derived_kpi_details // Existing global nonce
         }, function(response) {
+            console.log('[Derived KPI Edit Modal Populate] Response from oo_get_derived_kpi_definition_details:', response); // DEBUG
             if (response.success) {
                 var dkpi = response.data.definition;
                 var primary_kpi = response.data.primary_kpi; // Expecting this from backend now
+                console.log('[Derived KPI Edit Modal Populate] dkpi object:', dkpi); // DEBUG
+                console.log('[Derived KPI Edit Modal Populate] primary_kpi object:', primary_kpi); // DEBUG
 
                 editDerivedKpiModal_Stream.find('#edit_derived_definition_id-stream-' + streamSlug).val(dkpi.derived_definition_id);
                 editDerivedKpiModal_Stream.find('#editDerivedKpiNameDisplay-' + streamSlug).text(esc_html(dkpi.definition_name));
@@ -1914,6 +1917,9 @@ jQuery(document).ready(function($) {
                 editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_name_display-stream-' + streamSlug).text(primary_kpi ? esc_html(primary_kpi.measure_name) : 'Unknown KPI');
                 editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_unit_type-stream-' + streamSlug).val(primary_kpi ? primary_kpi.unit_type : '');
                 
+                console.log('[Derived KPI Edit Modal Populate] Setting primary_kpi_measure_id to:', dkpi.primary_kpi_measure_id); // DEBUG
+                editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_id-stream-' + streamSlug).val(dkpi.primary_kpi_measure_id);
+
                 populateCalculationTypes_Stream(primary_kpi ? primary_kpi.unit_type : '', editDerivedKpiModal_Stream.find('#edit_derived_calculation_type-stream-' + streamSlug));
                 editDerivedKpiModal_Stream.find('#edit_derived_calculation_type-stream-' + streamSlug).val(dkpi.calculation_type);
                 // Trigger change to ensure conditional fields are updated based on loaded calc_type
