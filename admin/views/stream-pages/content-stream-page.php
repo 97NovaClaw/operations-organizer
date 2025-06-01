@@ -1902,12 +1902,12 @@ jQuery(document).ready(function($) {
             derived_definition_id: derivedKpiId,
             _ajax_nonce: oo_data.nonce_get_derived_kpi_details // Existing global nonce
         }, function(response) {
-            console.log('[Derived KPI Edit Modal Populate] Response from oo_get_derived_kpi_definition_details:', response); // DEBUG
+            // console.log('[Derived KPI Edit Modal Populate] Response from oo_get_derived_kpi_definition_details:', response); // DEBUG REMOVED
             if (response.success) {
                 var dkpi = response.data.definition;
                 var primary_kpi = response.data.primary_kpi; // Expecting this from backend now
-                console.log('[Derived KPI Edit Modal Populate] dkpi object:', dkpi); // DEBUG
-                console.log('[Derived KPI Edit Modal Populate] primary_kpi object:', primary_kpi); // DEBUG
+                // console.log('[Derived KPI Edit Modal Populate] dkpi object:', dkpi); // DEBUG REMOVED
+                // console.log('[Derived KPI Edit Modal Populate] primary_kpi object:', primary_kpi); // DEBUG REMOVED
 
                 editDerivedKpiModal_Stream.find('#edit_derived_definition_id-stream-' + streamSlug).val(dkpi.derived_definition_id);
                 editDerivedKpiModal_Stream.find('#editDerivedKpiNameDisplay-' + streamSlug).text(esc_html(dkpi.definition_name));
@@ -1935,10 +1935,10 @@ jQuery(document).ready(function($) {
 
                 // Set the critical hidden primary_kpi_measure_id field LAST
                 if (dkpi && typeof dkpi.primary_kpi_measure_id !== 'undefined') {
-                    console.log('[Derived KPI Edit Modal Populate] Setting primary_kpi_measure_id to:', dkpi.primary_kpi_measure_id, 'as the final step.'); // DEBUG
+                    // console.log('[Derived KPI Edit Modal Populate] Setting primary_kpi_measure_id to:', dkpi.primary_kpi_measure_id, 'as the final step.'); // DEBUG REMOVED
                     editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_id-stream-' + streamSlug).val(dkpi.primary_kpi_measure_id);
                 } else {
-                    console.warn('[Derived KPI Edit Modal Populate] dkpi.primary_kpi_measure_id is undefined before final set.');
+                    // console.warn('[Derived KPI Edit Modal Populate] dkpi.primary_kpi_measure_id is undefined before final set.'); // DEBUG REMOVED
                 }
                 
                 editDerivedKpiModal_Stream.show();
@@ -1966,47 +1966,40 @@ jQuery(document).ready(function($) {
     // Handle Edit Derived KPI Form Submission
     $('#oo-edit-derived-kpi-form-stream-' + streamSlug).on('submit', function(e) {
         e.preventDefault();
-        console.log('[Derived KPI Edit] Form submitted. Current streamSlug:', streamSlug); // DEBUG
+        // console.log('[Derived KPI Edit] Form submitted. Current streamSlug:', streamSlug); // DEBUG REMOVED
         var $form = $(this);
         var $submitButton = $form.find('#submit_edit_derived_kpi-stream-' + streamSlug);
         $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Saving...", "operations-organizer")); ?>');
         
-        // Log the entire modal's inner HTML at the point of submission
-        console.log('[Derived KPI Edit] Edit Modal innerHTML at submit time:', editDerivedKpiModal_Stream.find('.oo-modal-content').html()); 
+        var targetHiddenInputIdString = 'edit_derived_primary_kpi_id-stream-' + streamSlug; 
+        var $targetHiddenInputObject = $('#' + targetHiddenInputIdString); 
 
-        var targetHiddenInputIdString = 'edit_derived_primary_kpi_id-stream-' + streamSlug; // Just the ID, no #
-        var $targetHiddenInputObject = $('#' + targetHiddenInputIdString); // Global selection
-
-        console.log('[Derived KPI Edit] Looking for input with ID:', targetHiddenInputIdString);
-        console.log('[Derived KPI Edit] jQuery object for target input ($targetHiddenInputObject). Length:', $targetHiddenInputObject.length);
-        if ($targetHiddenInputObject.length > 0) {
-            console.log('[Derived KPI Edit] HTML of found target input:', $targetHiddenInputObject[0].outerHTML);
-        }
+        // console.log('[Derived KPI Edit] Looking for input with ID:', targetHiddenInputIdString); // DEBUG REMOVED
+        // console.log('[Derived KPI Edit] jQuery object for target input ($targetHiddenInputObject). Length:', $targetHiddenInputObject.length); // DEBUG REMOVED
+        // if ($targetHiddenInputObject.length > 0) { // DEBUG REMOVED
+        //     console.log('[Derived KPI Edit] HTML of found target input:', $targetHiddenInputObject[0].outerHTML); // DEBUG REMOVED
+        // } // DEBUG REMOVED
 
         var primaryKpiIdVal = $targetHiddenInputObject.val(); 
-        console.log('[Derived KPI Edit] Value of hidden input #' + targetHiddenInputIdString + ' (globally selected) before serialize:', primaryKpiIdVal);
+        // console.log('[Derived KPI Edit] Value of hidden input #' + targetHiddenInputIdString + ' (globally selected) before serialize:', primaryKpiIdVal); // DEBUG REMOVED
 
         var formData = $form.serializeArray();
         
-        // Ensure primary_kpi_measure_id is correctly in formData
-        // Remove any existing (potentially empty) primary_kpi_measure_id from serializeArray
         formData = formData.filter(function(item) {
             return item.name !== 'primary_kpi_measure_id';
         });
-        // Add the one we explicitly fetched (if it has a value)
         if (typeof primaryKpiIdVal !== 'undefined' && primaryKpiIdVal !== null && primaryKpiIdVal !== '') {
             formData.push({ name: 'primary_kpi_measure_id', value: primaryKpiIdVal });
         } else {
-            // If it's still undefined or empty, we log it, and it will likely fail server-side validation as expected
-            console.warn('[Derived KPI Edit] primary_kpi_measure_id is still empty or undefined before adding to formData. Value:', primaryKpiIdVal);
+            // console.warn('[Derived KPI Edit] primary_kpi_measure_id is still empty or undefined before adding to formData. Value:', primaryKpiIdVal); // DEBUG REMOVED
         }
 
         formData.push({ name: 'action', value: 'oo_update_derived_kpi_definition' });
         formData.push({ name: '_ajax_nonce', value: oo_data.nonce_edit_derived_kpi }); 
-        console.log('[Derived KPI Edit] FormData to be sent:', $.param(formData)); // DEBUG
+        // console.log('[Derived KPI Edit] FormData to be sent:', $.param(formData)); // DEBUG REMOVED
 
         $.post(oo_data.ajax_url, $.param(formData), function(response) {
-            console.log('[Derived KPI Edit] AJAX success response:', response); // DEBUG
+            // console.log('[Derived KPI Edit] AJAX success response:', response); // DEBUG REMOVED
             if (response.success) {
                 showNotice('success', response.data.message);
                 editDerivedKpiModal_Stream.hide();
@@ -2015,10 +2008,10 @@ jQuery(document).ready(function($) {
                 showNotice('error', response.data.message || '<?php echo esc_js(__("An unknown error occurred.", "operations-organizer")); ?>');
             }
         }).fail(function(jqXHR, textStatus, errorThrown) {
-            console.error('[Derived KPI Edit] AJAX fail. Status: ' + textStatus + ', Error: ' + errorThrown, jqXHR); // DEBUG
+            // console.error('[Derived KPI Edit] AJAX fail. Status: ' + textStatus + ', Error: ' + errorThrown, jqXHR); // DEBUG REMOVED
             showNotice('error', '<?php echo esc_js(__("Request failed. Please try again.", "operations-organizer")); ?>');
         }).always(function() {
-            console.log('[Derived KPI Edit] AJAX always finished.'); // DEBUG
+            // console.log('[Derived KPI Edit] AJAX always finished.'); // DEBUG REMOVED
             $submitButton.prop('disabled', false).val('<?php echo esc_js(__("Save Derived KPI Changes", "operations-organizer")); ?>');
         });
     });
