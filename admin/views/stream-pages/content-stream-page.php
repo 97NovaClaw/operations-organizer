@@ -1913,23 +1913,14 @@ jQuery(document).ready(function($) {
                 editDerivedKpiModal_Stream.find('#editDerivedKpiNameDisplay-' + streamSlug).text(esc_html(dkpi.definition_name));
                 editDerivedKpiModal_Stream.find('#edit_derived_definition_name-stream-' + streamSlug).val(dkpi.definition_name);
                 
-                editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_id-stream-' + streamSlug).val(dkpi.primary_kpi_measure_id); // Set it first
+                // Primary KPI display (name and unit type)
                 editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_name_display-stream-' + streamSlug).text(primary_kpi ? esc_html(primary_kpi.measure_name) : 'Unknown KPI');
-                editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_unit_type-stream-' + streamSlug).val(primary_kpi ? primary_kpi.unit_type : '');
+                editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_unit_type-stream-' + streamSlug).val(primary_kpi ? primary_kpi.unit_type : ''); // For JS logic
                 
-                // console.log('[Derived KPI Edit Modal Populate] Setting primary_kpi_measure_id to:', dkpi.primary_kpi_measure_id); // DEBUG - This log is now redundant due to re-set below
-
+                // Populate dynamic dropdowns and handle conditional visibility FIRST
                 populateCalculationTypes_Stream(primary_kpi ? primary_kpi.unit_type : '', editDerivedKpiModal_Stream.find('#edit_derived_calculation_type-stream-' + streamSlug));
                 editDerivedKpiModal_Stream.find('#edit_derived_calculation_type-stream-' + streamSlug).val(dkpi.calculation_type);
-                editDerivedKpiModal_Stream.find('#edit_derived_calculation_type-stream-' + streamSlug).trigger('change');
-
-                // Re-set primary_kpi_measure_id after potential side-effects from trigger('change') or other UI updates
-                if (dkpi && typeof dkpi.primary_kpi_measure_id !== 'undefined') {
-                    console.log('[Derived KPI Edit Modal Populate] Re-setting primary_kpi_measure_id to:', dkpi.primary_kpi_measure_id, 'after trigger and other population.'); // DEBUG
-                    editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_id-stream-' + streamSlug).val(dkpi.primary_kpi_measure_id);
-                } else {
-                    console.warn('[Derived KPI Edit Modal Populate] dkpi.primary_kpi_measure_id is undefined before re-set.');
-                }
+                editDerivedKpiModal_Stream.find('#edit_derived_calculation_type-stream-' + streamSlug).trigger('change'); // This might re-render sections
 
                 populateSecondaryKpis_Stream(editDerivedKpiModal_Stream.find('#edit_derived_secondary_kpi_id-stream-' + streamSlug), dkpi.primary_kpi_measure_id);
                 if (dkpi.calculation_type === 'ratio_to_kpi' && dkpi.secondary_kpi_measure_id) {
@@ -1941,6 +1932,14 @@ jQuery(document).ready(function($) {
                 
                 editDerivedKpiModal_Stream.find('#edit_derived_output_description-stream-' + streamSlug).val(dkpi.output_description);
                 editDerivedKpiModal_Stream.find('#edit_derived_is_active-stream-' + streamSlug).prop('checked', parseInt(dkpi.is_active) === 1);
+
+                // Set the critical hidden primary_kpi_measure_id field LAST
+                if (dkpi && typeof dkpi.primary_kpi_measure_id !== 'undefined') {
+                    console.log('[Derived KPI Edit Modal Populate] Setting primary_kpi_measure_id to:', dkpi.primary_kpi_measure_id, 'as the final step.'); // DEBUG
+                    editDerivedKpiModal_Stream.find('#edit_derived_primary_kpi_id-stream-' + streamSlug).val(dkpi.primary_kpi_measure_id);
+                } else {
+                    console.warn('[Derived KPI Edit Modal Populate] dkpi.primary_kpi_measure_id is undefined before final set.');
+                }
                 
                 editDerivedKpiModal_Stream.show();
             } else {
@@ -1972,9 +1971,17 @@ jQuery(document).ready(function($) {
         var $submitButton = $form.find('#submit_edit_derived_kpi-stream-' + streamSlug);
         $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Saving...", "operations-organizer")); ?>');
         
-        var targetHiddenInputId = '#edit_derived_primary_kpi_id-stream-' + streamSlug;
-        var primaryKpiIdVal = $(targetHiddenInputId).val(); // Use global jQuery selector for the ID
-        console.log('[Derived KPI Edit] Value of hidden input ' + targetHiddenInputId + ' (globally selected) before serialize:', primaryKpiIdVal);
+        var targetHiddenInputIdString = 'edit_derived_primary_kpi_id-stream-' + streamSlug; // Just the ID, no #
+        var $targetHiddenInputObject = $('#' + targetHiddenInputIdString); // Global selection
+
+        console.log('[Derived KPI Edit] Looking for input with ID:', targetHiddenInputIdString);
+        console.log('[Derived KPI Edit] jQuery object for target input ($targetHiddenInputObject). Length:', $targetHiddenInputObject.length);
+        if ($targetHiddenInputObject.length > 0) {
+            console.log('[Derived KPI Edit] HTML of found target input:', $targetHiddenInputObject[0].outerHTML);
+        }
+
+        var primaryKpiIdVal = $targetHiddenInputObject.val(); 
+        console.log('[Derived KPI Edit] Value of hidden input #' + targetHiddenInputIdString + ' (globally selected) before serialize:', primaryKpiIdVal);
 
         var formData = $form.serializeArray();
         
