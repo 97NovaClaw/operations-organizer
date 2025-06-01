@@ -297,19 +297,15 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                 <?php 
                 $current_stream_phases_for_table = array(); 
                 if (isset($current_stream_id)) { // Ensure current_stream_id is set
-                    if (!empty($GLOBALS['phases'])) {
-                        oo_log('[Content Stream Page - Manage Tab] Using GLOBALS phases. Count: ' . count($GLOBALS['phases']), 'ContentStreamPage');
-                        foreach ($GLOBALS['phases'] as $phase_item) {
-                             oo_log('[Content Stream Page - Manage Tab] Checking phase from GLOBALS: ' . $phase_item->phase_name . ' (StreamID: ' . $phase_item->stream_id . ') against Current Stream ID: ' . $current_stream_id, 'ContentStreamPage');
-                            if ($phase_item->stream_id == $current_stream_id) {
-                                $current_stream_phases_for_table[] = $phase_item;
-                            }
-                        }
-                    } else {
-                        oo_log('[Content Stream Page - Manage Tab] GLOBALS phases empty, fetching fresh for stream ID: ' . $current_stream_id, 'ContentStreamPage');
-                        // If $GLOBALS['phases'] wasn't populated by the main page controller, fetch them now.
-                        $current_stream_phases_for_table = OO_DB::get_phases(array('stream_id' => $current_stream_id, 'orderby' => 'order_in_stream', 'order' => 'ASC', 'number' => -1));
-                    }
+                    // Always fetch fresh, unfiltered (by active status) phases for this specific table display
+                    oo_log('[Content Stream Page - Manage Tab] Fetching all phases (active and inactive) for stream ID: ' . $current_stream_id . ' for table display.', 'ContentStreamPage');
+                    $current_stream_phases_for_table = OO_DB::get_phases(array(
+                        'stream_id' => $current_stream_id, 
+                        'is_active' => null, // Explicitly get all statuses
+                        'orderby' => 'order_in_stream', 
+                        'order' => 'ASC', 
+                        'number' => -1
+                    ));
                 }
                 oo_log('[Content Stream Page - Manage Tab] Filtered Phases for Table: ' . count($current_stream_phases_for_table), 'ContentStreamPage');
                 
