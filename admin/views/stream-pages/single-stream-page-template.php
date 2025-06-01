@@ -658,6 +658,34 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                 <p><?php esc_html_e( 'Inactive measures will not be available for new phase assignments.', 'operations-organizer' ); ?></p>
             </div>
 
+            <div class="form-field form-required kpi-phase-linking-section-stream">
+                <label><?php printf(esc_html__('Link to Phases in %s (at least one required)', 'operations-organizer'), esc_html($current_stream_name)); ?></label>
+                <div id="add-kpi-link-to-phases-list-<?php echo esc_attr($current_stream_tab_slug); ?>" class="phase-checkbox-group" style="max-height: 150px; overflow-y: auto; border: 1px solid #ccd0d4; padding: 5px;">
+                    <?php
+                    // Fetch phases for the current stream to populate checkboxes
+                    // This assumes $current_stream_id is available and correct here.
+                    $phases_in_current_stream = array();
+                    if (isset($current_stream_id)) {
+                        $phases_in_current_stream = OO_DB::get_phases(array(
+                            'stream_id' => $current_stream_id,
+                            'is_active' => 1, // Only offer to link to active phases
+                            'orderby' => 'order_in_stream',
+                            'order' => 'ASC',
+                            'number' => -1
+                        ));
+                    }
+                    if (!empty($phases_in_current_stream)) {
+                        foreach ($phases_in_current_stream as $phase) {
+                            echo '<label style="display: block;"><input type="checkbox" name="link_to_phases[]" value="' . esc_attr($phase->phase_id) . '"> ' . esc_html($phase->phase_name) . '</label>';
+                        }
+                    } else {
+                        echo '<p>' . esc_html__('No active phases found in this stream to link to.', 'operations-organizer') . '</p>';
+                    }
+                    ?>
+                </div>
+                <p class="description"><?php esc_html_e('This KPI measure will be associated with the selected phases in the current stream.', 'operations-organizer'); ?></p>
+            </div>
+
             <?php submit_button( __( 'Add KPI Measure', 'operations-organizer' ), 'primary', 'submit_add_kpi_measure-stream-' . $current_stream_tab_slug ); ?>
         </form>
     </div>
@@ -707,6 +735,15 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                     <?php esc_html_e( 'Active', 'operations-organizer' ); ?>
                 </label>
                 <p><?php esc_html_e( 'Inactive measures will not be available for new phase assignments.', 'operations-organizer' ); ?></p>
+            </div>
+
+            <div class="form-field kpi-phase-linking-section-stream">
+                <label><?php printf(esc_html__('Linked to Phases in %s', 'operations-organizer'), esc_html($current_stream_name)); ?></label>
+                <div id="edit-kpi-link-to-phases-list-<?php echo esc_attr($current_stream_tab_slug); ?>" class="phase-checkbox-group" style="max-height: 150px; overflow-y: auto; border: 1px solid #ccd0d4; padding: 5px;">
+                    <!-- Checkboxes will be populated by JavaScript -->
+                    <p><?php esc_html_e('Loading phases...', 'operations-organizer'); ?></p>
+                </div>
+                <p class="description"><?php esc_html_e('Select phases in the current stream to associate with this KPI measure.', 'operations-organizer'); ?></p>
             </div>
 
             <?php submit_button( __( 'Save KPI Measure Changes', 'operations-organizer' ), 'primary', 'submit_edit_kpi_measure-stream-' . $current_stream_tab_slug ); ?>
@@ -1578,6 +1615,26 @@ jQuery(document).ready(function($) {
     $('#oo-add-kpi-measure-form-stream-' + streamSlug).on('submit', function(e) {
         e.preventDefault();
         var $form = $(this);
+
+        // Validate at least one phase is checked
+        if ($form.find('.kpi-phase-linking-section-stream input[name="link_to_phases[]"]:checked').length === 0) {
+            // Check if there were any phases to link to in the first place
+            if ($form.find('#add-kpi-link-to-phases-list-' + streamSlug).find('input[type="checkbox"]').length === 0) {
+                // No phases were available to link, this might be an edge case or setup issue.
+                // Depending on desired behavior, either allow submission or show a specific error.
+                // For now, let's assume if no phases, it shouldn't block if the section itself says "No active phases".
+                // However, the section label says "at least one required", so this is a conflict.
+                // Let's enforce that if phases *were* available, one must be checked.
+                if ($form.find('#add-kpi-link-to-phases-list-' + streamSlug + ' p').text().indexOf('No active phases') === -1) {
+                    alert('<?php echo esc_js(__("Please link this KPI to at least one phase in the current stream.", "operations-organizer")); ?>');
+                    return false;
+                }
+            } else {
+                 alert('<?php echo esc_js(__("Please link this KPI to at least one phase in the current stream.", "operations-organizer")); ?>');
+                 return false;
+            }
+        }
+
         var $submitButton = $form.find('#submit_add_kpi_measure-stream-' + streamSlug);
         $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Adding...", "operations-organizer")); ?>');
         
@@ -1604,26 +1661,59 @@ jQuery(document).ready(function($) {
     kpiMeasuresListContainer_Stream.on('click', '.oo-edit-kpi-measure-stream', function() {
         var kpiMeasureId = $(this).data('kpi-measure-id');
         editKpiMeasureModal_Stream.find('#editKpiMeasureNameDisplay-' + streamSlug).text('<?php echo esc_js(__("Loading...", "operations-organizer")); ?>');
-        
-        $.post(oo_data.ajax_url, {
-            action: 'oo_get_kpi_measure_details', // New AJAX action
-            kpi_measure_id: kpiMeasureId,
-            _ajax_nonce: oo_data.nonce_get_kpi_measure_details // New Nonce
-        }, function(response) {
-            if (response.success) {
-                var kpi = response.data.kpi_measure;
+        var $phaseChecklistContainer = editKpiMeasureModal_Stream.find('#edit-kpi-link-to-phases-list-' + streamSlug);
+        $phaseChecklistContainer.html('<p><?php echo esc_js(__("Loading phases...", "operations-organizer")); ?></p>');
+
+        // Fetch KPI details and also the phases for the current stream to populate checkboxes
+        $.when(
+            $.post(oo_data.ajax_url, { // Get KPI details
+                action: 'oo_get_kpi_measure_details', 
+                kpi_measure_id: kpiMeasureId,
+                _ajax_nonce: oo_data.nonce_get_kpi_measure_details
+            }),
+            $.post(oo_data.ajax_url, { // Get phases for current stream
+                action: 'oo_get_phases_for_stream', // New AJAX action needed
+                stream_id: <?php echo intval($current_stream_id); ?>, 
+                _ajax_nonce: oo_data.nonce_get_phases // A general nonce for getting phases
+            }),
+            $.post(oo_data.ajax_url, { // Get existing links for this KPI in this stream
+                action: 'oo_get_phase_links_for_kpi_in_stream', // New AJAX action needed
+                kpi_measure_id: kpiMeasureId,
+                stream_id: <?php echo intval($current_stream_id); ?>, 
+                _ajax_nonce: oo_data.nonce_get_phase_kpi_links // Can reuse existing or create new
+            })
+        ).done(function(kpiDetailsResponse, phasesResponse, existingLinksResponse) {
+            if (kpiDetailsResponse[0].success && phasesResponse[0].success && existingLinksResponse[0].success) {
+                var kpi = kpiDetailsResponse[0].data.kpi_measure;
+                var phasesInStream = phasesResponse[0].data.phases;
+                var existingPhaseIdsLinked = existingLinksResponse[0].data.linked_phase_ids; // Expect an array of phase IDs
+
                 editKpiMeasureModal_Stream.find('#edit_kpi_measure_id-stream-' + streamSlug).val(kpi.kpi_measure_id);
                 editKpiMeasureModal_Stream.find('#editKpiMeasureNameDisplay-' + streamSlug).text(esc_html(kpi.measure_name));
                 editKpiMeasureModal_Stream.find('#edit_kpi_measure_name-stream-' + streamSlug).val(kpi.measure_name);
-                editKpiMeasureModal_Stream.find('#edit_kpi_measure_key-stream-' + streamSlug).val(kpi.measure_key); // Key is readonly
+                editKpiMeasureModal_Stream.find('#edit_kpi_measure_key-stream-' + streamSlug).val(kpi.measure_key); 
                 editKpiMeasureModal_Stream.find('#edit_kpi_unit_type-stream-' + streamSlug).val(kpi.unit_type);
                 editKpiMeasureModal_Stream.find('#edit_kpi_is_active-stream-' + streamSlug).prop('checked', parseInt(kpi.is_active) === 1);
+
+                // Populate phase checklist
+                $phaseChecklistContainer.empty();
+                if (phasesInStream && phasesInStream.length > 0) {
+                    $.each(phasesInStream, function(index, phase) {
+                        var isChecked = $.inArray(phase.phase_id.toString(), existingPhaseIdsLinked.map(String)) !== -1;
+                        var checkbox = '<label style="display: block;"><input type="checkbox" name="link_to_phases[]" value="' + phase.phase_id + '" ' + (isChecked ? 'checked' : '') + '> ' + esc_html(phase.phase_name) + '</label>';
+                        $phaseChecklistContainer.append(checkbox);
+                    });
+                } else {
+                    $phaseChecklistContainer.html('<p><?php echo esc_js(__("No active phases found in this stream to link to.", "operations-organizer")); ?></p>');
+                }
                 editKpiMeasureModal_Stream.show();
             } else {
-                showNotice('error', response.data.message || '<?php echo esc_js(__("Could not load KPI Measure data.", "operations-organizer")); ?>');
+                var errorMsg = kpiDetailsResponse[0].data.message || phasesResponse[0].data.message || existingLinksResponse[0].data.message || '<?php echo esc_js(__("Could not load KPI Measure data or phase list.", "operations-organizer")); ?>';
+                showNotice('error', errorMsg);
             }
         }).fail(function() {
-            showNotice('error', '<?php echo esc_js(__("Request to load KPI Measure data failed.", "operations-organizer")); ?>');
+            showNotice('error', '<?php echo esc_js(__("Request to load KPI Measure data or phase list failed.", "operations-organizer")); ?>');
+            $phaseChecklistContainer.html('<p><?php echo esc_js(__("Error loading phases.", "operations-organizer")); ?></p>');
         });
     });
 
