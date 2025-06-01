@@ -1966,6 +1966,10 @@ jQuery(document).ready(function($) {
         var $submitButton = $form.find('#submit_edit_derived_kpi-stream-' + streamSlug);
         $submitButton.prop('disabled', true).val('<?php echo esc_js(__("Saving...", "operations-organizer")); ?>');
         
+        // Debug: Explicitly check the value of the hidden field just before serializing
+        var primaryKpiIdVal = $form.find('input[name="primary_kpi_measure_id"]').val();
+        console.log('[Derived KPI Edit] Value of hidden input name="primary_kpi_measure_id" before serialize:', primaryKpiIdVal);
+
         var formData = $form.serializeArray();
         formData.push({ name: 'action', value: 'oo_update_derived_kpi_definition' });
         formData.push({ name: '_ajax_nonce', value: oo_data.nonce_edit_derived_kpi }); 
