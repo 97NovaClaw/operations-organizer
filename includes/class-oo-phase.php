@@ -455,27 +455,37 @@ class OO_Phase {
             $return_to_stream_slug = isset($_POST['return_to_stream']) ? sanitize_key($_POST['return_to_stream']) : '';
             $return_sub_tab = isset($_POST['return_sub_tab']) ? sanitize_key($_POST['return_sub_tab']) : '';
             $redirect_url = admin_url('admin.php?page=oo_phases'); // Default
+            oo_log('[RedirectDebug] Initial redirect_url: ' . $redirect_url, __METHOD__);
+            oo_log('[RedirectDebug] Received return_to_stream (tab_slug): ' . $return_to_stream_slug, __METHOD__);
+            oo_log('[RedirectDebug] Received return_sub_tab: ' . $return_sub_tab, __METHOD__);
 
-            if (!empty($return_to_stream_slug)) {
+            if (!empty($return_to_stream_slug)) { // $return_to_stream_slug is the tab_slug like 'content'
                 $stream_configs = OO_Admin_Pages::get_stream_page_configs_for_redirect();
+                oo_log('[RedirectDebug] Stream Configs from OO_Admin_Pages: ', $stream_configs);
                 $found_stream_page_slug = '';
                 foreach ($stream_configs as $s_id => $config) {
-                    if (isset($config['tab_slug']) && $config['tab_slug'] === $return_to_stream_slug) {
-                        $found_stream_page_slug = $config['slug'];
+                    oo_log('[RedirectDebug] Checking config for stream ID ' . $s_id . ': tab_slug = ' . (isset($config['tab_slug']) ? $config['tab_slug'] : 'N/A') . ', page_slug = ' . (isset($config['slug']) ? $config['slug'] : 'N/A'), __METHOD__);
+                    if (isset($config['tab_slug']) && $config['tab_slug'] === $return_to_stream_slug) { // Comparing tab_slug with tab_slug
+                        $found_stream_page_slug = $config['slug']; // This should be the page slug like 'oo_stream_content'
+                        oo_log('[RedirectDebug] Match found! Page slug: ' . $found_stream_page_slug, __METHOD__);
                         break;
                     }
                 }
                 
                 if (!empty($found_stream_page_slug)) {
                      $redirect_url = admin_url('admin.php?page=' . $found_stream_page_slug);
+                     oo_log('[RedirectDebug] Updated redirect_url with page_slug: ' . $redirect_url, __METHOD__);
                      if (!empty($return_sub_tab)) {
                          $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
+                         oo_log('[RedirectDebug] Appended sub_tab: ' . $redirect_url, __METHOD__);
                      }
                 } else {
+                    oo_log('[RedirectDebug] No matching stream page slug found for tab_slug: ' . $return_to_stream_slug, __METHOD__);
                     // Fallback if tab_slug didn't match, try if $return_to_stream_slug was the page slug itself (less likely for this specific call)
                     foreach ($stream_configs as $s_id => $config) {
                         if (isset($config['slug']) && $config['slug'] === $return_to_stream_slug) {
                             $found_stream_page_slug = $config['slug'];
+                             oo_log('[RedirectDebug] Fallback match on page_slug directly: ' . $found_stream_page_slug, __METHOD__);
                             break;
                         }
                     }
@@ -484,10 +494,15 @@ class OO_Phase {
                         if (!empty($return_sub_tab)) {
                             $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
                         }
+                    } else {
+                        oo_log('[RedirectDebug] Still no match, using default: ' . $redirect_url, __METHOD__);
                     }
                 }
+            } else {
+                oo_log('[RedirectDebug] return_to_stream_slug was empty. Using default: ' . $redirect_url, __METHOD__);
             }
             $redirect_url = add_query_arg(array('message' => 'phase_updated'), $redirect_url); // Add success message regardless
+            oo_log('[RedirectDebug] Final redirect_url before sending: ' . $redirect_url, __METHOD__);
 
             wp_send_json_success( array( 'message' => 'Phase updated successfully.', 'redirect_url' => $redirect_url ) );
         }
@@ -496,17 +511,23 @@ class OO_Phase {
     public static function ajax_toggle_phase_status() {
         oo_log('AJAX call received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
-        check_ajax_referer('oo_toggle_status_nonce', '_ajax_nonce');
-        if ( ! current_user_can( oo_get_capability() ) ) { 
-            oo_log('AJAX Error: Permission denied.', __METHOD__);
-            wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
-        }
+        
         $phase_id = isset( $_POST['phase_id'] ) ? intval( $_POST['phase_id'] ) : 0;
-        $new_status = isset( $_POST['is_active'] ) ? intval( $_POST['is_active'] ) : 0;
         if ( $phase_id <= 0 ) {
             oo_log('AJAX Error: Invalid phase ID: ' . $phase_id, __METHOD__);
             wp_send_json_error( array( 'message' => 'Invalid phase ID.' ) ); return;
         }
+
+        // The nonce was created with 'oo_toggle_phase_status_nonce_' . $phase_id
+        // The JS sends this specific nonce value via $(this).data('nonce') as _ajax_nonce
+        check_ajax_referer( 'oo_toggle_phase_status_nonce_' . $phase_id, '_ajax_nonce' );
+
+        if ( ! current_user_can( oo_get_capability() ) ) { 
+            oo_log('AJAX Error: Permission denied.', __METHOD__);
+            wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
+        }
+
+        $new_status = isset( $_POST['is_active'] ) ? intval( $_POST['is_active'] ) : 0;
         $result = OO_DB::toggle_phase_status( $phase_id, $new_status );
         if ( is_wp_error( $result ) ) {
             oo_log('AJAX Error toggling phase status: ' . $result->get_error_message(), __METHOD__);
