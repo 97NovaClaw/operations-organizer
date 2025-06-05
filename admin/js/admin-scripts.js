@@ -284,9 +284,9 @@ jQuery(document).ready(function($) {
         $kpiRow.show();
 
         $.post(oo_data.ajax_url, {
-            action: 'oo_get_kpis_for_phase_form',
+            action: 'oo_get_phase_kpi_links',
             phase_id: phaseId,
-            _ajax_nonce: oo_data.nonce_dashboard // Using dashboard nonce for now, consider specific if needed
+            _ajax_nonce: oo_data.nonce_get_phase_kpi_links
         }, function(response) {
             $container.empty();
             if (response.success && response.data && response.data.length > 0) {

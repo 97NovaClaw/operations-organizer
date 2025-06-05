@@ -301,23 +301,27 @@ class OO_Admin_Pages { // Renamed class
         } else {
             oo_log('AJAX Success: Job phase started. Log ID: ' . $result, __METHOD__);
             $return_tab = isset($_POST['return_tab']) ? sanitize_key($_POST['return_tab']) : '';
-            $base_redirect_url = admin_url('admin.php?page=oo_dashboard');
-            $final_redirect_url = $base_redirect_url;
-            if (!empty($return_tab)) {
-                // $allowed_tabs = array('content', 'soft_content', 'electronics', 'art', 'overview'); 
-                // Instead of hardcoded tabs, use stream page slugs if possible
+            
+            // Ensure stream_pages_config is loaded
+            $stream_configs = self::get_stream_page_configs_for_redirect();
+            
+            // Default redirect to dashboard
+            $final_redirect_url = admin_url('admin.php?page=oo_dashboard'); 
+
+            if (!empty($return_tab) && !empty($stream_configs)) {
                 $redirect_slug = '';
-                foreach (self::$stream_pages_config as $stream_id_cfg => $cfg) {
-                    if ($cfg['tab_slug'] === $return_tab) {
-                        $redirect_slug = $cfg['slug'];
-                        break;
+                foreach ($stream_configs as $stream_id_cfg => $cfg) {
+                    if (isset($cfg['tab_slug']) && $cfg['tab_slug'] === $return_tab) {
+                        if (isset($cfg['slug'])) {
+                            $redirect_slug = $cfg['slug'];
+                            break;
+                        }
                     }
                 }
                 if (!empty($redirect_slug)) {
                     $final_redirect_url = admin_url('admin.php?page=' . $redirect_slug);
-                } // else, it defaults to $base_redirect_url (which itself is problematic now)
-                // Fallback if tab not found, or make base_redirect_url more generic like settings page
-                 else { $final_redirect_url = admin_url('admin.php?page=' . $settings_parent_slug); }
+                }
+                // If $redirect_slug is still empty after checking configs, it defaults to oo_dashboard.
             }
             wp_send_json_success(['message' => 'Job phase started successfully. Log ID: ' . $result, 'redirect_url' => $final_redirect_url]);
         }
@@ -410,20 +414,28 @@ class OO_Admin_Pages { // Renamed class
         } else {
             oo_log('AJAX Success: Job phase stopped and KPIs recorded.', __METHOD__);
             $return_tab = isset($_POST['return_tab']) ? sanitize_key($_POST['return_tab']) : '';
-            $base_redirect_url = admin_url('admin.php?page=oo_dashboard');
-            $final_redirect_url = $base_redirect_url;
-            if (!empty($return_tab)) {
+
+            // Ensure stream_pages_config is loaded
+            $stream_configs = self::get_stream_page_configs_for_redirect();
+
+            // Default redirect to dashboard
+            $final_redirect_url = admin_url('admin.php?page=oo_dashboard');
+            
+            if (!empty($return_tab) && !empty($stream_configs)) {
                 // $allowed_tabs = array('content', 'soft_content', 'electronics', 'art', 'overview');
                 $redirect_slug = '';
-                foreach (self::$stream_pages_config as $stream_id_cfg => $cfg) {
-                    if ($cfg['tab_slug'] === $return_tab) {
-                        $redirect_slug = $cfg['slug'];
-                        break;
+                foreach ($stream_configs as $stream_id_cfg => $cfg) {
+                    if (isset($cfg['tab_slug']) && $cfg['tab_slug'] === $return_tab) {
+                         if (isset($cfg['slug'])) {
+                            $redirect_slug = $cfg['slug'];
+                            break;
+                        }
                     }
                 }
                  if (!empty($redirect_slug)) {
                     $final_redirect_url = admin_url('admin.php?page=' . $redirect_slug);
-                } else { $final_redirect_url = admin_url('admin.php?page=' . $settings_parent_slug); }
+                }
+                // If $redirect_slug is still empty after checking configs, it defaults to oo_dashboard.
             }
             wp_send_json_success(['message' => 'Job phase stopped and KPIs recorded successfully.', 'redirect_url' => $final_redirect_url]);
         }
