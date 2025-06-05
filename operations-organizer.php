@@ -147,7 +147,8 @@ if ( is_admin() ) {
                 'text_kpi_values' => __( 'KPI Values', 'operations-organizer' ),
                 'all_kpi_measures' => OO_DB::get_kpi_measures(array('is_active' => 1)),
                 'user_content_default_columns' => OO_Admin_Pages::get_user_table_column_defaults('content_stream_table'),
-                'nonces' => array() // Placeholder for dynamically generated nonces if needed later by JS
+                'nonces' => array(), // Placeholder for dynamically generated nonces if needed later by JS
+                'nonce_get_phases' => wp_create_nonce('oo_get_phases_nonce') // Nonce for getting phases for a stream
             );
 
             // Dynamically generate nonces for individual KPI measure toggle/delete actions if needed by JS
@@ -230,6 +231,10 @@ add_action('wp_ajax_oo_update_derived_kpi_definition', array('OO_Derived_KPI', '
 add_action('wp_ajax_oo_toggle_derived_kpi_status', array('OO_Derived_KPI', 'ajax_toggle_derived_kpi_status'));
 add_action('wp_ajax_oo_delete_derived_kpi_definition', array('OO_Derived_KPI', 'ajax_delete_derived_kpi_definition'));
 add_action('wp_ajax_oo_get_derived_kpis_for_stream_html', array('OO_Derived_KPI', 'ajax_get_derived_kpis_for_stream_html'));
+
+// New AJAX handlers for phase linking in KPI modals
+add_action('wp_ajax_oo_get_phases_for_stream', array('OO_Phase', 'ajax_get_phases_for_stream'));
+add_action('wp_ajax_oo_get_phase_links_for_kpi_in_stream', array('OO_Phase', 'ajax_get_phase_links_for_kpi_in_stream'));
 
 /**
  * Initialize hardcoded streams in the database.

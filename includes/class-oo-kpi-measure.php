@@ -29,12 +29,51 @@ class OO_KPI_Measure {
         $args['unit_type'] = isset( $_POST['unit_type'] ) ? sanitize_text_field( $_POST['unit_type'] ) : 'integer';
         $args['is_active'] = isset( $_POST['is_active'] ) ? 1 : 0;
 
+        // Mandatory phase linking check
+        $link_to_phases = isset($_POST['link_to_phases']) && is_array($_POST['link_to_phases']) ? array_map('intval', $_POST['link_to_phases']) : array();
+        $stream_id_context = isset($_POST['stream_id_context']) ? intval($_POST['stream_id_context']) : 0;
+
+        if (empty($link_to_phases)) {
+            // This server-side check is a fallback; JS should prevent this.
+            // However, we also need to consider if there were any phases available to link to for that stream.
+            $phases_in_stream_for_linking = array();
+            if ($stream_id_context > 0) {
+                 $phases_in_stream_for_linking = OO_DB::get_phases(array(
+                    'stream_id' => $stream_id_context,
+                    'is_active' => 1, 
+                    'number' => 1 // Just need to know if at least one exists
+                ));
+            }
+            if (!empty($phases_in_stream_for_linking)) {
+                wp_send_json_error( array( 'message' => __( 'Please link this KPI to at least one phase in the current stream.', 'operations-organizer' ) ) );
+                return;
+            }
+            // If no active phases were available for linking in the stream, we might allow creation without links, or handle as a specific setup issue.
+            // For now, if phases were available, linking is mandatory.
+        }
+
         $result = OO_DB::add_kpi_measure( $args );
 
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         } else {
-            wp_send_json_success( array( 'message' => __( 'KPI Measure added successfully.', 'operations-organizer' ), 'kpi_measure_id' => $result ) );
+            $new_kpi_measure_id = $result;
+            // Link to selected phases
+            if ($new_kpi_measure_id > 0 && !empty($link_to_phases)) {
+                foreach ($link_to_phases as $phase_id) {
+                    if ($phase_id > 0) {
+                        OO_DB::add_phase_kpi_link(array(
+                            'phase_id' => $phase_id,
+                            'kpi_measure_id' => $new_kpi_measure_id,
+                            'is_mandatory' => 0, // Default for new links from here
+                            'display_order' => 0   // Default for new links from here
+                        ));
+                        oo_log('[KPI Add] Attempted to link KPI ID ' . $new_kpi_measure_id . ' to Phase ID ' . $phase_id . ' in Stream ID ' . $stream_id_context, __METHOD__); // DEBUG
+                        // Error handling for add_phase_kpi_link can be added if needed
+                    }
+                }
+            }
+            wp_send_json_success( array( 'message' => __( 'KPI Measure added and linked successfully.', 'operations-organizer' ), 'kpi_measure_id' => $new_kpi_measure_id ) );
         }
     }
 
@@ -93,6 +132,53 @@ class OO_KPI_Measure {
         } else {
             // $result from OO_DB::update_kpi_measure is true/false or WP_Error.
             if ($result === true) {
+                // Handle phase linking reconciliation for the current stream context
+                $stream_id_context = isset($_POST['stream_id_context']) ? intval($_POST['stream_id_context']) : 0;
+                $selected_phase_ids_for_linking = isset($_POST['link_to_phases']) && is_array($_POST['link_to_phases']) ? array_map('intval', $_POST['link_to_phases']) : array();
+
+                if ($kpi_measure_id > 0 && $stream_id_context > 0) {
+                    // Get currently linked phases for this KPI in this stream
+                    $existing_links_raw = OO_DB::get_phase_kpi_links_for_phase($stream_id_context, array('join_measures' => true, 'active_only' => null));
+                    $currently_linked_phase_ids_in_stream = array();
+                    if (is_array($existing_links_raw)) {
+                        foreach ($existing_links_raw as $link) {
+                            if ($link->kpi_measure_id == $kpi_measure_id) {
+                                $currently_linked_phase_ids_in_stream[] = $link->phase_id;
+                            }
+                        }
+                    }
+                    $currently_linked_phase_ids_in_stream = array_unique($currently_linked_phase_ids_in_stream);
+
+                    // Phases to add: in selected_phase_ids_for_linking but not in currently_linked_phase_ids_in_stream
+                    $phases_to_add_link = array_diff($selected_phase_ids_for_linking, $currently_linked_phase_ids_in_stream);
+                    foreach ($phases_to_add_link as $phase_id_to_add) {
+                        OO_DB::add_phase_kpi_link(array(
+                            'phase_id' => $phase_id_to_add,
+                            'kpi_measure_id' => $kpi_measure_id,
+                            'is_mandatory' => 0, 
+                            'display_order' => 0
+                        ));
+                    }
+
+                    // Phases to remove: in currently_linked_phase_ids_in_stream but not in selected_phase_ids_for_linking
+                    $phases_to_remove_link = array_diff($currently_linked_phase_ids_in_stream, $selected_phase_ids_for_linking);
+                    if (!empty($phases_to_remove_link)) {
+                        foreach ($existing_links_raw as $link) { // Need link_id to delete
+                            if ($link->kpi_measure_id == $kpi_measure_id && in_array($link->phase_id, $phases_to_remove_link)) {
+                                OO_DB::delete_phase_kpi_link($link->link_id);
+                            }
+                        }
+                    }
+                }
+
+                // Auto-deactivation logic
+                $all_links_for_kpi = OO_DB::get_phase_kpi_links_by_measure($kpi_measure_id, array('join_phases' => false)); // Get all links across all streams
+                if (empty($all_links_for_kpi) && $args['is_active'] == 1) { // Only deactivate if it was active
+                    OO_DB::toggle_kpi_measure_status($kpi_measure_id, 0);
+                    wp_send_json_success( array( 'message' => __( 'KPI Measure updated. All phase links removed, KPI automatically deactivated.', 'operations-organizer' ) ) );
+                    return;
+                }
+
                  wp_send_json_success( array( 'message' => __( 'KPI Measure updated successfully.', 'operations-organizer' ) ) );
             } else {
                 // This case might indicate 0 rows affected but no $wpdb->error, or an unhandled WP_Error.

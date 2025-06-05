@@ -826,63 +826,74 @@ class OO_Phase {
     }
 
     /**
-     * AJAX handler to get active, linked KPI measures for a specific phase, for use in forms.
+     * AJAX handler to get active phases for a specific stream.
+     * Used to populate checklists in modals.
      */
-    public static function ajax_get_kpis_for_phase_form() {
-        oo_log('AJAX call: ajax_get_kpis_for_phase_form', __METHOD__);
-        // It's good practice to have a specific nonce for each distinct AJAX action.
-        // However, if this is purely for display and non-critical, a general one might be acceptable temporarily.
-        // For now, let's assume a general nonce or one that is already available for forms.
-        // Replace 'oo_dashboard_nonce' with a more specific one if created (e.g., 'oo_get_form_kpis_nonce')
-        check_ajax_referer('oo_dashboard_nonce', '_ajax_nonce'); 
+    public static function ajax_get_phases_for_stream() {
+        check_ajax_referer( 'oo_get_phases_nonce', '_ajax_nonce' ); // Assumes a general 'get_phases_nonce'
 
-        if ( ! current_user_can( oo_get_form_access_capability() ) ) { // Using form access capability
-            wp_send_json_error( ['message' => 'Permission denied.'], 403 );
+        if ( ! current_user_can( 'manage_options' ) ) { // Or a capability to view phases
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'operations-organizer' ) ), 403 );
             return;
         }
 
-        $phase_id = isset( $_POST['phase_id'] ) ? intval( $_POST['phase_id'] ) : 0;
-        if ( $phase_id <= 0 ) {
-            wp_send_json_error( ['message' => 'Invalid Phase ID.'] );
+        $stream_id = isset( $_POST['stream_id'] ) ? intval( $_POST['stream_id'] ) : 0;
+        if ( $stream_id <= 0 ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid Stream ID.', 'operations-organizer' ) ) );
             return;
         }
 
-        // First, get the phase to check its `includes_kpi` flag
-        $phase = OO_DB::get_phase($phase_id);
-        if (!$phase || !$phase->includes_kpi) {
-            oo_log('Phase ID ' . $phase_id . ' does not include KPIs or not found.', __METHOD__);
-            wp_send_json_success( [] ); // Return empty array if phase doesn't use KPIs
+        $phases = OO_DB::get_phases(array(
+            'stream_id' => $stream_id,
+            'is_active' => 1, // Only active phases for selection
+            'number'    => -1,
+            'orderby'   => 'order_in_stream',
+            'order'     => 'ASC'
+        ));
+
+        if (is_array($phases)) {
+            wp_send_json_success( array( 'phases' => $phases ) );
+        } else {
+            wp_send_json_error( array( 'message' => __( 'Could not retrieve phases for the stream.', 'operations-organizer' ) ) );
+        }
+    }
+
+    /**
+     * AJAX handler to get phase IDs a specific KPI is linked to within a specific stream.
+     */
+    public static function ajax_get_phase_links_for_kpi_in_stream() {
+        check_ajax_referer( 'oo_get_phase_kpi_links_nonce', '_ajax_nonce' ); // Reuse existing nonce
+
+        if ( ! current_user_can( 'manage_options' ) ) { // Or a capability to view links
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'operations-organizer' ) ), 403 );
             return;
         }
 
-        // Get linked KPI measures, already joined with kpi_measures table
-        // Ensure they are ordered by display_order
-        $linked_kpis = OO_DB::get_phase_kpi_links_for_phase( $phase_id, [
-            'join_measures' => true, 
-            'orderby' => 'pkm.display_order', 
-            'order' => 'ASC'
-        ] );
+        $kpi_measure_id = isset( $_POST['kpi_measure_id'] ) ? intval( $_POST['kpi_measure_id'] ) : 0;
+        $stream_id = isset( $_POST['stream_id'] ) ? intval( $_POST['stream_id'] ) : 0;
+
+        if ( $kpi_measure_id <= 0 || $stream_id <= 0 ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid KPI Measure ID or Stream ID.', 'operations-organizer' ) ) );
+            return;
+        }
+
+        $linked_phases_data = OO_DB::get_phase_kpi_links_for_phase( $stream_id, array(
+            'join_measures' => true, // We need kpi_measure_id from the join to filter
+            'active_only' => null // Get all links, regardless of KPI active status, just for the specific KPI ID
+        ) ); 
         
-        $active_form_kpis = array();
-        if (is_array($linked_kpis)) {
-            foreach ($linked_kpis as $link) {
-                // Ensure the linked KPI measure itself is active
-                if (isset($link->is_active) && $link->is_active == 1) {
-                    // We only need specific fields for the form
-                    $active_form_kpis[] = array(
-                        'kpi_measure_id' => $link->kpi_measure_id,
-                        'measure_key'    => $link->measure_key,
-                        'measure_name'   => $link->measure_name,
-                        'unit_type'      => $link->unit_type,
-                        'is_mandatory'   => $link->is_mandatory,
-                        // 'display_order' => $link->display_order, // Not strictly needed by form rendering logic itself
-                    );
+        $linked_phase_ids = array();
+        if (is_array($linked_phases_data)) {
+            foreach ($linked_phases_data as $link) {
+                if ($link->kpi_measure_id == $kpi_measure_id) {
+                    $linked_phase_ids[] = $link->phase_id;
                 }
             }
         }
-        
-        oo_log('Fetched ' . count($active_form_kpis) . ' active KPI(s) for phase ID ' . $phase_id . ' for form.', $active_form_kpis);
-        wp_send_json_success( $active_form_kpis );
+        // Ensure unique IDs, though DISTINCT in SQL might be better if query was direct
+        $linked_phase_ids = array_unique($linked_phase_ids);
+
+        wp_send_json_success( array( 'linked_phase_ids' => array_values($linked_phase_ids) ) ); // Re-index array
     }
 
     public static function ajax_delete_phase() {
