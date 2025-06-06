@@ -143,116 +143,13 @@ jQuery(document).ready(function($) {
     // Update button state when employee number input changes
     employeeNumberInputStop.on('input', updateStopButtonState);
 
-    // Function to load and display KPI fields for the current phase
-    function loadPhaseKpiFields() {
-        console.log('=== KPI FIELD LOADING DEBUG ===');
-        console.log('phpFormDisabledStop:', phpFormDisabledStop);
-        console.log('phaseIdGet:', phaseIdGet);
-        
-        if (phpFormDisabledStop || !phaseIdGet || phaseIdGet <= 0) {
-            console.log('KPI loading stopped - form disabled or invalid phase ID');
-            kpiFieldsContainer.html('<p><?php echo esc_js(__('KPI fields cannot be loaded. Ensure Phase ID is valid.', 'operations-organizer')); ?></p>');
-            return;
-        }
-
-        console.log('Starting KPI field loading for phase:', phaseIdGet);
-        kpiFieldsContainer.html('<p><?php echo esc_js(__('Loading KPI fields...', 'operations-organizer')); ?></p>');
-
-        $.post(oo_data.ajax_url, {
-            action: 'oo_get_phase_kpi_links',
-            phase_id: phaseIdGet,
-            _ajax_nonce: oo_data.nonce_get_phase_kpi_links 
-        }, function(response) {
-            console.log('=== AJAX RESPONSE ===');
-            console.log('Full response:', response);
-            console.log('Success:', response.success);
-            console.log('Data:', response.data);
-            console.log('Data length:', response.data ? response.data.length : 'no data');
-            
-            kpiFieldsContainer.empty();
-            if (response.success && response.data && response.data.length > 0) {
-                console.log('Processing', response.data.length, 'KPI fields');
-                
-                // Create a container for the KPI fields
-                var kpiFieldsHtml = '<div class="oo-kpi-fields-wrapper">';
-                
-                $.each(response.data, function(index, kpi) {
-                    console.log('Processing KPI:', kpi);
-                    
-                    if (!kpi.measure_key || !kpi.measure_name) {
-                        console.log('Skipping KPI - missing key or name:', kpi);
-                        return;
-                    }
-
-                    var inputFieldHtml = '';
-                    var inputId = 'kpi_stop_' + kpi.measure_key;
-                    var inputName = 'kpi_values[' + kpi.measure_key + ']';
-                    var label = esc_html(kpi.measure_name) + (kpi.is_mandatory == 1 ? ' <span class="required" style="color: red;">*</span>' : '');
-
-                    console.log('Creating field - ID:', inputId, 'Name:', inputName, 'Type:', kpi.unit_type);
-
-                    switch (kpi.unit_type) {
-                        case 'integer':
-                        case 'decimal':
-                            inputFieldHtml = '<input type="number" id="' + inputId + '" name="' + inputName + '" ' + 
-                                           (kpi.unit_type === 'decimal' ? 'step="0.01"' : 'step="1"') + ' min="0" ' + 
-                                           (kpi.is_mandatory == 1 ? 'required' : '') + ' class="regular-text" />';
-                            break;
-                        case 'text':
-                            inputFieldHtml = '<textarea id="' + inputId + '" name="' + inputName + '" rows="2" class="widefat" ' + 
-                                           (kpi.is_mandatory == 1 ? 'required' : '') + '></textarea>';
-                            break;
-                        case 'boolean':
-                            inputFieldHtml = '<input type="checkbox" id="' + inputId + '" name="' + inputName + '" value="1" /> ' + 
-                                           '<label for="' + inputId + '"><?php echo esc_js(__("Yes", "operations-organizer")); ?></label>';
-                            break;
-                        default:
-                            inputFieldHtml = '<input type="text" id="' + inputId + '" name="' + inputName + '" ' + 
-                                           (kpi.is_mandatory == 1 ? 'required' : '') + ' class="regular-text" />';
-                    }
-
-                    kpiFieldsHtml += '<div class="oo-kpi-field-row" style="margin-bottom: 15px;" data-kpi-key="' + kpi.measure_key + '">' +
-                                    '<label for="' + inputId + '" style="display: block; font-weight: bold; margin-bottom: 5px;">' + label + '</label>' +
-                                    inputFieldHtml +
-                                    '</div>';
-                });
-                
-                kpiFieldsHtml += '</div>';
-                console.log('Generated KPI HTML:', kpiFieldsHtml);
-                kpiFieldsContainer.html(kpiFieldsHtml);
-                console.log('KPI fields inserted into container');
-            } else {
-                console.log('No KPI fields to display or error occurred');
-                if (response.data && response.data.length === 0) {
-                    console.log('Zero KPI links found for this phase');
-                    kpiFieldsContainer.html('<p style="color: orange; font-weight: bold;"><?php echo esc_js(__('No specific KPIs are configured for this phase.', 'operations-organizer')); ?></p>');
-                } else {
-                    console.log('Error loading KPI fields:', response);
-                    kpiFieldsContainer.html('<p style="color: red; font-weight: bold;"><?php echo esc_js(__('Could not load KPI fields for this phase.', 'operations-organizer')); ?></p>');
-                    if(response.data && response.data.message) console.error("Error loading KPI fields:", response.data.message);
-                }
-            }
-        }).fail(function(xhr, status, error) {
-            console.error('=== AJAX FAILED ===');
-            console.error('Status:', status);
-            console.error('Error:', error);
-            console.error('Response:', xhr.responseText);
-            kpiFieldsContainer.html('<p style="color: red; font-weight: bold;"><?php echo esc_js(__('Failed to load KPI fields.', 'operations-organizer')); ?> Error: ' + esc_html(status) + '</p>');
-        });
-    }
-    
-    // Helper function for escaping HTML in JS
+    // Helper function for escaping HTML in JS (if needed by other inline JS, otherwise can be removed if this was the only user)
+    // For now, let's assume it might be used elsewhere or was just part of the KPI loading.
+    // If you confirm it's not needed, we can remove it too.
     function esc_html(str) {
         var p = document.createElement("p");
         p.appendChild(document.createTextNode(str));
         return p.innerHTML;
-    }
-
-    // Load KPI fields on page load if phase ID is present
-    if (phaseIdGet > 0 && !phpFormDisabledStop) {
-        loadPhaseKpiFields();
-    } else {
-        kpiFieldsContainer.html('<p><?php echo esc_js(__('No phase ID provided or form is disabled.', 'operations-organizer')); ?></p>');
     }
 
     // AJAX submission is in admin-scripts.js

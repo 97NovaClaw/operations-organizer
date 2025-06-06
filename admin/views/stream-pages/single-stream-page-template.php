@@ -195,6 +195,22 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
                         </tbody>
                     </table>
             
+                    <!-- KPI Column Selector Modal for Stream Page -->
+                    <div id="kpi-column-selector-modal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
+                        <div class="oo-modal-content" style="width: 600px; max-width: 90%;">
+                            <span class="oo-modal-close">&times;</span>
+                            <h2><?php esc_html_e('Choose Columns to Display', 'operations-organizer'); ?></h2>
+                            <div id="kpi-column-list-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" style="max-height: 400px; overflow-y: auto; margin-bottom: 15px; border: 1px solid #ddd; padding: 10px;">
+                                <!-- Checkboxes will be populated here by JavaScript -->
+                                <p><?php esc_html_e('Loading columns...', 'operations-organizer'); ?></p>
+                            </div>
+                            <button id="apply_selected_kpi_columns_stream_<?php echo esc_attr($current_stream_tab_slug); ?>" class="button button-primary"><?php esc_html_e('Apply Columns', 'operations-organizer'); ?></button>
+                            <button id="kpi_selector_select_all_stream_<?php echo esc_attr($current_stream_tab_slug); ?>" class="button button-secondary" style="margin-left:10px;"><?php esc_html_e('Select All', 'operations-organizer'); ?></button>
+                            <button id="kpi_selector_deselect_all_stream_<?php echo esc_attr($current_stream_tab_slug); ?>" class="button button-secondary" style="margin-left:5px;"><?php esc_html_e('Deselect All', 'operations-organizer'); ?></button>
+                        </div>
+                    </div>
+                    <!-- End KPI Column Selector Modal for Stream Page -->
+
                     <!-- Add modal dialog for editing job logs -->
                     <div id="edit-log-modal" class="oo-modal">
                         <div class="oo-modal-content">
@@ -2171,6 +2187,39 @@ jQuery(document).ready(function($) {
 
     // --- Start of Job Logs Table JS (already moved and adapted) ---
 // ... existing code ...
+
+    // --- KPI Column Selector Modal - Open/Close Logic for Stream Page ---
+    // This block is specifically for the modal added for column selection on the stream dashboard.
+    (function() { // IIFE to scope variables
+        var streamSlugForModal = '<?php echo esc_js($current_stream_tab_slug); ?>';
+        var $modal = $('#kpi-column-selector-modal-stream-' + streamSlugForModal);
+        var $listContainer = $('#kpi-column-list-stream-' + streamSlugForModal);
+
+        if ($modal.length === 0) {
+            // console.warn('KPI Column Selector Modal not found for stream: ' + streamSlugForModal);
+            return; // Modal HTML not present, do nothing.
+        }
+
+        // Open Modal
+        $('#content_open_kpi_selector_modal').on('click', function() {
+            // Placeholder content for now, will be replaced by populateKpiColumnSelectorModal_StreamPage() later
+            $listContainer.html('<p><?php echo esc_js(__("Column selection options will load here.", "operations-organizer")); ?></p>');
+            $modal.show();
+        });
+
+        // Close Modal via X button
+        $modal.on('click', '.oo-modal-close', function() {
+            $modal.hide();
+        });
+
+        // Close Modal by clicking on the backdrop
+        $(window).on('click', function(event) {
+            if ($(event.target).is($modal)) {
+                $modal.hide();
+            }
+        });
+    })();
+    // --- End KPI Column Selector Modal - Open/Close Logic ---
 
 });
 </script> 
