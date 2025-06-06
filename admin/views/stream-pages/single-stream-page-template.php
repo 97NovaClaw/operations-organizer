@@ -2201,6 +2201,10 @@ jQuery(document).ready(function($) {
         // --- Start: Column Preferences Logic ---
         var streamColumnMetaKey = 'oo_stream_dashboard_columns_<?php echo esc_js($current_stream_tab_slug); ?>';
         
+        // DEBUG: Log the data received from the server and the key we will use to save.
+        console.log('[Column Prefs] Received from server oo_data.user_stream_default_columns:', oo_data.user_stream_default_columns);
+        console.log('[Column Prefs] Key that will be used for saving:', streamColumnMetaKey);
+
         let initialDefaultColumns = (oo_data.user_stream_default_columns && oo_data.user_stream_default_columns.length > 0) 
                                     ? oo_data.user_stream_default_columns 
                                     : [];

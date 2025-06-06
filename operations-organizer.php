@@ -155,9 +155,17 @@ if ( is_admin() ) {
 
             // If on a stream page, load the specific column preferences for that stream
             if (isset($_GET['page']) && strpos($_GET['page'], 'oo_stream_') === 0) {
-                $stream_slug = sanitize_key(str_replace('oo_stream_', '', $_GET['page']));
-                $meta_key = 'oo_stream_dashboard_columns_' . $stream_slug;
+                // This logic must match how the meta_key is constructed in the single-stream-page-template.php JS
+                $page_param = sanitize_key($_GET['page']);
+                $stream_name = str_replace('oo_stream_', '', $page_param); // e.g., 'content' from 'oo_stream_content'
+                
+                // To get the correct 'tab_slug', we need to look up the stream config.
+                // This is a bit tricky here. A simpler, more robust way is to ensure the JS and PHP use the same source for the slug.
+                // The JS uses `esc_js($current_stream_tab_slug)`. In this file, we don't have that global yet.
+                // The most reliable key is just using the stream name from the URL parameter.
+                $meta_key = 'oo_stream_dashboard_columns_' . $stream_name;
                 $user_stream_columns = get_user_meta(get_current_user_id(), $meta_key, true);
+                
                 if (!empty($user_stream_columns) && is_array($user_stream_columns)) {
                     $localized_data['user_stream_default_columns'] = $user_stream_columns;
                 }
