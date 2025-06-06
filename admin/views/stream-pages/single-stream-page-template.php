@@ -2190,10 +2190,82 @@ jQuery(document).ready(function($) {
 
     // --- KPI Column Selector Modal - Open/Close Logic for Stream Page ---
     // This block is specifically for the modal added for column selection on the stream dashboard.
-    (function() { // IIFE to scope variables
+    (function() { // IIFE for dashboard logic
         var streamSlugForModal = '<?php echo esc_js($current_stream_tab_slug); ?>';
         var $modal = $('#kpi-column-selector-modal-stream-' + streamSlugForModal);
         var $listContainer = $('#kpi-column-list-stream-' + streamSlugForModal);
+        var $saveDefaultButton = $('#save_content_columns_as_default');
+        var $defaultSavedMsg = $('#content_columns_default_saved_msg');
+        var contentDashboardTable; // To hold the DataTable instance
+
+        // --- Start: Column Preferences Logic ---
+        var streamColumnMetaKey = 'oo_stream_dashboard_columns_<?php echo esc_js($current_stream_tab_slug); ?>';
+        <?php
+            $stream_column_meta_key = 'oo_stream_dashboard_columns_' . $current_stream_tab_slug;
+            $user_stream_default_columns = get_user_meta(get_current_user_id(), $stream_column_meta_key, true);
+            if (empty($user_stream_default_columns) || !is_array($user_stream_default_columns)) {
+                $user_stream_default_columns = array(); 
+            }
+        ?>
+        let initialDefaultColumns = <?php echo json_encode($user_stream_default_columns); ?>;
+
+        function getFactoryDefaultColumns() {
+            return getInitialContentColumns_StreamPage().map(function(col) {
+                return { type: 'standard', key: col.data, name: col.title };
+            });
+        }
+
+        if (!initialDefaultColumns || initialDefaultColumns.length === 0) {
+            window.contentSelectedKpiObjects = getFactoryDefaultColumns();
+            initialDefaultColumns = getFactoryDefaultColumns(); // The baseline for comparison is now the factory default
+        } else {
+            window.contentSelectedKpiObjects = JSON.parse(JSON.stringify(initialDefaultColumns));
+        }
+
+        function checkColumnChangesAndToggleSaveButton() {
+            const normalize = (arr) => JSON.stringify(
+                arr.map(o => ({
+                    t: o.type, // t for type
+                    v: o.type === 'derived' ? o.id.toString() : o.key // v for value/key/id
+                })).sort((a, b) => a.v.localeCompare(b.v))
+            );
+
+            var currentSelectionNormalized = normalize(window.contentSelectedKpiObjects);
+            var defaultSelectionNormalized = normalize(initialDefaultColumns);
+            
+            if (currentSelectionNormalized !== defaultSelectionNormalized) {
+                $saveDefaultButton.show();
+            } else {
+                $saveDefaultButton.hide();
+            }
+            $defaultSavedMsg.hide(); 
+        }
+
+        $saveDefaultButton.on('click', function(){
+            var $button = $(this);
+            $button.prop('disabled', true).text('<?php echo esc_js(__("Saving...", "operations-organizer")); ?>');
+
+            $.post(oo_data.ajax_url, {
+                action: 'oo_save_user_column_preference',
+                _ajax_nonce: oo_data.nonce_save_column_prefs,
+                meta_key: streamColumnMetaKey,
+                columns: window.contentSelectedKpiObjects
+            }, function(response) {
+                if (response.success) {
+                    $defaultSavedMsg.fadeIn().delay(2000).fadeOut();
+                    $button.hide(); // Hide after successful save
+                    initialDefaultColumns = JSON.parse(JSON.stringify(window.contentSelectedKpiObjects));
+                } else {
+                    showNotice('error', response.data.message || '<?php echo esc_js(__("Could not save preference.", "operations-organizer")); ?>');
+                }
+            }).fail(function() {
+                showNotice('error', '<?php echo esc_js(__("Request to save preference failed.", "operations-organizer")); ?>');
+            }).always(function() {
+                $button.prop('disabled', false).text('<?php echo esc_js(__("Save as Default", "operations-organizer")); ?>');
+            });
+        });
+        // --- End: Column Preferences Logic ---
+
 
         if ($modal.length === 0) {
             return; // Modal HTML not present, do nothing.
@@ -2217,26 +2289,18 @@ jQuery(document).ready(function($) {
                 var streamPrimaryKpis = (primaryKpisResponse[0] && primaryKpisResponse[0].success) ? primaryKpisResponse[0].data.kpis : [];
                 var streamDerivedKpis = (derivedKpisResponse[0] && derivedKpisResponse[0].success) ? derivedKpisResponse[0].data.definitions : [];
                 
-                // --- Start: Data Restructuring for Hierarchical View ---
                 var kpiHierarchy = {};
-
-                // 1. Initialize with all primary KPIs relevant to the stream
                 streamPrimaryKpis.forEach(function(p_kpi) {
                     kpiHierarchy[p_kpi.kpi_measure_id] = {
                         primary: p_kpi,
                         derived: []
                     };
                 });
-
-                // 2. Slot derived KPIs into their primary's 'derived' array
                 streamDerivedKpis.forEach(function(d_kpi) {
                     if (kpiHierarchy[d_kpi.primary_kpi_measure_id]) {
                         kpiHierarchy[d_kpi.primary_kpi_measure_id].derived.push(d_kpi);
                     }
-                    // Note: This logic assumes derived KPIs will always have a primary KPI present in the stream.
                 });
-                // --- End: Data Restructuring ---
-
 
                 $listContainer.empty();
                 var columnsHtml = '<h4><?php echo esc_js(__("Standard Columns", "operations-organizer")); ?></h4>';
@@ -2247,24 +2311,15 @@ jQuery(document).ready(function($) {
                     columnsHtml += `<div><label><input type="checkbox" name="kpi_column_select_stream" value="${col.data}" data-col-name="${esc_html(col.title)}" data-col-type="standard" ${isChecked ? 'checked' : ''}> ${esc_html(col.title)}</label></div>`;
                 });
 
-                var rawJsonChecked = window.contentSelectedKpiObjects.some(selCol => selCol.key === 'kpi_data_raw' && selCol.type === 'raw_json');
-                columnsHtml += '<h4><?php echo esc_js(__("Advanced", "operations-organizer")); ?></h4>';
-                columnsHtml += `<div><label><input type="checkbox" name="kpi_column_select_stream" value="kpi_data_raw" data-col-name="<?php echo esc_js(__("Raw KPI Data (JSON)", "operations-organizer")); ?>" data-col-type="raw_json" ${rawJsonChecked ? 'checked' : ''}> <?php echo esc_js(__("Raw KPI Data (JSON)", "operations-organizer")); ?></label></div>`;
-
-                // --- Start: Render Hierarchical View ---
                 if (Object.keys(kpiHierarchy).length > 0) {
                     columnsHtml += '<h4 style="margin-top:15px;"><?php echo esc_js(__("KPI Columns (Stream Relevant)", "operations-organizer")); ?></h4>';
-                    
                     for (var kpiId in kpiHierarchy) {
                         if (kpiHierarchy.hasOwnProperty(kpiId)) {
                             var item = kpiHierarchy[kpiId];
                             var p_kpi = item.primary;
-                            
-                            // Render the Primary KPI
                             var isPChecked = window.contentSelectedKpiObjects.some(selCol => selCol.key === p_kpi.measure_key && selCol.type === 'primary');
                             columnsHtml += `<div style="font-weight: bold;"><label><input type="checkbox" name="kpi_column_select_stream" value="${p_kpi.measure_key}" data-kpi-id="${p_kpi.kpi_measure_id}" data-col-name="${esc_html(p_kpi.measure_name)}" data-col-type="primary" ${isPChecked ? 'checked' : ''}> ${esc_html(p_kpi.measure_name)} (<code>${esc_html(p_kpi.measure_key)}</code>)</label></div>`;
 
-                            // Render its Derived KPIs, indented
                             if (item.derived.length > 0) {
                                 item.derived.forEach(function(d_kpi) {
                                     var isDChecked = window.contentSelectedKpiObjects.some(selCol => selCol.id === d_kpi.derived_definition_id.toString() && selCol.type === 'derived');
@@ -2273,12 +2328,14 @@ jQuery(document).ready(function($) {
                             }
                         }
                     }
-                } else {
-                     columnsHtml += '<p><?php echo esc_js(__("No primary or derived KPIs found for this stream.", "operations-organizer")); ?></p>';
                 }
-                // --- End: Render Hierarchical View ---
+
+                var rawJsonChecked = window.contentSelectedKpiObjects.some(selCol => selCol.key === 'kpi_data_raw' && selCol.type === 'raw_json');
+                columnsHtml += '<h4 style="margin-top: 15px;"><?php echo esc_js(__("Advanced", "operations-organizer")); ?></h4>';
+                columnsHtml += `<div><label><input type="checkbox" name="kpi_column_select_stream" value="kpi_data_raw" data-col-name="<?php echo esc_js(__("Raw KPI Data (JSON)", "operations-organizer")); ?>" data-col-type="raw_json" ${rawJsonChecked ? 'checked' : ''}> <?php echo esc_js(__("Raw KPI Data (JSON)", "operations-organizer")); ?></label></div>`;
 
                 $listContainer.html(columnsHtml);
+                $listContainer.css('padding-bottom', '20px');
                 updateSelectedKpiCount_StreamPage();
             }).fail(function(jqXHR, textStatus, errorThrown) {
                 console.error("Error loading KPI/column data for modal:", textStatus, errorThrown, jqXHR.responseText);
@@ -2325,6 +2382,11 @@ jQuery(document).ready(function($) {
             updateSelectedKpiCount_StreamPage();
         });
 
+        function updateSelectedKpiCount_StreamPage() {
+            var count = $listContainer.find('input[name="kpi_column_select_stream"]:checked').length;
+            $('#content_selected_kpi_count').text(count + ' columns selected');
+        }
+
         // Close Modal via X button
         $modal.on('click', '.oo-modal-close', function() {
             $modal.hide();
@@ -2336,6 +2398,8 @@ jQuery(document).ready(function($) {
                 $modal.hide();
             }
         });
+
+        reinitializeContentDashboardTable_StreamPage(); // Initial load of the table
     })();
     // --- End KPI Column Selector Modal - Open/Close Logic ---
 
