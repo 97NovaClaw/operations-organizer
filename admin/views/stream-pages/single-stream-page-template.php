@@ -2196,15 +2196,102 @@ jQuery(document).ready(function($) {
         var $listContainer = $('#kpi-column-list-stream-' + streamSlugForModal);
 
         if ($modal.length === 0) {
-            // console.warn('KPI Column Selector Modal not found for stream: ' + streamSlugForModal);
             return; // Modal HTML not present, do nothing.
+        }
+
+        function populateKpiColumnSelectorModal() {
+            $listContainer.html('<p><?php echo esc_js(__("Loading columns...", "operations-organizer")); ?></p>');
+
+            $.when(
+                $.post(oo_data.ajax_url, { 
+                    action: 'oo_get_kpi_measures', 
+                    _ajax_nonce: oo_data.nonce_get_kpi_measures,
+                    is_active: 1, 
+                    number: -1 
+                }),
+                $.post(oo_data.ajax_url, { 
+                    action: 'oo_get_json_derived_kpi_definitions',
+                    stream_id: <?php echo intval($current_stream_id); ?>,
+                    _ajax_nonce: oo_data.nonce_get_derived_kpis
+                })
+            ).done(function(primaryKpisResponse, derivedKpisResponse) {
+                var allPrimaryKpis = (primaryKpisResponse[0] && primaryKpisResponse[0].success) ? primaryKpisResponse[0].data : [];
+                var allDerivedKpis = (derivedKpisResponse[0] && derivedKpisResponse[0].success) ? derivedKpisResponse[0].data.definitions : [];
+                
+                $listContainer.empty();
+                var columnsHtml = '<h4><?php echo esc_js(__("Standard Columns", "operations-organizer")); ?></h4>';
+                
+                var standardColumns = getInitialContentColumns_StreamPage();
+                standardColumns.forEach(function(col) {
+                    var isChecked = window.contentSelectedKpiObjects.some(selCol => selCol.key === col.data && selCol.type === 'standard');
+                    columnsHtml += `<div><label><input type="checkbox" name="kpi_column_select_stream" value="${col.data}" data-col-name="${esc_html(col.title)}" data-col-type="standard" ${isChecked ? 'checked' : ''}> ${esc_html(col.title)}</label></div>`;
+                });
+
+                var rawJsonChecked = window.contentSelectedKpiObjects.some(selCol => selCol.key === 'kpi_data_raw' && selCol.type === 'raw_json');
+                columnsHtml += '<h4><?php echo esc_js(__("Advanced", "operations-organizer")); ?></h4>';
+                columnsHtml += `<div><label><input type="checkbox" name="kpi_column_select_stream" value="kpi_data_raw" data-col-name="<?php echo esc_js(__("Raw KPI Data (JSON)", "operations-organizer")); ?>" data-col-type="raw_json" ${rawJsonChecked ? 'checked' : ''}> <?php echo esc_js(__("Raw KPI Data (JSON)", "operations-organizer")); ?></label></div>`;
+
+                if (allPrimaryKpis.length > 0) {
+                    columnsHtml += '<h4><?php echo esc_js(__("Primary KPI Measures", "operations-organizer")); ?></h4>';
+                    allPrimaryKpis.forEach(function(kpi) {
+                        var isChecked = window.contentSelectedKpiObjects.some(selCol => selCol.key === kpi.measure_key && selCol.type === 'primary');
+                        columnsHtml += `<div><label><input type="checkbox" name="kpi_column_select_stream" value="${kpi.measure_key}" data-kpi-id="${kpi.kpi_measure_id}" data-col-name="${esc_html(kpi.measure_name)}" data-col-type="primary" ${isChecked ? 'checked' : ''}> ${esc_html(kpi.measure_name)} (<code>${esc_html(kpi.measure_key)}</code>)</label></div>`;
+                    });
+                }
+
+                if (allDerivedKpis.length > 0) {
+                    columnsHtml += '<h4><?php echo esc_js(__("Derived KPI Definitions (Stream Relevant)", "operations-organizer")); ?></h4>';
+                    allDerivedKpis.forEach(function(dkpi) {
+                        var isChecked = window.contentSelectedKpiObjects.some(selCol => selCol.id === dkpi.derived_definition_id.toString() && selCol.type === 'derived');
+                        columnsHtml += `<div><label><input type="checkbox" name="kpi_column_select_stream" value="${dkpi.derived_definition_id}" data-col-name="${esc_html(dkpi.definition_name)}" data-col-type="derived" ${isChecked ? 'checked' : ''}> ${esc_html(dkpi.definition_name)}</label></div>`;
+                    });
+                }
+
+                $listContainer.html(columnsHtml);
+                updateSelectedKpiCount_StreamPage();
+            }).fail(function(jqXHR, textStatus, errorThrown) {
+                console.error("Error loading KPI/column data for modal:", textStatus, errorThrown, jqXHR.responseText);
+                $listContainer.html('<p style="color:red;"><?php echo esc_js(__("Error loading column options. Check console and ensure AJAX handlers exist and return JSON.", "operations-organizer")); ?></p>');
+            });
         }
 
         // Open Modal
         $('#content_open_kpi_selector_modal').on('click', function() {
-            // Placeholder content for now, will be replaced by populateKpiColumnSelectorModal_StreamPage() later
-            $listContainer.html('<p><?php echo esc_js(__("Column selection options will load here.", "operations-organizer")); ?></p>');
+            populateKpiColumnSelectorModal();
             $modal.show();
+        });
+
+        // Apply selected columns
+        $('#apply_selected_kpi_columns_stream_' + streamSlugForModal).on('click', function() {
+            window.contentSelectedKpiObjects = []; 
+            $listContainer.find('input[name="kpi_column_select_stream"]:checked').each(function() {
+                var $cb = $(this);
+                var colType = $cb.data('col-type');
+                var val = $cb.val();
+                var name = $cb.data('col-name');
+                var kpiId = $cb.data('kpi-id');
+                
+                if (colType === 'standard') window.contentSelectedKpiObjects.push({ type: 'standard', key: val, name: name });
+                else if (colType === 'primary') window.contentSelectedKpiObjects.push({ type: 'primary', key: val, id: kpiId, name: name });
+                else if (colType === 'derived') window.contentSelectedKpiObjects.push({ type: 'derived', id: val, name: name });
+                else if (colType === 'raw_json') window.contentSelectedKpiObjects.push({ type: 'raw_json', key: 'kpi_data_raw', name: name});
+            });
+            $modal.hide();
+            reinitializeContentDashboardTable_StreamPage();
+            checkColumnChangesAndToggleSaveButton();
+        });
+
+        // Select/Deselect All
+        $('#kpi_selector_select_all_stream_' + streamSlugForModal).on('click', function() {
+            $listContainer.find('input[type="checkbox"]').prop('checked', true).trigger('change');
+        });
+        $('#kpi_selector_deselect_all_stream_' + streamSlugForModal).on('click', function() {
+            $listContainer.find('input[type="checkbox"]').prop('checked', false).trigger('change');
+        });
+
+        // Update count on change
+        $listContainer.on('change', 'input[type="checkbox"]', function() {
+            updateSelectedKpiCount_StreamPage();
         });
 
         // Close Modal via X button

@@ -491,12 +491,12 @@ class OO_Phase {
                     }
                     if (!empty($found_stream_page_slug)) {
                         $redirect_url = admin_url('admin.php?page=' . $found_stream_page_slug);
-                        if (!empty($return_sub_tab)) {
-                            $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
-                        }
+                     if (!empty($return_sub_tab)) {
+                         $redirect_url = add_query_arg('sub_tab', $return_sub_tab, $redirect_url);
+                     }
                     } else {
                         oo_log('[RedirectDebug] Still no match, using default: ' . $redirect_url, __METHOD__);
-                    }
+                }
                 }
             } else {
                 oo_log('[RedirectDebug] return_to_stream_slug was empty. Using default: ' . $redirect_url, __METHOD__);
@@ -562,7 +562,7 @@ class OO_Phase {
                      }
                 } else {
                     oo_log('[ToggleRedirectDebug] No matching stream page slug for tab_slug: ' . $return_to_stream_slug . '. Using default.', __METHOD__);
-                }
+                 }
             }
             $redirect_url = add_query_arg(array('message' => 'phase_status_updated'), $redirect_url);
             oo_log('[ToggleRedirectDebug] Final redirect_url: ' . $redirect_url, __METHOD__);

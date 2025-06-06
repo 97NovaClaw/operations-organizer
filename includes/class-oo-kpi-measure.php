@@ -334,6 +334,42 @@ class OO_KPI_Measure {
 
         wp_send_json_success( array( 'html' => $html ) );
     }
+
+    /**
+     * AJAX handler to get Derived KPI Definitions as JSON, optionally filtered by stream.
+     * This is used for populating UI elements like the column selector modal.
+     */
+    public static function ajax_get_json_derived_kpi_definitions() {
+        check_ajax_referer( 'oo_get_derived_kpis_nonce', '_ajax_nonce' ); // Use a general nonce for getting derived KPIs
+
+        if ( ! current_user_can( 'manage_options' ) ) { // Or a more specific capability
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'operations-organizer' ) ), 403 );
+            return;
+        }
+
+        $stream_id = isset( $_POST['stream_id'] ) ? intval( $_POST['stream_id'] ) : 0;
+        $definitions = array();
+
+        if ( $stream_id > 0 ) {
+            // Get KPIs for the stream first
+            $stream_kpi_measures = OO_DB::get_kpi_measures_for_stream( $stream_id, array( 'is_active' => null ) ); // Get all active/inactive for relevance
+            if ( ! empty( $stream_kpi_measures ) ) {
+                $stream_kpi_measure_ids = wp_list_pluck( $stream_kpi_measures, 'kpi_measure_id' );
+                $all_derived_kpis = OO_DB::get_derived_kpi_definitions( array( 'is_active' => 1, 'number' => -1 ) ); // Only get active derived KPIs for selection
+                
+                foreach ( $all_derived_kpis as $dkpi ) {
+                    if ( in_array( $dkpi->primary_kpi_measure_id, $stream_kpi_measure_ids ) ) {
+                        $definitions[] = $dkpi;
+                    }
+                }
+            }
+        } else {
+            // If no stream_id, get all active derived KPI definitions
+            $definitions = OO_DB::get_derived_kpi_definitions( array( 'is_active' => 1, 'number' => -1 ) );
+        }
+
+        wp_send_json_success( array( 'definitions' => $definitions ) );
+    }
 }
 
 ?> 

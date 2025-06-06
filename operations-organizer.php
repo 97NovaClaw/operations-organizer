@@ -129,11 +129,12 @@ if ( is_admin() ) {
                 'nonce_delete_kpi_measure' => wp_create_nonce('oo_delete_kpi_measure_nonce'), // General for delete
 
                 // Nonces for Stream Page Derived KPI Management
-                'nonce_add_derived_kpi' => wp_create_nonce('oo_add_derived_kpi_nonce'),
-                'nonce_edit_derived_kpi' => wp_create_nonce('oo_edit_derived_kpi_nonce'),
-                'nonce_get_derived_kpi_definitions' => wp_create_nonce('oo_get_derived_kpi_definitions_nonce'), // For refreshing list
+                'nonce_add_derived_kpi' => wp_create_nonce('oo_add_derived_kpi_definition_nonce'),
+                'nonce_edit_derived_kpi' => wp_create_nonce('oo_edit_derived_kpi_definition_nonce'),
+                'nonce_get_derived_kpi_details' => wp_create_nonce('oo_get_derived_kpi_definition_details_nonce'),
                 'nonce_toggle_derived_kpi_status' => wp_create_nonce('oo_toggle_derived_kpi_status_nonce'),
-                'nonce_delete_derived_kpi' => wp_create_nonce('oo_delete_derived_kpi_nonce'),
+                'nonce_delete_derived_kpi' => wp_create_nonce('oo_delete_derived_kpi_definition_nonce'),
+                'nonce_get_derived_kpis' => wp_create_nonce('oo_get_derived_kpis_nonce'),
 
                 'text_please_select_employee' => __('Please select an employee.', 'operations-organizer'),
                 'text_please_enter_emp_no' => __('Please enter an employee number.', 'operations-organizer'),
@@ -145,8 +146,9 @@ if ( is_admin() ) {
                 'text_error_generic' => __( 'An error occurred.', 'operations-organizer' ),
                 'text_error_ajax' => __( 'AJAX request failed.', 'operations-organizer' ),
                 'text_kpi_values' => __( 'KPI Values', 'operations-organizer' ),
-                'all_kpi_measures' => OO_DB::get_kpi_measures(array('is_active' => 1)),
-                'user_content_default_columns' => OO_Admin_Pages::get_user_table_column_defaults('content_stream_table'),
+                'all_kpi_measures' => OO_DB::get_kpi_measures(array('is_active' => 1, 'number' => -1)),
+                'user_content_default_columns' => get_user_meta(get_current_user_id(), 'oo_content_dashboard_columns', true) ?: array(),
+                'user_stream_default_columns' => get_user_meta(get_current_user_id(), 'oo_stream_dashboard_columns', true) ?: array(), // For stream-specific defaults
                 'nonces' => array(), // Placeholder for dynamically generated nonces if needed later by JS
                 'nonce_get_phases' => wp_create_nonce('oo_get_phases_nonce') // Nonce for getting phases for a stream
             );
@@ -225,12 +227,13 @@ add_action('wp_ajax_oo_toggle_kpi_measure_status', array('OO_KPI_Measure', 'ajax
 add_action('wp_ajax_oo_delete_kpi_measure', array('OO_KPI_Measure', 'ajax_delete_kpi_measure'));
 add_action('wp_ajax_oo_get_kpi_measures_for_stream_html', array('OO_KPI_Measure', 'ajax_get_kpi_measures_for_stream_html'));
 
-// AJAX handlers for Derived KPI Definition Management (NEW - for Stream Page)
-add_action('wp_ajax_oo_add_derived_kpi_definition', array('OO_Derived_KPI', 'ajax_add_derived_kpi_definition'));
-add_action('wp_ajax_oo_update_derived_kpi_definition', array('OO_Derived_KPI', 'ajax_update_derived_kpi_definition'));
-add_action('wp_ajax_oo_toggle_derived_kpi_status', array('OO_Derived_KPI', 'ajax_toggle_derived_kpi_status'));
-add_action('wp_ajax_oo_delete_derived_kpi_definition', array('OO_Derived_KPI', 'ajax_delete_derived_kpi_definition'));
-add_action('wp_ajax_oo_get_derived_kpis_for_stream_html', array('OO_Derived_KPI', 'ajax_get_derived_kpis_for_stream_html'));
+// Derived KPI Definitions (Stream Context)
+add_action('wp_ajax_oo_add_derived_kpi_definition', array('OO_KPI_Measure', 'ajax_add_derived_kpi_definition'));
+add_action('wp_ajax_oo_update_derived_kpi_definition', array('OO_KPI_Measure', 'ajax_update_derived_kpi_definition'));
+add_action('wp_ajax_oo_toggle_derived_kpi_status', array('OO_KPI_Measure', 'ajax_toggle_derived_kpi_status'));
+add_action('wp_ajax_oo_delete_derived_kpi_definition', array('OO_KPI_Measure', 'ajax_delete_derived_kpi_definition'));
+add_action('wp_ajax_oo_get_derived_kpis_for_stream_html', array('OO_KPI_Measure', 'ajax_get_derived_kpis_for_stream_html'));
+add_action('wp_ajax_oo_get_json_derived_kpi_definitions', array('OO_KPI_Measure', 'ajax_get_json_derived_kpi_definitions'));
 
 // New AJAX handlers for phase linking in KPI modals
 add_action('wp_ajax_oo_get_phases_for_stream', array('OO_Phase', 'ajax_get_phases_for_stream'));
