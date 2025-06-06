@@ -370,6 +370,32 @@ class OO_KPI_Measure {
 
         wp_send_json_success( array( 'definitions' => $definitions ) );
     }
+
+    /**
+     * AJAX handler to get KPI measures for a specific stream as JSON.
+     * Used for populating UI elements that need a data object, not HTML.
+     */
+    public static function ajax_get_json_kpi_measures_for_stream() {
+        check_ajax_referer( 'oo_get_kpi_measures_nonce', '_ajax_nonce' ); 
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'You do not have permission to view this data.', 'operations-organizer' ) ) );
+        }
+
+        if ( empty( $_POST['stream_id'] ) ) {
+            wp_send_json_error( array( 'message' => __( 'Stream ID is required.', 'operations-organizer' ) ) );
+        }
+        $stream_id = intval( $_POST['stream_id'] );
+        
+        // Get all active KPIs linked to the stream's phases
+        $kpis = OO_DB::get_kpi_measures_for_stream( $stream_id, array('is_active' => 1) );
+
+        if ( is_array( $kpis ) ) {
+            wp_send_json_success( array( 'kpis' => $kpis ) );
+        } else {
+            wp_send_json_error( array( 'message' => __( 'Could not retrieve KPI measures for the stream.', 'operations-organizer' ) ) );
+        }
+    }
 }
 
 ?> 

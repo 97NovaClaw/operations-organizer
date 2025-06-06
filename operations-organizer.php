@@ -234,6 +234,7 @@ add_action('wp_ajax_oo_toggle_derived_kpi_status', array('OO_KPI_Measure', 'ajax
 add_action('wp_ajax_oo_delete_derived_kpi_definition', array('OO_KPI_Measure', 'ajax_delete_derived_kpi_definition'));
 add_action('wp_ajax_oo_get_derived_kpis_for_stream_html', array('OO_KPI_Measure', 'ajax_get_derived_kpis_for_stream_html'));
 add_action('wp_ajax_oo_get_json_derived_kpi_definitions', array('OO_KPI_Measure', 'ajax_get_json_derived_kpi_definitions'));
+add_action('wp_ajax_oo_get_json_kpi_measures_for_stream', array('OO_KPI_Measure', 'ajax_get_json_kpi_measures_for_stream'));
 
 // New AJAX handlers for phase linking in KPI modals
 add_action('wp_ajax_oo_get_phases_for_stream', array('OO_Phase', 'ajax_get_phases_for_stream'));

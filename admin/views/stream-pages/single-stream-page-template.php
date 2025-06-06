@@ -2204,10 +2204,9 @@ jQuery(document).ready(function($) {
 
             $.when(
                 $.post(oo_data.ajax_url, { 
-                    action: 'oo_get_kpi_measures', 
-                    _ajax_nonce: oo_data.nonce_get_kpi_measures,
-                    is_active: 1, 
-                    number: -1 
+                    action: 'oo_get_json_kpi_measures_for_stream', 
+                    stream_id: <?php echo intval($current_stream_id); ?>,
+                    _ajax_nonce: oo_data.nonce_get_kpi_measures
                 }),
                 $.post(oo_data.ajax_url, { 
                     action: 'oo_get_json_derived_kpi_definitions',
@@ -2215,9 +2214,30 @@ jQuery(document).ready(function($) {
                     _ajax_nonce: oo_data.nonce_get_derived_kpis
                 })
             ).done(function(primaryKpisResponse, derivedKpisResponse) {
-                var allPrimaryKpis = (primaryKpisResponse[0] && primaryKpisResponse[0].success) ? primaryKpisResponse[0].data : [];
-                var allDerivedKpis = (derivedKpisResponse[0] && derivedKpisResponse[0].success) ? derivedKpisResponse[0].data.definitions : [];
+                var streamPrimaryKpis = (primaryKpisResponse[0] && primaryKpisResponse[0].success) ? primaryKpisResponse[0].data.kpis : [];
+                var streamDerivedKpis = (derivedKpisResponse[0] && derivedKpisResponse[0].success) ? derivedKpisResponse[0].data.definitions : [];
                 
+                // --- Start: Data Restructuring for Hierarchical View ---
+                var kpiHierarchy = {};
+
+                // 1. Initialize with all primary KPIs relevant to the stream
+                streamPrimaryKpis.forEach(function(p_kpi) {
+                    kpiHierarchy[p_kpi.kpi_measure_id] = {
+                        primary: p_kpi,
+                        derived: []
+                    };
+                });
+
+                // 2. Slot derived KPIs into their primary's 'derived' array
+                streamDerivedKpis.forEach(function(d_kpi) {
+                    if (kpiHierarchy[d_kpi.primary_kpi_measure_id]) {
+                        kpiHierarchy[d_kpi.primary_kpi_measure_id].derived.push(d_kpi);
+                    }
+                    // Note: This logic assumes derived KPIs will always have a primary KPI present in the stream.
+                });
+                // --- End: Data Restructuring ---
+
+
                 $listContainer.empty();
                 var columnsHtml = '<h4><?php echo esc_js(__("Standard Columns", "operations-organizer")); ?></h4>';
                 
@@ -2231,21 +2251,32 @@ jQuery(document).ready(function($) {
                 columnsHtml += '<h4><?php echo esc_js(__("Advanced", "operations-organizer")); ?></h4>';
                 columnsHtml += `<div><label><input type="checkbox" name="kpi_column_select_stream" value="kpi_data_raw" data-col-name="<?php echo esc_js(__("Raw KPI Data (JSON)", "operations-organizer")); ?>" data-col-type="raw_json" ${rawJsonChecked ? 'checked' : ''}> <?php echo esc_js(__("Raw KPI Data (JSON)", "operations-organizer")); ?></label></div>`;
 
-                if (allPrimaryKpis.length > 0) {
-                    columnsHtml += '<h4><?php echo esc_js(__("Primary KPI Measures", "operations-organizer")); ?></h4>';
-                    allPrimaryKpis.forEach(function(kpi) {
-                        var isChecked = window.contentSelectedKpiObjects.some(selCol => selCol.key === kpi.measure_key && selCol.type === 'primary');
-                        columnsHtml += `<div><label><input type="checkbox" name="kpi_column_select_stream" value="${kpi.measure_key}" data-kpi-id="${kpi.kpi_measure_id}" data-col-name="${esc_html(kpi.measure_name)}" data-col-type="primary" ${isChecked ? 'checked' : ''}> ${esc_html(kpi.measure_name)} (<code>${esc_html(kpi.measure_key)}</code>)</label></div>`;
-                    });
-                }
+                // --- Start: Render Hierarchical View ---
+                if (Object.keys(kpiHierarchy).length > 0) {
+                    columnsHtml += '<h4 style="margin-top:15px;"><?php echo esc_js(__("KPI Columns (Stream Relevant)", "operations-organizer")); ?></h4>';
+                    
+                    for (var kpiId in kpiHierarchy) {
+                        if (kpiHierarchy.hasOwnProperty(kpiId)) {
+                            var item = kpiHierarchy[kpiId];
+                            var p_kpi = item.primary;
+                            
+                            // Render the Primary KPI
+                            var isPChecked = window.contentSelectedKpiObjects.some(selCol => selCol.key === p_kpi.measure_key && selCol.type === 'primary');
+                            columnsHtml += `<div style="font-weight: bold;"><label><input type="checkbox" name="kpi_column_select_stream" value="${p_kpi.measure_key}" data-kpi-id="${p_kpi.kpi_measure_id}" data-col-name="${esc_html(p_kpi.measure_name)}" data-col-type="primary" ${isPChecked ? 'checked' : ''}> ${esc_html(p_kpi.measure_name)} (<code>${esc_html(p_kpi.measure_key)}</code>)</label></div>`;
 
-                if (allDerivedKpis.length > 0) {
-                    columnsHtml += '<h4><?php echo esc_js(__("Derived KPI Definitions (Stream Relevant)", "operations-organizer")); ?></h4>';
-                    allDerivedKpis.forEach(function(dkpi) {
-                        var isChecked = window.contentSelectedKpiObjects.some(selCol => selCol.id === dkpi.derived_definition_id.toString() && selCol.type === 'derived');
-                        columnsHtml += `<div><label><input type="checkbox" name="kpi_column_select_stream" value="${dkpi.derived_definition_id}" data-col-name="${esc_html(dkpi.definition_name)}" data-col-type="derived" ${isChecked ? 'checked' : ''}> ${esc_html(dkpi.definition_name)}</label></div>`;
-                    });
+                            // Render its Derived KPIs, indented
+                            if (item.derived.length > 0) {
+                                item.derived.forEach(function(d_kpi) {
+                                    var isDChecked = window.contentSelectedKpiObjects.some(selCol => selCol.id === d_kpi.derived_definition_id.toString() && selCol.type === 'derived');
+                                    columnsHtml += `<div style="margin-left: 25px;"><label><input type="checkbox" name="kpi_column_select_stream" value="${d_kpi.derived_definition_id}" data-col-name="${esc_html(d_kpi.definition_name)}" data-col-type="derived" ${isDChecked ? 'checked' : ''}> ${esc_html(d_kpi.definition_name)}</label></div>`;
+                                });
+                            }
+                        }
+                    }
+                } else {
+                     columnsHtml += '<p><?php echo esc_js(__("No primary or derived KPIs found for this stream.", "operations-organizer")); ?></p>';
                 }
+                // --- End: Render Hierarchical View ---
 
                 $listContainer.html(columnsHtml);
                 updateSelectedKpiCount_StreamPage();
