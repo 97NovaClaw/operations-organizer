@@ -2200,14 +2200,10 @@ jQuery(document).ready(function($) {
 
         // --- Start: Column Preferences Logic ---
         var streamColumnMetaKey = 'oo_stream_dashboard_columns_<?php echo esc_js($current_stream_tab_slug); ?>';
-        <?php
-            $stream_column_meta_key = 'oo_stream_dashboard_columns_' . $current_stream_tab_slug;
-            $user_stream_default_columns = get_user_meta(get_current_user_id(), $stream_column_meta_key, true);
-            if (empty($user_stream_default_columns) || !is_array($user_stream_default_columns)) {
-                $user_stream_default_columns = array(); 
-            }
-        ?>
-        let initialDefaultColumns = <?php echo json_encode($user_stream_default_columns); ?>;
+        
+        let initialDefaultColumns = (oo_data.user_stream_default_columns && oo_data.user_stream_default_columns.length > 0) 
+                                    ? oo_data.user_stream_default_columns 
+                                    : [];
 
         function getFactoryDefaultColumns() {
             return getInitialContentColumns_StreamPage().map(function(col) {

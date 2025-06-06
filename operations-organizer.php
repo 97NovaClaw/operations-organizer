@@ -148,10 +148,20 @@ if ( is_admin() ) {
                 'text_kpi_values' => __( 'KPI Values', 'operations-organizer' ),
                 'all_kpi_measures' => OO_DB::get_kpi_measures(array('is_active' => 1, 'number' => -1)),
                 'user_content_default_columns' => get_user_meta(get_current_user_id(), 'oo_content_dashboard_columns', true) ?: array(),
-                'user_stream_default_columns' => get_user_meta(get_current_user_id(), 'oo_stream_dashboard_columns', true) ?: array(), // For stream-specific defaults
+                'user_stream_default_columns' => array(), // Default to empty, will be populated below for specific stream pages
                 'nonces' => array(), // Placeholder for dynamically generated nonces if needed later by JS
                 'nonce_get_phases' => wp_create_nonce('oo_get_phases_nonce') // Nonce for getting phases for a stream
             );
+
+            // If on a stream page, load the specific column preferences for that stream
+            if (isset($_GET['page']) && strpos($_GET['page'], 'oo_stream_') === 0) {
+                $stream_slug = sanitize_key(str_replace('oo_stream_', '', $_GET['page']));
+                $meta_key = 'oo_stream_dashboard_columns_' . $stream_slug;
+                $user_stream_columns = get_user_meta(get_current_user_id(), $meta_key, true);
+                if (!empty($user_stream_columns) && is_array($user_stream_columns)) {
+                    $localized_data['user_stream_default_columns'] = $user_stream_columns;
+                }
+            }
 
             // Dynamically generate nonces for individual KPI measure toggle/delete actions if needed by JS
             // This is an example if we decide to pre-generate all possible nonces.
