@@ -125,16 +125,15 @@ if ( is_admin() ) {
                 'nonce_add_kpi_measure' => wp_create_nonce('oo_add_kpi_measure_nonce'),
                 'nonce_edit_kpi_measure' => wp_create_nonce('oo_edit_kpi_measure_nonce'),
                 'nonce_get_kpi_measure_details' => wp_create_nonce('oo_get_kpi_measure_details_nonce'),
-                'nonce_toggle_kpi_status' => wp_create_nonce('oo_toggle_kpi_measure_status_nonce'), // General for toggle, specific ones generated in HTML/JS logic for now
-                'nonce_delete_kpi_measure' => wp_create_nonce('oo_delete_kpi_measure_nonce'), // General for delete
+                'nonce_toggle_kpi_status' => wp_create_nonce('oo_toggle_kpi_measure_status_nonce'), 
+                'nonce_delete_kpi_measure' => wp_create_nonce('oo_delete_kpi_measure_nonce'),
 
                 // Nonces for Stream Page Derived KPI Management
-                'nonce_add_derived_kpi' => wp_create_nonce('oo_add_derived_kpi_definition_nonce'),
-                'nonce_edit_derived_kpi' => wp_create_nonce('oo_edit_derived_kpi_definition_nonce'),
-                'nonce_get_derived_kpi_details' => wp_create_nonce('oo_get_derived_kpi_definition_details_nonce'),
+                'nonce_add_derived_kpi' => wp_create_nonce('oo_add_derived_kpi_nonce'),
+                'nonce_edit_derived_kpi' => wp_create_nonce('oo_edit_derived_kpi_nonce'),
                 'nonce_toggle_derived_kpi_status' => wp_create_nonce('oo_toggle_derived_kpi_status_nonce'),
-                'nonce_delete_derived_kpi' => wp_create_nonce('oo_delete_derived_kpi_definition_nonce'),
-                'nonce_get_derived_kpis' => wp_create_nonce('oo_get_derived_kpis_nonce'),
+                'nonce_delete_derived_kpi' => wp_create_nonce('oo_delete_derived_kpi_nonce'),
+                'nonce_get_derived_kpis' => wp_create_nonce('oo_get_derived_kpi_definitions_nonce'),
 
                 'text_please_select_employee' => __('Please select an employee.', 'operations-organizer'),
                 'text_please_enter_emp_no' => __('Please enter an employee number.', 'operations-organizer'),
