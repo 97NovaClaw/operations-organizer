@@ -127,13 +127,19 @@ if ( is_admin() ) {
                 'nonce_get_kpi_measure_details' => wp_create_nonce('oo_get_kpi_measure_details_nonce'),
                 'nonce_toggle_kpi_status' => wp_create_nonce('oo_toggle_kpi_measure_status_nonce'), 
                 'nonce_delete_kpi_measure' => wp_create_nonce('oo_delete_kpi_measure_nonce'),
+                'nonce_get_kpi_measures_for_stream' => wp_create_nonce('oo_get_kpi_measures_for_stream_nonce'),
 
                 // Nonces for Stream Page Derived KPI Management
                 'nonce_add_derived_kpi' => wp_create_nonce('oo_add_derived_kpi_nonce'),
-                'nonce_edit_derived_kpi' => wp_create_nonce('oo_edit_derived_kpi_nonce'),
+                'nonce_edit_derived_kpi' => wp_create_nonce('oo_update_derived_kpi_nonce'),
+                'nonce_get_derived_kpi_details' => wp_create_nonce('oo_get_derived_kpi_details_stream_nonce'),
                 'nonce_toggle_derived_kpi_status' => wp_create_nonce('oo_toggle_derived_kpi_status_nonce'),
                 'nonce_delete_derived_kpi' => wp_create_nonce('oo_delete_derived_kpi_nonce'),
-                'nonce_get_derived_kpis' => wp_create_nonce('oo_get_derived_kpi_definitions_nonce'),
+                'nonce_get_derived_kpis_for_stream_html' => wp_create_nonce('oo_get_derived_kpis_for_stream_html_nonce'),
+                
+                // Column Preferences Nonce
+                'nonce_save_user_meta' => wp_create_nonce('oo_save_user_meta_nonce'),
+                'nonce_get_user_meta' => wp_create_nonce('oo_get_user_meta_nonce'),
 
                 'text_please_select_employee' => __('Please select an employee.', 'operations-organizer'),
                 'text_please_enter_emp_no' => __('Please enter an employee number.', 'operations-organizer'),
