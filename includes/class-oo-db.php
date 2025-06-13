@@ -4880,7 +4880,47 @@ class OO_DB { // Renamed class
         oo_log('Executing get_derived_kpi_definitions query: ' . $sql, __METHOD__);
         return $wpdb->get_results( $sql );
     }
+    /**
+     * Get all derived KPI definitions relevant to a specific stream.
+     * A derived KPI is relevant if its primary KPI is part of any phase in that stream.
+     *
+     * @param int $stream_id The ID of the stream.
+     * @return array An array of derived KPI definition objects.
+     */
+    public function get_derived_kpi_definitions_for_stream($stream_id) {
+        $this->check_time_columns();
+        $stream_id = intval($stream_id);
+        if (!$stream_id) {
+            return array();
+        }
 
+        $sql = $this->wpdb->prepare("
+            SELECT DISTINCT
+                dkd.*,
+                pkm.measure_name AS primary_kpi_measure_name,
+                pkm.unit_type AS primary_kpi_unit_type,
+                skm.measure_name AS secondary_kpi_measure_name,
+                skm.unit_type AS secondary_kpi_unit_type
+            FROM
+                {$this->derived_kpi_definitions_table} dkd
+            INNER JOIN
+                {$this->kpi_measures_table} pkm ON dkd.primary_kpi_measure_id = pkm.kpi_measure_id
+            LEFT JOIN
+                {$this->kpi_measures_table} skm ON dkd.secondary_kpi_measure_id = skm.kpi_measure_id
+            WHERE
+                pkm.kpi_measure_id IN (
+                    SELECT DISTINCT pkl.kpi_measure_id
+                    FROM {$this->phase_kpi_measures_link_table} pkl
+                    INNER JOIN {$this->phases_table} p ON pkl.phase_id = p.phase_id
+                    WHERE p.stream_id = %d
+                )
+            ORDER BY
+                dkd.definition_name ASC
+        ", $stream_id);
+
+        oo_log("Executing get_derived_kpi_definitions_for_stream query for stream ID {$stream_id}");
+        return $this->wpdb->get_results($sql);
+    }
     /**
      * Get the count of derived KPI definitions based on filters.
      * @param array $params Parameters: is_active, search.
