@@ -1684,7 +1684,7 @@ jQuery(document).ready(function($) {
         $.when(
             $.post(oo_data.ajax_url, { // Get KPI details
                 action: 'oo_get_kpi_measure_details', 
-                kpi_measure_id: kpiMeasureId,
+            kpi_measure_id: kpiMeasureId,
                 _ajax_nonce: oo_data.nonce_get_kpi_measure_details
             }),
             $.post(oo_data.ajax_url, { // Get phases for current stream
@@ -1922,19 +1922,47 @@ jQuery(document).ready(function($) {
 
     // Open Add Derived KPI Modal
     $('#openAddDerivedKpiModalBtn-stream-' + streamSlug).on('click', function() {
-        addDerivedKpiModal_Stream.find('form')[0].reset();
-        var $primaryKpiSelect = addDerivedKpiModal_Stream.find('#add_derived_primary_kpi_id-stream-' + streamSlug);
-        var $calcTypeSelect = addDerivedKpiModal_Stream.find('#add_derived_calculation_type-stream-' + streamSlug);
-        
-        // Reset and repopulate Primary KPI dropdown (it is static in the modal HTML but good practice if it could change)
-        // $primaryKpiSelect.val(''); // Already reset by form[0].reset()
-        
-        // Initial population of calc types based on no selection for primary KPI (or first option)
-        var initialPrimaryKpiUnit = $primaryKpiSelect.find('option:selected').data('unit-type') || '';
-        populateCalculationTypes_Stream(initialPrimaryKpiUnit, $calcTypeSelect);
-        handleDerivedKpiCalcTypeChange_Stream(addDerivedKpiModal_Stream);
-        populateSecondaryKpis_Stream(addDerivedKpiModal_Stream.find('#add_derived_secondary_kpi_id-stream-' + streamSlug), $primaryKpiSelect.val());
-        addDerivedKpiModal_Stream.show();
+        var $modal = addDerivedKpiModal_Stream;
+        var $form = $modal.find('form');
+        var $primaryKpiSelect = $modal.find('#add_derived_primary_kpi_id-stream-' + streamSlug);
+        var $calcTypeSelect = $modal.find('#add_derived_calculation_type-stream-' + streamSlug);
+
+        // Reset the form first
+        $form[0].reset();
+        $primaryKpiSelect.empty().append('<option value=""><?php echo esc_js(__("Loading KPIs...", "operations-organizer")); ?></option>').prop('disabled', true);
+        $calcTypeSelect.empty().append('<option value=""><?php echo esc_js(__("-- Select Calculation Type --", "operations-organizer")); ?></option>');
+        handleDerivedKpiCalcTypeChange_Stream($modal); // Reset dependent fields
+
+        // Fetch the latest KPIs for this stream
+        $.post(oo_data.ajax_url, {
+            action: 'oo_get_json_kpi_measures_for_stream',
+            stream_id: <?php echo intval($current_stream_id); ?>,
+            _ajax_nonce: oo_data.nonce_get_kpi_measures 
+        }).done(function(response) {
+            $primaryKpiSelect.empty().prop('disabled', false);
+            if (response.success && response.data.kpis && response.data.kpis.length > 0) {
+                $primaryKpiSelect.append($('<option>', { value: '', text: '<?php echo esc_js(__("-- Select Primary KPI --", "operations-organizer")); ?>' }));
+                $.each(response.data.kpis, function(i, kpi) {
+                    $primaryKpiSelect.append($('<option>', {
+                        value: kpi.kpi_measure_id,
+                        'data-unit-type': kpi.unit_type,
+                        text: esc_html(kpi.measure_name) + ' (' + esc_html(kpi.unit_type) + ')'
+                    }));
+                });
+            } else {
+                $primaryKpiSelect.append('<option value="" disabled><?php echo esc_js(__("No KPIs available in this stream. Add primary KPIs first.", "operations-organizer")); ?></option>');
+            }
+        }).fail(function() {
+            $primaryKpiSelect.empty().prop('disabled', true);
+            $primaryKpiSelect.append('<option value="" disabled><?php echo esc_js(__("Error loading KPIs.", "operations-organizer")); ?></option>');
+            showNotice('error', '<?php echo esc_js(__("Could not load KPI list. Please try again.", "operations-organizer")); ?>');
+        }).always(function() {
+            // After attempting to load, populate other fields based on current (potentially empty) selection
+            var initialPrimaryKpiUnit = $primaryKpiSelect.find('option:selected').data('unit-type') || '';
+            populateCalculationTypes_Stream(initialPrimaryKpiUnit, $calcTypeSelect);
+            populateSecondaryKpis_Stream($modal.find('#add_derived_secondary_kpi_id-stream-' + streamSlug), $primaryKpiSelect.val());
+            $modal.show();
+        });
     });
 
     // Handle Primary KPI change in Add Derived KPI Modal

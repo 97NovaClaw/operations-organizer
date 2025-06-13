@@ -313,8 +313,8 @@ class OO_Admin_Pages { // Renamed class
                 foreach ($stream_configs as $stream_id_cfg => $cfg) {
                     if (isset($cfg['tab_slug']) && $cfg['tab_slug'] === $return_tab) {
                         if (isset($cfg['slug'])) {
-                            $redirect_slug = $cfg['slug'];
-                            break;
+                        $redirect_slug = $cfg['slug'];
+                        break;
                         }
                     }
                 }
@@ -427,8 +427,8 @@ class OO_Admin_Pages { // Renamed class
                 foreach ($stream_configs as $stream_id_cfg => $cfg) {
                     if (isset($cfg['tab_slug']) && $cfg['tab_slug'] === $return_tab) {
                          if (isset($cfg['slug'])) {
-                            $redirect_slug = $cfg['slug'];
-                            break;
+                        $redirect_slug = $cfg['slug'];
+                        break;
                         }
                     }
                 }
