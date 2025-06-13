@@ -776,6 +776,7 @@ oo_log('[Content Stream Page] Filtered Stream Phases for Quick Actions: ' . coun
             <input type="hidden" name="oo_action" value="add_derived_kpi_definition"> <!-- Will be an AJAX action -->
             <input type="hidden" name="context" value="stream_page">
             <input type="hidden" name="stream_id_context" value="<?php echo esc_attr($current_stream_id); ?>">
+            <?php wp_nonce_field( 'oo_add_derived_kpi_definition_nonce', 'oo_add_derived_kpi_definition_nonce' ); ?>
 
             <div class="form-field form-required">
                 <label for="add_derived_definition_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Definition Name', 'operations-organizer' ); ?></label>
