@@ -246,11 +246,12 @@ add_action('wp_ajax_oo_delete_kpi_measure', array('OO_KPI_Measure', 'ajax_delete
 add_action('wp_ajax_oo_get_kpi_measures_for_stream_html', array('OO_KPI_Measure', 'ajax_get_kpi_measures_for_stream_html'));
 
 // Derived KPI Definitions (Stream Context)
-add_action('wp_ajax_oo_add_derived_kpi_definition', array('OO_KPI_Measure', 'ajax_add_derived_kpi_definition'));
-add_action('wp_ajax_oo_update_derived_kpi_definition', array('OO_KPI_Measure', 'ajax_update_derived_kpi_definition'));
-add_action('wp_ajax_oo_toggle_derived_kpi_status', array('OO_KPI_Measure', 'ajax_toggle_derived_kpi_status'));
-add_action('wp_ajax_oo_delete_derived_kpi_definition', array('OO_KPI_Measure', 'ajax_delete_derived_kpi_definition'));
-add_action('wp_ajax_oo_get_derived_kpis_for_stream_html', array('OO_KPI_Measure', 'ajax_get_derived_kpis_for_stream_html'));
+add_action('wp_ajax_oo_add_derived_kpi_definition', array('OO_Derived_KPI', 'ajax_add_derived_kpi_definition'));
+add_action('wp_ajax_oo_get_derived_kpi_definition_details_stream', array('OO_Derived_KPI', 'ajax_get_derived_kpi_definition_details_stream'));
+add_action('wp_ajax_oo_update_derived_kpi_definition', array('OO_Derived_KPI', 'ajax_update_derived_kpi_definition'));
+add_action('wp_ajax_oo_toggle_derived_kpi_status', array('OO_Derived_KPI', 'ajax_toggle_derived_kpi_status'));
+add_action('wp_ajax_oo_delete_derived_kpi_definition', array('OO_Derived_KPI', 'ajax_delete_derived_kpi_definition'));
+add_action('wp_ajax_oo_get_derived_kpis_for_stream_html', array('OO_Derived_KPI', 'ajax_get_derived_kpis_for_stream_html'));
 add_action('wp_ajax_oo_get_json_derived_kpi_definitions', array('OO_KPI_Measure', 'ajax_get_json_derived_kpi_definitions'));
 add_action('wp_ajax_oo_get_json_kpi_measures_for_stream', array('OO_KPI_Measure', 'ajax_get_json_kpi_measures_for_stream'));
 
