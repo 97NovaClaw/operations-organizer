@@ -32,8 +32,6 @@ require_once OO_PLUGIN_DIR . 'includes/class-oo-phase.php';
 require_once OO_PLUGIN_DIR . 'includes/class-oo-stream.php'; // Renamed class for Streams
 require_once OO_PLUGIN_DIR . 'includes/class-oo-admin-pages.php';
 require_once OO_PLUGIN_DIR . 'includes/class-oo-dashboard.php';
-require_once OO_PLUGIN_DIR . 'includes/class-oo-kpi-measure.php'; // Include the new KPI Measure class
-require_once OO_PLUGIN_DIR . 'includes/class-oo-derived-kpi.php'; // Include the new Derived KPI class
 require_once OO_PLUGIN_DIR . 'includes/functions.php'; // Functions will also be prefixed
 require_once OO_PLUGIN_DIR . 'fix-database.php'; // Load database fix utilities
 
@@ -155,7 +153,8 @@ if ( is_admin() ) {
                 'user_content_default_columns' => get_user_meta(get_current_user_id(), 'oo_content_dashboard_columns', true) ?: array(),
                 'user_stream_default_columns' => array(), // Default to empty, will be populated below for specific stream pages
                 'nonces' => array(), // Placeholder for dynamically generated nonces if needed later by JS
-                'nonce_get_phases' => wp_create_nonce('oo_get_phases_nonce') // Nonce for getting phases for a stream
+                'nonce_get_phases' => wp_create_nonce('oo_get_phases_nonce'), // Nonce for getting phases for a stream
+                'current_stream_tab_slug' => '' // Placeholder for current stream tab slug
             );
 
             // If on a stream page, load the specific column preferences for that stream
@@ -164,6 +163,9 @@ if ( is_admin() ) {
                 $page_param = sanitize_key($_GET['page']);
                 $stream_name = str_replace('oo_stream_', '', $page_param); // e.g., 'content' from 'oo_stream_content'
                 
+                // Add the stream slug for our new JS file
+                $localized_data['current_stream_tab_slug'] = $stream_name;
+
                 // To get the correct 'tab_slug', we need to look up the stream config.
                 // This is a bit tricky here. A simpler, more robust way is to ensure the JS and PHP use the same source for the slug.
                 // The JS uses `esc_js($current_stream_tab_slug)`. In this file, we don't have that global yet.
@@ -174,6 +176,15 @@ if ( is_admin() ) {
                 if (!empty($user_stream_columns) && is_array($user_stream_columns)) {
                     $localized_data['user_stream_default_columns'] = $user_stream_columns;
                 }
+
+                // Enqueue the new feature-specific script for the Stream Dashboard
+                wp_enqueue_script(
+                    'oo-stream-dashboard-script',
+                    OO_PLUGIN_URL . 'features/stream-dashboard/assets/js/main.js',
+                    array('oo-admin-scripts', 'jquery-ui-dialog'), // Ensure it depends on main scripts
+                    OO_PLUGIN_VERSION,
+                    true
+                );
             }
 
             // Dynamically generate nonces for individual KPI measure toggle/delete actions if needed by JS
@@ -241,23 +252,6 @@ add_action('wp_ajax_oo_delete_phase_ajax', array('OO_Phase', 'ajax_delete_phase'
 add_action('wp_ajax_oo_save_user_column_preference', array('OO_Admin_Pages', 'ajax_save_user_column_preference'));
 // AJAX for getting jobs for a stream (NEW)
 add_action('wp_ajax_oo_get_stream_jobs', array('OO_Admin_Pages', 'ajax_get_stream_jobs'));
-
-// AJAX handlers for KPI Measure Management (NEW - for Stream Page)
-add_action('wp_ajax_oo_add_kpi_measure', array('OO_KPI_Measure', 'ajax_add_kpi_measure'));
-add_action('wp_ajax_oo_get_kpi_measure_details', array('OO_KPI_Measure', 'ajax_get_kpi_measure_details'));
-add_action('wp_ajax_oo_update_kpi_measure', array('OO_KPI_Measure', 'ajax_update_kpi_measure'));
-add_action('wp_ajax_oo_toggle_kpi_measure_status', array('OO_KPI_Measure', 'ajax_toggle_kpi_measure_status'));
-add_action('wp_ajax_oo_delete_kpi_measure', array('OO_KPI_Measure', 'ajax_delete_kpi_measure'));
-add_action('wp_ajax_oo_get_kpi_measures_for_stream_html', array('OO_KPI_Measure', 'ajax_get_kpi_measures_for_stream_html'));
-
-// Derived KPI Definitions (Stream Context)
-add_action('wp_ajax_oo_add_derived_kpi_definition', array('OO_KPI_Measure', 'ajax_add_derived_kpi_definition'));
-add_action('wp_ajax_oo_update_derived_kpi_definition', array('OO_KPI_Measure', 'ajax_update_derived_kpi_definition'));
-add_action('wp_ajax_oo_toggle_derived_kpi_status', array('OO_KPI_Measure', 'ajax_toggle_derived_kpi_status'));
-add_action('wp_ajax_oo_delete_derived_kpi_definition', array('OO_KPI_Measure', 'ajax_delete_derived_kpi_definition'));
-add_action('wp_ajax_oo_get_derived_kpis_for_stream_html', array('OO_KPI_Measure', 'ajax_get_derived_kpis_for_stream_html'));
-add_action('wp_ajax_oo_get_json_derived_kpi_definitions', array('OO_KPI_Measure', 'ajax_get_json_derived_kpi_definitions'));
-add_action('wp_ajax_oo_get_json_kpi_measures_for_stream', array('OO_KPI_Measure', 'ajax_get_json_kpi_measures_for_stream'));
 
 // New AJAX handlers for phase linking in KPI modals
 add_action('wp_ajax_oo_get_phases_for_stream', array('OO_Phase', 'ajax_get_phases_for_stream'));

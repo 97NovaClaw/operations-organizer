@@ -1,0 +1,203 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+## 🧱 Project Architecture Rules for WordPress Development (Cursor AI)
+
+This project is built in WordPress and must follow a modular, scalable, and clean architecture. Follow these rules at all times.
+
+---
+
+### 📁 Folder & File Structure
+
+- All code must be grouped by **feature/domain**, not by file type.
+- Features go inside a `features/` folder.
+- Each feature must have its own subfolder and an `index.php` entry point.
+
+Example:
+
+```
+features/
+├── kanban/
+│ ├── index.php
+│ ├── ajax.php
+│ ├── validators.php
+│ └── form-handler.php
+├── job-logs/
+│ ├── index.php
+│ ├── schema.php
+│ └── form-handler.php
+```
+
+- Do **not** place unrelated logic into the same file. Split by responsibility:
+  - `index.php` – high-level controller/loader
+  - `ajax.php` – for AJAX endpoints
+  - `validators.php` – validation rules
+  - `form-handler.php` – data submission handling
+  - `schema.php` – structure/field definitions
+
+---
+
+### 📜 Feature Trees (Required)
+
+- Each feature folder **must include a "Feature Tree" comment** inside `index.php`.
+- This is a **single comment block** that outlines the folder's structure and purpose.
+- Do **not** include feature trees in other files or for individual functions.
+
+✅ Example of a Feature Tree:
+
+```php
+/*
+Feature Tree: Job Logs
+
+job-logs/
+├── index.php          # Entry point
+├── schema.php         # Defines fields
+├── form-handler.php   # Handles submission
+├── validators.php     # Logic validation
+*/
+```
+Update this tree if new files are added.
+
+### 🧩 File Responsibility
+Each file must serve one purpose. Never mix responsibilities.
+
+Inside long files, break up logic with comment section headers like:
+
+```php
+// ===== Form Validation =====
+// ===== AJAX Endpoints =====
+// ===== UI Render Helpers =====
+```
+If a file exceeds ~1500 lines, split it into logical parts using this structure:
+
+- `ajax.php`
+- `form-handler.php`
+- `validators.php`
+- `schema.php`
+- etc.
+
+### 📦 JavaScript & Assets
+JS must be organized per feature inside:
+
+```
+assets/js/features/{feature-name}/
+```
+✅ Example:
+
+```
+assets/js/features/kanban/
+├── main.js
+├── events.js
+├── validation.js
+```
+Mirror PHP structure where practical.
+
+Scripts must be enqueued using `wp_enqueue_script()` in the correct context (admin or frontend).
+
+---
+
+### ⚙️ Cursor AI Behavior
+- Always follow the modular feature folder structure above.
+- If a feature grows, break it down by logical concerns, not line count alone.
+- Use the Feature Tree in each module to understand its structure.
+- Never place new functions in a file unless the file is explicitly responsible for that logic.
+- Update Feature Trees when creating or splitting files.
+
+✅ Summary Rules
+1. One feature = one folder
+2. One responsibility = one file
+3. One feature tree = one `index.php`
+4. Never mix unrelated logic
+
+5. Update trees and structure as features grow 
+
+---
+
+### 🌳 Current Project Structure
+
+```
+.
+│   .gitignore
+│   operations-organizer.php
+│   ... (other root files)
+│
+├───.cursor
+│   └───rules
+│           airules.mdc
+│
+├───admin
+│   ├───css
+│   │       admin-styles.css
+│   ├───js
+│   │       admin-scripts.js
+│   └───views
+│       │   dashboard-page.php
+│       │   employee-management-page.php
+│       │   job-management-page.php
+│       │   kpi-measure-management-page.php
+│       │   phase-management-page.php
+│       │   start-job-form-page.php
+│       │   stop-job-form-page.php
+│       │   stream-management-page.php
+│       │
+│       ├───dashboard-tabs
+│       │       art-tab.php
+│       │       content-tab.php
+│       │       electronics-tab.php
+│       │       overview-tab.php
+│       │       soft-content-tab.php
+│       │
+│       └───stream-pages
+│               single-stream-page-template.php
+│
+├───features
+│   └───stream-dashboard (New, empty)
+│
+├───includes
+│       class-oo-admin-pages.php
+│       class-oo-building.php
+│       class-oo-dashboard.php
+│       class-oo-db.php
+│       class-oo-derived-kpi.php
+│       class-oo-employee.php
+│       class-oo-expense-type.php
+│       class-oo-expense.php
+│       class-oo-job-log.php
+│       class-oo-job-stream.php
+│       class-oo-job.php
+│       class-oo-kpi-measure.php
+│       class-oo-phase.php
+│       class-oo-stream.php
+│       functions.php
+│
+└───languages
+        .gitkeep
+
+---
+
+### 🏛️ High-Level Architecture Summary (Discovered)
+
+This summary reflects the state of the codebase as of the start of the refactoring process.
+
+-   **Primary Entry Points:**
+    -   `operations-organizer.php`: Main plugin file. Includes all core `class-oo-*.php` files and registers all AJAX actions globally.
+    -   `class-oo-admin-pages.php`: Acts as a router, creating the admin menu items and deciding which view file to load.
+
+-   **Core Architectural Patterns:**
+    -   **Model-View-Controller Hybrids:** Most entities (e.g., `OO_Employee`, `OO_Job`, `OO_Phase`) have a single class in `includes/` that acts as both the data model and the controller for its corresponding `admin/views/*-management-page.php` file.
+    -   **Pure AJAX Controllers:** KPI-related logic (e.g., `OO_KPI_Measure`, `OO_Derived_KPI`) is handled by stateless classes containing only AJAX handler methods.
+    -   **Pure Data Models:** Some entities (e.g., `OO_Job_Log`, `OO_Job_Stream`) are represented by pure data model classes with no controller or view logic.
+    -   **Monolithic Database Class:** All classes depend on the static `OO_DB` class for all database interactions.
+    -   **Global Helpers:** `functions.php` provides globally available helper functions.
+    -   **Global JavaScript:** `admin/js/admin-scripts.js` contains a large amount of shared front-end logic that is loaded on most admin pages.
+
+-   **Active vs. Deprecated Views:**
+    -   **Deprecated (Do Not Modify):** The **Global Dashboard**, rendered by `admin/views/dashboard-page.php` and its sub-views in `admin/views/dashboard-tabs/`, is considered obsolete.
+    -   **Active (Primary Refactor Target):** The **Stream Dashboards** (e.g., "Soft Content", "Electronics") are the current, active feature. They are all rendered by the single template file: `admin/views/stream-pages/single-stream-page-template.php`. Our refactoring work will focus exclusively on this file and its dependencies.
+
+
+
+
+``` 
