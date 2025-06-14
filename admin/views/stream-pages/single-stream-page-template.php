@@ -923,38 +923,6 @@ jQuery(document).ready(function($) {
         return p.innerHTML;
     }
 
-    // Define function for getting the initial/static columns for the job logs table
-    function getInitialContentColumns_StreamPage() {
-        return [
-            { data: 'log_id', title: 'Log ID', visible: false }, 
-            { data: 'job_number', title: '<?php echo esc_js(__("Job No.", "operations-organizer")); ?>' },
-            { data: 'phase_name', title: '<?php echo esc_js(__("Phase", "operations-organizer")); ?>' },
-            { data: 'employee_name', title: '<?php echo esc_js(__("Employee", "operations-organizer")); ?>' },
-            { data: 'start_time', title: '<?php echo esc_js(__("Start Time", "operations-organizer")); ?>' },
-            { data: 'end_time', title: '<?php echo esc_js(__("End Time", "operations-organizer")); ?>' },
-            { data: 'duration', title: '<?php echo esc_js(__("Duration", "operations-organizer")); ?>' },
-            { 
-                data: 'status', 
-                title: '<?php echo esc_js(__("Status", "operations-organizer")); ?>',
-                render: function(data, type, row) {
-                    var status_text = data === 'completed' ? '<?php echo esc_js(__("Completed", "operations-organizer")); ?>' : '<?php echo esc_js(__("Running", "operations-organizer")); ?>';
-                    var status_class = data === 'completed' ? 'status-completed' : 'status-running';
-                    return '<span class="oo-status-pill ' + status_class + '">' + status_text + '</span>';
-                }
-            },
-            {
-                data: null,
-                title: '<?php echo esc_js(__("Actions", "operations-organizer")); ?>',
-                orderable: false,
-                searchable: false,
-                render: function (data, type, row) {
-                    return '<button class="button button-small edit-log-button" data-log-id="' + row.log_id + '"><?php echo esc_js(__("Edit", "operations-organizer")); ?></button>' +
-                           '<button class="button button-small delete-log-button" data-log-id="' + row.log_id + '" style="margin-left: 5px; color: #b32d2e; border-color: #b32d2e;"><?php echo esc_js(__("Delete", "operations-organizer")); ?></button>';
-                }
-            }
-        ];
-    }
-
     // JS for Quick Phase Actions in this Stream tab
     $('.oo-stream-page .oo-start-link-btn, .oo-stream-page .oo-stop-link-btn').on('click', function(e) {
         e.preventDefault();
@@ -1386,18 +1354,6 @@ jQuery(document).ready(function($) {
         var initialContentColumns = getInitialContentColumns_StreamPage(); // Renamed for clarity
         var contentDashboardTable; 
 
-        var streamSlugForContent = '<?php echo esc_js($current_stream_tab_slug); ?>';
-        var storageKey = 'oo_stream_dashboard_columns_' + streamSlugForContent;
-        oo_log('[Column Prefs] Key that will be used for saving: ' + storageKey);
-
-        function getFactoryDefaultColumns() {
-             oo_log('[Column Prefs] User has no saved defaults. Using factory defaults for ' + streamSlugForContent);
-             return getInitialContentColumns_StreamPage();
-        }
-
-        var savedUserDefaultColumns = oo_data.user_stream_default_columns;
-        oo_log('[Column Prefs] Received from server oo_data.user_stream_default_columns:', savedUserDefaultColumns);
-
         var initialDefaultColumns = (oo_data.user_content_default_columns && Array.isArray(oo_data.user_content_default_columns)) ? 
                                     oo_data.user_content_default_columns : [];
         window.contentSelectedKpiObjects = JSON.parse(JSON.stringify(initialDefaultColumns)); 
@@ -1529,6 +1485,25 @@ jQuery(document).ready(function($) {
                     }
                 }
             });
+        }
+
+        function getInitialContentColumns_StreamPage() {
+            return [
+                { data: "employee_name", title: "<?php esc_html_e('Employee Name', 'operations-organizer'); ?>" },
+                { data: "job_number", title: "<?php esc_html_e('Job No.', 'operations-organizer'); ?>" },
+                { data: "phase_name", title: "<?php esc_html_e('Phase', 'operations-organizer'); ?>" },
+                { data: "start_time", title: "<?php esc_html_e('Start Time', 'operations-organizer'); ?>" },
+                { data: "end_time", title: "<?php esc_html_e('End Time', 'operations-organizer'); ?>" },
+                { data: "duration", title: "<?php esc_html_e('Duration', 'operations-organizer'); ?>" },
+                { 
+                    data: "status", title: "<?php esc_html_e('Status', 'operations-organizer'); ?>",
+                    render: function(data, type, row) {
+                        if (type === 'display' && data) return data;
+                        return data || '';
+                    }
+                },
+                { data: "notes", title: "<?php esc_html_e('Notes', 'operations-organizer'); ?>" }
+            ];
         }
 
         function getActionsColumnDefinition_StreamPage(){
