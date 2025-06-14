@@ -83,10 +83,9 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 		<?php esc_html_e('Add New KPI Measure to this Stream', 'operations-organizer'); ?>
 	</button>
 	<?php
-	// --- FIX: Add data fetching for KPI Measures ---
 	$stream_kpi_measures = array();
 	if (isset($current_stream_id)) {
-		$kpis_from_db = OO_Stream_Dashboard_DB::get_kpi_measures_for_stream($current_stream_id, array('is_active' => 1));
+		$kpis_from_db = OO_Stream_Dashboard_DB::get_kpi_measures_for_stream($current_stream_id, array('is_active' => null));
 		if (!empty($kpis_from_db)) {
 			foreach($kpis_from_db as $kpi) {
 				$phase_names = OO_Stream_Dashboard_DB::get_phase_names_for_kpi_in_stream($kpi->kpi_measure_id, $current_stream_id);
@@ -95,10 +94,47 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 			}
 		}
 	}
-	// --- END FIX ---
+	oo_log('[Stream Settings Tab] Fetched KPI Measures for Stream ' . $current_stream_id . ': ' . count($stream_kpi_measures), 'StreamDashboardView');
 	?>
 	<table class="wp-list-table widefat fixed striped table-view-list kpi-measures-stream" style="margin-top:20px;">
-		<!-- ... kpi table body uses $stream_kpi_measures ... -->
+		<thead>
+			<tr>
+				<th><?php esc_html_e('Measure Name', 'operations-organizer'); ?></th>
+				<th><?php esc_html_e('Key', 'operations-organizer'); ?></th>
+				<th><?php esc_html_e('Phases Used In (This Stream)', 'operations-organizer'); ?></th>
+				<th><?php esc_html_e('Unit Type', 'operations-organizer'); ?></th>
+				<th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
+				<th><?php esc_html_e('Actions', 'operations-organizer'); ?></th>
+			</tr>
+		</thead>
+		<tbody id="kpi-measures-list-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+			<?php if ( ! empty( $stream_kpi_measures ) ) : ?>
+				<?php foreach ( $stream_kpi_measures as $kpi_measure ) : ?>
+					<tr class="kpi-measure-row-<?php echo esc_attr($kpi_measure->kpi_measure_id); ?> <?php echo $kpi_measure->is_active ? 'active' : 'inactive'; ?>">
+						<td><strong><button type="button" class="button-link oo-edit-kpi-measure-stream" data-kpi-measure-id="<?php echo esc_attr( $kpi_measure->kpi_measure_id ); ?>"><?php echo esc_html( $kpi_measure->measure_name ); ?></button></strong></td>
+						<td><code><?php echo esc_html( $kpi_measure->measure_key ); ?></code></td>
+						<td><?php echo esc_html( $kpi_measure->used_in_phases_in_stream ); ?></td>
+						<td><?php echo esc_html( ucfirst( $kpi_measure->unit_type ) ); ?></td>
+						<td>
+							<?php echo $kpi_measure->is_active ? __('Active', 'operations-organizer') : __('Inactive', 'operations-organizer'); ?>
+						</td>
+						<td class="actions column-actions">
+							<button type="button" class="button-secondary oo-edit-kpi-measure-stream" data-kpi-measure-id="<?php echo esc_attr( $kpi_measure->kpi_measure_id ); ?>"><?php esc_html_e('Edit', 'operations-organizer'); ?></button>
+							<?php
+							$toggle_action_text = $kpi_measure->is_active ? __('Deactivate', 'operations-organizer') : __('Activate', 'operations-organizer');
+							$new_status_val = $kpi_measure->is_active ? 0 : 1;
+							?>
+							<button type="button" class="button-secondary oo-toggle-kpi-measure-status-stream" data-kpi-measure-id="<?php echo esc_attr($kpi_measure->kpi_measure_id); ?>" data-new-status="<?php echo esc_attr($new_status_val); ?>" data-nonce-action="oo_toggle_kpi_measure_status_<?php echo esc_attr($kpi_measure->kpi_measure_id); ?>">
+								<?php echo esc_html($toggle_action_text); ?>
+							</button>
+							| <a href="#" class="oo-delete-kpi-measure-stream" data-kpi-measure-id="<?php echo esc_attr( $kpi_measure->kpi_measure_id ); ?>" data-nonce-action="oo_delete_kpi_measure_<?php echo esc_attr($kpi_measure->kpi_measure_id); ?>" style="color:#b32d2e; text-decoration: none;"><?php esc_html_e('Delete', 'operations-organizer'); ?></a>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			<?php else : ?>
+				<tr><td colspan="6"><?php esc_html_e('No KPI measures found for this stream.', 'operations-organizer'); ?></td></tr>
+			<?php endif; ?>
+		</tbody>
 	</table>
 
 	<h4 style="margin-top: 40px;"><?php esc_html_e('Derived KPI Definitions relevant to this Stream', 'operations-organizer'); ?></h4>
@@ -106,7 +142,6 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 		<?php esc_html_e('Add New Derived KPI Definition', 'operations-organizer'); ?>
 	</button>
 	<?php
-	// --- FIX: Add data fetching for Derived KPIs ---
 	$stream_derived_kpis = array();
 	$stream_kpi_measure_ids = array();
 	if (!empty($stream_kpi_measures)) {
@@ -129,10 +164,45 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 			}
 		}
 	}
-	// --- END FIX ---
+	oo_log('[Stream Settings Tab] Fetched Derived KPIs for Stream ' . $current_stream_id . ': ' . count($stream_derived_kpis), 'StreamDashboardView');
 	?>
 	<table class="wp-list-table widefat fixed striped table-view-list derived-kpi-definitions-stream" style="margin-top:20px;">
-		<!-- ... derived kpi table body uses $stream_derived_kpis ... -->
+		<thead>
+			<tr>
+				<th><?php esc_html_e('Definition Name', 'operations-organizer'); ?></th>
+				<th><?php esc_html_e('Primary KPI', 'operations-organizer'); ?></th>
+				<th><?php esc_html_e('Calculation Type', 'operations-organizer'); ?></th>
+				<th><?php esc_html_e('Secondary KPI (if Ratio)', 'operations-organizer'); ?></th>
+				<th><?php esc_html_e('Status', 'operations-organizer'); ?></th>
+				<th><?php esc_html_e('Actions', 'operations-organizer'); ?></th>
+			</tr>
+		</thead>
+		<tbody id="derived-kpi-definitions-list-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+			<?php if ( ! empty( $stream_derived_kpis ) ) : ?>
+				<?php foreach ( $stream_derived_kpis as $dkpi ) : ?>
+					<tr class="derived-kpi-row-<?php echo esc_attr($dkpi->derived_definition_id); ?> <?php echo $dkpi->is_active ? 'active' : 'inactive'; ?>">
+						<td><strong><button type="button" class="button-link oo-edit-derived-kpi-stream" data-derived-kpi-id="<?php echo esc_attr( $dkpi->derived_definition_id ); ?>"><?php echo esc_html( $dkpi->definition_name ); ?></button></strong></td>
+						<td><?php echo $dkpi->primary_kpi_measure_name; ?></td>
+						<td><?php echo esc_html( ucfirst( str_replace('_', ' ', $dkpi->calculation_type ) ) ); ?></td>
+						<td><?php echo $dkpi->secondary_kpi_measure_name; ?></td>
+						<td><?php echo $dkpi->is_active ? __('Active', 'operations-organizer') : __('Inactive', 'operations-organizer'); ?></td>
+						<td class="actions column-actions">
+							<button type="button" class="button-secondary oo-edit-derived-kpi-stream" data-derived-kpi-id="<?php echo esc_attr( $dkpi->derived_definition_id ); ?>"><?php esc_html_e('Edit', 'operations-organizer'); ?></button>
+							<?php
+							$dkpi_toggle_text = $dkpi->is_active ? __('Deactivate', 'operations-organizer') : __('Activate', 'operations-organizer');
+							$dkpi_new_status = $dkpi->is_active ? 0 : 1;
+							?>
+							<button type="button" class="button-secondary oo-toggle-derived-kpi-status-stream" data-derived-kpi-id="<?php echo esc_attr($dkpi->derived_definition_id); ?>" data-new-status="<?php echo esc_attr($dkpi_new_status); ?>" data-nonce-action="oo_toggle_derived_kpi_status_<?php echo esc_attr($dkpi->derived_definition_id); ?>">
+								<?php echo esc_html($dkpi_toggle_text); ?>
+							</button>
+							| <a href="#" class="oo-delete-derived-kpi-stream" data-derived-kpi-id="<?php echo esc_attr( $dkpi->derived_definition_id ); ?>" data-nonce-action="oo_delete_derived_kpi_<?php echo esc_attr($dkpi->derived_definition_id); ?>" style="color:#b32d2e; text-decoration: none;"><?php esc_html_e('Delete', 'operations-organizer'); ?></a>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			<?php else : ?>
+				<tr><td colspan="6"><?php esc_html_e('No Derived KPI definitions found for this stream.', 'operations-organizer'); ?></td></tr>
+			<?php endif; ?>
+		</tbody>
 	</table>
 
 	<!-- ... All the modals for adding/editing phases, KPIs, and Derived KPIs for the stream page ... -->
