@@ -73,10 +73,18 @@ jQuery(document).ready(function($) {
             // Logic to show modal...
         });
         
-        $(document).on('click', '#phase-kpi-settings-content .oo-edit-phase-button-stream', function() {
+        // Handle Edit Phase Button Click
+        $(document).on('click', '#phase-kpi-settings-content .oo-edit-phase-button-stream', function() { 
             console.log('[DEBUG] "Edit Phase" button clicked.');
             var phaseId = $(this).data('phase-id');
-            loadAndDisplayPhaseKpis_StreamPage(phaseId, currentStreamSlug); // This now works because the function is defined in this scope.
+            
+            $.post(oo_data.ajax_url, {
+                action: 'oo_get_phase', // Use original action name
+                phase_id: phaseId,
+                _ajax_nonce_get_phase: oo_data.nonce_edit_phase 
+            }, function(response) {
+                // ...
+            });
         });
 
         console.log('[DEBUG] All handlers for "Phase & KPI Settings" tab attached.');

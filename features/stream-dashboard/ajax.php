@@ -12,7 +12,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class OO_Stream_Dashboard_AJAX {
 
 	public static function init() {
-		$ajax_actions = array(
+		$actions = [
+			'get_phase',
+			'get_kpi_measures',
 			'add_kpi_measure',
 			'get_kpi_measure_details',
 			'update_kpi_measure',
@@ -35,9 +37,8 @@ class OO_Stream_Dashboard_AJAX {
 			'get_phases_for_stream_linking',
 			'get_phase_links_for_kpi_in_stream',
 			'get_stream_job_logs',
-		);
-
-		foreach ( $ajax_actions as $action ) {
+		];
+		foreach ( $actions as $action ) {
 			add_action( 'wp_ajax_oo_' . $action, array( __CLASS__, 'ajax_' . $action ) );
 		}
 
@@ -58,6 +59,7 @@ class OO_Stream_Dashboard_AJAX {
      * AJAX handler for adding a new KPI Measure.
      */
     public static function ajax_add_kpi_measure() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer( 'oo_add_kpi_measure_nonce', '_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -118,6 +120,7 @@ class OO_Stream_Dashboard_AJAX {
      * AJAX handler for getting KPI Measure details.
      */
     public static function ajax_get_kpi_measure_details() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer( 'oo_get_kpi_measure_details_nonce', '_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -142,6 +145,7 @@ class OO_Stream_Dashboard_AJAX {
      * AJAX handler for updating an existing KPI Measure.
      */
     public static function ajax_update_kpi_measure() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer( 'oo_edit_kpi_measure_nonce', '_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -217,6 +221,7 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_toggle_kpi_measure_status() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         $kpi_measure_id = isset($_POST['kpi_measure_id']) ? intval($_POST['kpi_measure_id']) : 0;
         check_ajax_referer( 'oo_toggle_kpi_measure_status_nonce', '_ajax_nonce' );
 
@@ -243,6 +248,7 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_delete_kpi_measure() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         $kpi_measure_id = isset($_POST['kpi_measure_id']) ? intval($_POST['kpi_measure_id']) : 0;
         check_ajax_referer( 'oo_delete_kpi_measure_nonce', '_ajax_nonce' );
 
@@ -270,6 +276,7 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_get_kpi_measures_for_stream_html() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer( 'oo_get_kpi_measures_nonce', '_ajax_nonce' ); 
 
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -340,6 +347,7 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_get_json_derived_kpi_definitions() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer( 'oo_get_derived_kpis_nonce', '_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -370,6 +378,7 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_get_json_kpi_measures_for_stream() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer( 'oo_get_kpi_measures_nonce', '_ajax_nonce' ); 
 
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -394,6 +403,7 @@ class OO_Stream_Dashboard_AJAX {
      * AJAX handler for adding a new Derived KPI Definition.
      */
     public static function ajax_add_derived_kpi_definition() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer( 'oo_add_derived_kpi_nonce', '_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -430,6 +440,7 @@ class OO_Stream_Dashboard_AJAX {
      * AJAX handler for updating an existing Derived KPI Definition.
      */
     public static function ajax_update_derived_kpi_definition() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer( 'oo_edit_derived_kpi_nonce', '_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -475,6 +486,7 @@ class OO_Stream_Dashboard_AJAX {
      * AJAX handler for toggling Derived KPI Definition status.
      */
     public static function ajax_toggle_derived_kpi_status() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         $derived_definition_id = isset($_POST['derived_definition_id']) ? intval($_POST['derived_definition_id']) : 0;
         check_ajax_referer( 'oo_toggle_derived_kpi_status_nonce', '_ajax_nonce' );
 
@@ -505,6 +517,7 @@ class OO_Stream_Dashboard_AJAX {
      * AJAX handler for deleting a Derived KPI Definition.
      */
     public static function ajax_delete_derived_kpi_definition() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         $derived_definition_id = isset($_POST['derived_definition_id']) ? intval($_POST['derived_definition_id']) : 0;
         check_ajax_referer( 'oo_delete_derived_kpi_nonce', '_ajax_nonce' );
 
@@ -535,6 +548,7 @@ class OO_Stream_Dashboard_AJAX {
      * AJAX handler to get HTML for the Derived KPI list for a specific stream.
      */
     public static function ajax_get_derived_kpis_for_stream_html() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer( 'oo_get_derived_kpi_definitions_nonce', '_ajax_nonce' ); 
 
         if ( ! current_user_can( 'manage_options' ) ) { 
@@ -616,6 +630,7 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_add_phase_from_stream() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer('oo_add_phase_nonce', 'oo_add_phase_nonce'); 
 
         if ( ! current_user_can( oo_get_capability() ) ) {
@@ -642,7 +657,8 @@ class OO_Stream_Dashboard_AJAX {
         }
     }
 
-    public static function ajax_get_phase_for_stream_modal() {
+    public static function ajax_get_phase() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer('oo_edit_phase_nonce', '_ajax_nonce_get_phase'); 
         if ( ! current_user_can( oo_get_capability() ) ) {
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
@@ -660,6 +676,7 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_update_phase_from_stream() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer('oo_edit_phase_nonce', 'oo_edit_phase_nonce');
         if ( ! current_user_can( oo_get_capability() ) ) { 
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
@@ -708,6 +725,7 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_toggle_phase_status_from_stream() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         $phase_id = isset( $_POST['phase_id'] ) ? intval( $_POST['phase_id'] ) : 0;
         if ( $phase_id <= 0 ) {
             wp_send_json_error( array( 'message' => 'Invalid phase ID.' ) ); return;
@@ -727,6 +745,7 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_delete_phase_from_stream() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer( 'oo_delete_phase_ajax_nonce', '_ajax_nonce' );
         if ( ! current_user_can( oo_get_capability() ) ) {
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 );
@@ -760,6 +779,7 @@ class OO_Stream_Dashboard_AJAX {
     }
 
 	public static function ajax_get_phase_kpi_links_for_stream() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer('oo_get_phase_kpi_links_nonce', '_ajax_nonce');
         if ( ! current_user_can( oo_get_capability() ) ) {
             wp_send_json_error( ['message' => 'Permission denied.'], 403 );
@@ -779,6 +799,7 @@ class OO_Stream_Dashboard_AJAX {
 	}
 
     public static function ajax_add_phase_kpi_link_from_stream() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer('oo_manage_phase_kpi_links_nonce', '_ajax_nonce');
         // ... (logic from class-oo-phase) ...
     }
@@ -786,6 +807,7 @@ class OO_Stream_Dashboard_AJAX {
     // ... (other handlers copied from class-oo-phase.php) ...
 
     public static function ajax_get_stream_job_logs() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
         check_ajax_referer('oo_dashboard_nonce', 'nonce');
 
         if (!current_user_can(oo_get_capability())) {
