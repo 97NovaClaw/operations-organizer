@@ -45,6 +45,12 @@ OO_Stream_Dashboard_AJAX::init();
 // These globals are passed from class-oo-admin-pages.php and are available to this feature.
 global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phases, $employees;
 
+// --- FIX: Fetch the global data required by the views ---
+// This data was previously fetched in class-oo-admin-pages.php. It now belongs here.
+$phases = OO_Stream_Dashboard_DB::get_phases(array('is_active' => null, 'orderby' => 'stream_id, order_in_stream', 'number' => -1));
+$employees = OO_Stream_Dashboard_DB::get_employees(array('is_active' => 1, 'orderby' => 'last_name', 'order' => 'ASC', 'number' => -1));
+// --- END FIX ---
+
 // Determine the active sub-tab for this stream page.
 $active_tab = isset( $_GET['sub_tab'] ) ? sanitize_key( $_GET['sub_tab'] ) : 'phase_log_actions';
 

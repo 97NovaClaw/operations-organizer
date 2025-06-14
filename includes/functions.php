@@ -106,7 +106,10 @@ function oo_get_form_access_capability() {
  * @param string $context Optional context for the log entry (e.g., function name).
  */
 function oo_log($message, $context = '') {
-    if (!(defined('WP_DEBUG') && WP_DEBUG === true)) {
+    $wp_debug_enabled = (defined('WP_DEBUG') && WP_DEBUG === true);
+    $option_enabled = (get_option('oo_enable_debugging') === 'yes');
+
+    if ( ! $wp_debug_enabled && ! $option_enabled ) {
         return;
     }
 

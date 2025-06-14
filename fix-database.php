@@ -160,6 +160,18 @@ function oo_check_database_schema() {
 
 function oo_run_database_fix() {
     global $wpdb;
+
+    // Handle debug toggle form submission
+    if (isset($_POST['oo_debug_action']) && check_admin_referer('oo_toggle_debug_log')) {
+        if ($_POST['oo_debug_action'] === 'enable') {
+            update_option('oo_enable_debugging', 'yes');
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Debug logging has been enabled.', 'operations-organizer') . '</p></div>';
+        } elseif ($_POST['oo_debug_action'] === 'disable') {
+            update_option('oo_enable_debugging', 'no');
+             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Debug logging has been disabled.', 'operations-organizer') . '</p></div>';
+        }
+    }
+
     $phases_table = $wpdb->prefix . 'oo_phases';
     $employees_table = $wpdb->prefix . 'oo_employees';
     $job_logs_table = $wpdb->prefix . 'oo_job_logs';
@@ -395,6 +407,26 @@ function oo_run_database_fix() {
     }
     
     echo '<p><a href="' . admin_url('admin.php?page=oo_dashboard') . '" class="button button-primary">Return to Dashboard</a></p>';
+
+    ?>
+    <hr>
+    <div style="margin-top: 30px; padding: 20px; border: 1px solid #ddd; background: #f9f9f9;">
+        <h2><?php esc_html_e('Debug Logging', 'operations-organizer'); ?></h2>
+        <form method="post">
+            <?php wp_nonce_field('oo_toggle_debug_log'); ?>
+            <?php $is_debug_enabled = get_option('oo_enable_debugging') === 'yes'; ?>
+            <p><?php printf(esc_html__('Debug logging is currently %s.', 'operations-organizer'), '<strong>' . ($is_debug_enabled ? esc_html__('ENABLED', 'operations-organizer') : esc_html__('DISABLED', 'operations-organizer')) . '</strong>'); ?></p>
+            <p class="description"><?php echo $is_debug_enabled ? esc_html__('This will write detailed information to the debug.log file in the plugin directory. Use this only when troubleshooting issues.', 'operations-organizer') : esc_html__('Enable debugging to start logging detailed information.', 'operations-organizer'); ?></p>
+            
+            <?php if ($is_debug_enabled): ?>
+                <button type="submit" name="oo_debug_action" value="disable" class="button button-secondary"><?php esc_html_e('Disable Debugging', 'operations-organizer'); ?></button>
+            <?php else: ?>
+                <button type="submit" name="oo_debug_action" value="enable" class="button button-primary"><?php esc_html_e('Enable Debugging', 'operations-organizer'); ?></button>
+            <?php endif; ?>
+        </form>
+    </div>
+    <?php
+
     echo '</div>';
 }
 
