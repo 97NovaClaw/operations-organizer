@@ -113,7 +113,33 @@ jQuery(document).ready(function($) {
                 _ajax_nonce: oo_data.nonce_get_phase_kpi_links 
             })
         ).done(function(allKpisResponse, linkedKpisResponse) {
-            // ... existing code ...
+            if (allKpisResponse[0].success && linkedKpisResponse[0].success) {
+                var kpi = allKpisResponse[0].data.kpi_measure;
+                var phasesInStream = linkedKpisResponse[0].data.phases;
+
+                // FIX: Defensively check if linked_phase_ids is an array before using .map()
+                var linkedIdsData = linkedKpisResponse[0].data.linked_phase_ids;
+                var existingPhaseIdsLinked = (Array.isArray(linkedIdsData)) ? linkedIdsData.map(String) : [];
+
+                editKpiMeasureModal_Stream.find('#edit_kpi_measure_id-stream-' + streamSlug).val(kpi.kpi_measure_id);
+                editKpiMeasureModal_Stream.find('#editKpiMeasureNameDisplay-' + streamSlug).text(esc_html(kpi.measure_name));
+                // ... (rest of the modal population logic) ...
+                
+                // Populate phase checklist
+                $phaseChecklistContainer.empty();
+                if (phasesInStream && phasesInStream.length > 0) {
+                    $.each(phasesInStream, function(index, phase) {
+                        var isChecked = existingPhaseIdsLinked.indexOf(phase.phase_id.toString()) !== -1;
+                        var checkbox = '<label style="display: block;"><input type="checkbox" name="link_to_phases[]" value="' + phase.phase_id + '" ' + (isChecked ? 'checked' : '') + '> ' + esc_html(phase.phase_name) + '</label>';
+                        $phaseChecklistContainer.append(checkbox);
+                    });
+                } else {
+                    $phaseChecklistContainer.html('<p><?php echo esc_js(__("No active phases found in this stream to link to.", "operations-organizer")); ?></p>');
+                }
+                editKpiMeasureModal_Stream.show();
+            } else {
+                // ... existing code ...
+            }
         });
     }
 
