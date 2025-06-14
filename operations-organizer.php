@@ -159,12 +159,22 @@ if ( is_admin() ) {
 
             // If on a stream page, load the specific column preferences for that stream
             if (isset($_GET['page']) && strpos($_GET['page'], 'oo_stream_') === 0) {
-                // This logic must match how the meta_key is constructed in the single-stream-page-template.php JS
                 $page_param = sanitize_key($_GET['page']);
-                $stream_name = str_replace('oo_stream_', '', $page_param); // e.g., 'content' from 'oo_stream_content'
-                
-                // Add the stream slug for our new JS file
+                $stream_name = str_replace('oo_stream_', '', $page_param);
+
+                // Add the stream data for our new JS file
                 $localized_data['current_stream_tab_slug'] = $stream_name;
+                
+                // Get the Stream ID from the configuration saved in OO_Admin_Pages
+                $stream_configs = OO_Admin_Pages::get_stream_page_configs_for_redirect();
+                $current_stream_id = null;
+                foreach($stream_configs as $id => $config) {
+                    if ($config['slug'] === $page_param) {
+                        $current_stream_id = $id;
+                        break;
+                    }
+                }
+                $localized_data['current_stream_id'] = $current_stream_id;
 
                 // To get the correct 'tab_slug', we need to look up the stream config.
                 // This is a bit tricky here. A simpler, more robust way is to ensure the JS and PHP use the same source for the slug.

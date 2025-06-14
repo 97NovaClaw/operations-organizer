@@ -178,4 +178,12 @@ jQuery(document).ready(function($) {
             // ... existing code ...
         });
     }
+
+    // --- Phase Management for this Stream Page (NEW/MODIFIED) ---
+    var streamSlug = oo_data.current_stream_tab_slug;
+    var addPhaseModal_Stream = $('#addOOPhaseModal-stream-' + streamSlug);
+    var editPhaseModal_Stream = $('#editOOPhaseModal-stream-' + streamSlug);
+
+    // Open Add Phase Modal for Stream
+    // ... existing code ...
 }); 

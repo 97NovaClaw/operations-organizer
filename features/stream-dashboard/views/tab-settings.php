@@ -83,10 +83,22 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 		<?php esc_html_e('Add New KPI Measure to this Stream', 'operations-organizer'); ?>
 	</button>
 	<?php
-	// ... PHP logic to fetch and prepare KPI measures ...
+	// --- FIX: Add data fetching for KPI Measures ---
+	$stream_kpi_measures = array();
+	if (isset($current_stream_id)) {
+		$kpis_from_db = OO_Stream_Dashboard_DB::get_kpi_measures_for_stream($current_stream_id, array('is_active' => 1));
+		if (!empty($kpis_from_db)) {
+			foreach($kpis_from_db as $kpi) {
+				$phase_names = OO_Stream_Dashboard_DB::get_phase_names_for_kpi_in_stream($kpi->kpi_measure_id, $current_stream_id);
+				$kpi->used_in_phases_in_stream = !empty($phase_names) ? implode(', ', $phase_names) : 'N/A';
+				$stream_kpi_measures[] = $kpi;
+			}
+		}
+	}
+	// --- END FIX ---
 	?>
 	<table class="wp-list-table widefat fixed striped table-view-list kpi-measures-stream" style="margin-top:20px;">
-		<!-- ... table head and body for KPI measures ... -->
+		<!-- ... kpi table body uses $stream_kpi_measures ... -->
 	</table>
 
 	<h4 style="margin-top: 40px;"><?php esc_html_e('Derived KPI Definitions relevant to this Stream', 'operations-organizer'); ?></h4>
@@ -94,10 +106,33 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 		<?php esc_html_e('Add New Derived KPI Definition', 'operations-organizer'); ?>
 	</button>
 	<?php
-	// ... PHP logic to fetch and prepare Derived KPIs ...
+	// --- FIX: Add data fetching for Derived KPIs ---
+	$stream_derived_kpis = array();
+	$stream_kpi_measure_ids = array();
+	if (!empty($stream_kpi_measures)) {
+		$stream_kpi_measure_ids = wp_list_pluck($stream_kpi_measures, 'kpi_measure_id');
+	}
+
+	if (!empty($stream_kpi_measure_ids)) {
+		$all_derived_kpis = OO_Stream_Dashboard_DB::get_derived_kpi_definitions(array('is_active' => null, 'number' => -1)); 
+		foreach ($all_derived_kpis as $dkpi) {
+			if (in_array($dkpi->primary_kpi_measure_id, $stream_kpi_measure_ids)) {
+				$primary_kpi = OO_Stream_Dashboard_DB::get_kpi_measure($dkpi->primary_kpi_measure_id);
+				$dkpi->primary_kpi_measure_name = $primary_kpi ? esc_html($primary_kpi->measure_name) : 'Unknown KPI';
+				
+				$dkpi->secondary_kpi_measure_name = 'N/A';
+				if ($dkpi->calculation_type === 'ratio_to_kpi' && !empty($dkpi->secondary_kpi_measure_id)) {
+					$secondary_kpi = OO_Stream_Dashboard_DB::get_kpi_measure($dkpi->secondary_kpi_measure_id);
+					$dkpi->secondary_kpi_measure_name = $secondary_kpi ? esc_html($secondary_kpi->measure_name) : 'Unknown Secondary KPI';
+				}
+				$stream_derived_kpis[] = $dkpi;
+			}
+		}
+	}
+	// --- END FIX ---
 	?>
 	<table class="wp-list-table widefat fixed striped table-view-list derived-kpi-definitions-stream" style="margin-top:20px;">
-		<!-- ... table head and body for Derived KPIs ... -->
+		<!-- ... derived kpi table body uses $stream_derived_kpis ... -->
 	</table>
 
 	<!-- ... All the modals for adding/editing phases, KPIs, and Derived KPIs for the stream page ... -->
