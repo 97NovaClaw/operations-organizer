@@ -197,6 +197,12 @@ This summary reflects the state of the codebase as of the start of the refactori
     -   **Deprecated (Do Not Modify):** The **Global Dashboard**, rendered by `admin/views/dashboard-page.php` and its sub-views in `admin/views/dashboard-tabs/`, is considered obsolete.
     -   **Active (Primary Refactor Target):** The **Stream Dashboards** (e.g., "Soft Content", "Electronics") are the current, active feature. They are all rendered by the single template file: `admin/views/stream-pages/single-stream-page-template.php`. Our refactoring work will focus exclusively on this file and its dependencies.
 
+4.  **Git Commands:** All git operations must be performed with separate commands. Do not chain `git add` and `git commit` with `&&`.
+
+5.  **Plugin Versioning:** After every change to a JavaScript or CSS file, the plugin version number **must** be incremented. The patch version (the last digit) should be incremented (e.g., `1.4.5.1` -> `1.4.5.2`). The major and minor versions will not be changed without your explicit instruction.
+
+6.  **Aggressive Debugging:** When a bug is reported, especially a JavaScript issue, the first step is to add **extensive** `console.log` and `oo_log` statements to every potentially relevant function, variable, and event handler to trace the complete execution flow from front-end to back-end. No assumptions will be made.
+
 
 
 
