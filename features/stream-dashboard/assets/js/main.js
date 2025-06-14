@@ -2,8 +2,7 @@
 // It is structured to prevent race conditions and scope errors.
 
 jQuery(document).ready(function($) {
-    console.log('[Stream Dashboard] Document ready. Main JS file loaded.');
-
+    console.log('[Stream Dashboard] Main JS file loaded and document is ready.');
     var oo_data = window.oo_data || {};
     var currentStreamSlug = oo_data.current_stream_tab_slug || '';
     var currentStreamId = oo_data.current_stream_id || 0;
@@ -12,7 +11,7 @@ jQuery(document).ready(function($) {
         console.error('[Stream Dashboard] CRITICAL: streamSlug is not available. Aborting script.');
         return;
     }
-    console.log('[Stream Dashboard] Initializing for stream slug:', currentStreamSlug, 'and stream ID:', currentStreamId);
+    console.log('[DEBUG] Initializing for stream slug:', currentStreamSlug, 'and stream ID:', currentStreamId);
 
     // Helper function for escaping HTML in JS (moved to top of ready block)
     function esc_html(str) {
@@ -24,6 +23,7 @@ jQuery(document).ready(function($) {
 
     // JS for Quick Phase Actions in this Stream tab
     $('.oo-stream-page .oo-start-link-btn, .oo-stream-page .oo-stop-link-btn').on('click', function(e) {
+        console.log('[DEBUG] Quick Action button clicked.');
         e.preventDefault();
         var $button = $(this);
         var $row = $button.closest('.oo-phase-action-row');
@@ -33,7 +33,7 @@ jQuery(document).ready(function($) {
         var returnTabSlug = currentStreamSlug;
 
         if (!jobNumber) {
-            alert('<?php echo esc_js(__("Please enter a Job Number first.", "operations-organizer")); ?>');
+            alert("Please enter a Job Number first.");
             return;
         }
 
@@ -112,5 +112,5 @@ jQuery(document).ready(function($) {
         });
     }
 
-    console.log('[Stream Dashboard] Script initialization finished.');
+    console.log('[Stream Dashboard] All event handlers attached.');
 }); 

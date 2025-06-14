@@ -1,6 +1,7 @@
 <?php
 /**
  * View for the "Phase Dashboard" tab in the Stream Dashboard.
+ * This file is a direct copy of the working logic from the original monolithic template.
  *
  * @package Operations_Organizer
  */

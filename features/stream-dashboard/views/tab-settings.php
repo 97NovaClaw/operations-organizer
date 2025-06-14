@@ -11,8 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // These globals are inherited from the main `index.php` of the feature.
-global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phases;
-
+global $current_stream_id, $current_stream_name, $current_stream_tab_slug;
 ?>
 <div id="phase-kpi-settings-content">
 	<h3><?php printf(esc_html__('Phase & KPI Settings for %s Stream', 'operations-organizer'), esc_html($current_stream_name)); ?></h3>
@@ -24,7 +23,7 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 	<?php 
 	$current_stream_phases_for_table = array(); 
 	if (isset($current_stream_id)) {
-		$current_stream_phases_for_table = OO_DB::get_phases(array(
+		$current_stream_phases_for_table = OO_Stream_Dashboard_DB::get_phases(array(
 			'stream_id' => $current_stream_id, 
 			'is_active' => null,
 			'orderby' => 'order_in_stream', 
@@ -54,11 +53,7 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 						<td><?php echo esc_html( $phase->phase_description ); ?></td>
 						<td><?php echo intval( $phase->order_in_stream ); ?></td>
 						<td><?php echo $phase->includes_kpi ? 'Yes' : 'No'; ?></td>
-						<td>
-							<?php 
-							echo $phase->is_active ? __( 'Active', 'operations-organizer' ) : __( 'Inactive', 'operations-organizer' );
-							?>
-						</td>
+						<td><?php echo $phase->is_active ? __( 'Active', 'operations-organizer' ) : __( 'Inactive', 'operations-organizer' ); ?></td>
 						<td class="actions column-actions">
 							<button type="button" class="button-secondary oo-edit-phase-button-stream" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>"><?php esc_html_e( 'Edit', 'operations-organizer' ); ?></button>
 							<?php 
@@ -86,16 +81,15 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 	<?php
 	$stream_kpi_measures = array();
 	if (isset($current_stream_id)) {
-		$kpis_from_db = OO_DB::get_kpi_measures_for_stream($current_stream_id, array('is_active' => null));
+		$kpis_from_db = OO_Stream_Dashboard_DB::get_kpi_measures_for_stream($current_stream_id, array('is_active' => null));
 		if (!empty($kpis_from_db)) {
 			foreach($kpis_from_db as $kpi) {
-				$phase_names = OO_DB::get_phase_names_for_kpi_in_stream($kpi->kpi_measure_id, $current_stream_id);
+				$phase_names = OO_Stream_Dashboard_DB::get_phase_names_for_kpi_in_stream($kpi->kpi_measure_id, $current_stream_id);
 				$kpi->used_in_phases_in_stream = !empty($phase_names) ? implode(', ', $phase_names) : 'N/A';
 				$stream_kpi_measures[] = $kpi;
 			}
 		}
 	}
-	oo_log('[Stream Settings Tab] Fetched KPI Measures for Stream ' . $current_stream_id . ': ' . count($stream_kpi_measures), 'StreamDashboardView');
 	?>
 	<table class="wp-list-table widefat fixed striped table-view-list kpi-measures-stream" style="margin-top:20px;">
 		<thead>
@@ -116,9 +110,7 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 						<td><code><?php echo esc_html( $kpi_measure->measure_key ); ?></code></td>
 						<td><?php echo esc_html( $kpi_measure->used_in_phases_in_stream ); ?></td>
 						<td><?php echo esc_html( ucfirst( $kpi_measure->unit_type ) ); ?></td>
-						<td>
-							<?php echo $kpi_measure->is_active ? __('Active', 'operations-organizer') : __('Inactive', 'operations-organizer'); ?>
-						</td>
+						<td><?php echo $kpi_measure->is_active ? __('Active', 'operations-organizer') : __('Inactive', 'operations-organizer'); ?></td>
 						<td class="actions column-actions">
 							<button type="button" class="button-secondary oo-edit-kpi-measure-stream" data-kpi-measure-id="<?php echo esc_attr( $kpi_measure->kpi_measure_id ); ?>"><?php esc_html_e('Edit', 'operations-organizer'); ?></button>
 							<?php
@@ -150,22 +142,21 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 	}
 
 	if (!empty($stream_kpi_measure_ids)) {
-		$all_derived_kpis = OO_DB::get_derived_kpi_definitions(array('is_active' => null, 'number' => -1)); 
+		$all_derived_kpis = OO_Stream_Dashboard_DB::get_derived_kpi_definitions(array('is_active' => null, 'number' => -1)); 
 		foreach ($all_derived_kpis as $dkpi) {
 			if (in_array($dkpi->primary_kpi_measure_id, $stream_kpi_measure_ids)) {
-				$primary_kpi = OO_DB::get_kpi_measure($dkpi->primary_kpi_measure_id);
+				$primary_kpi = OO_Stream_Dashboard_DB::get_kpi_measure($dkpi->primary_kpi_measure_id);
 				$dkpi->primary_kpi_measure_name = $primary_kpi ? esc_html($primary_kpi->measure_name) : 'Unknown KPI';
 				
 				$dkpi->secondary_kpi_measure_name = 'N/A';
 				if ($dkpi->calculation_type === 'ratio_to_kpi' && !empty($dkpi->secondary_kpi_measure_id)) {
-					$secondary_kpi = OO_DB::get_kpi_measure($dkpi->secondary_kpi_measure_id);
+					$secondary_kpi = OO_Stream_Dashboard_DB::get_kpi_measure($dkpi->secondary_kpi_measure_id);
 					$dkpi->secondary_kpi_measure_name = $secondary_kpi ? esc_html($secondary_kpi->measure_name) : 'Unknown Secondary KPI';
 				}
 				$stream_derived_kpis[] = $dkpi;
 			}
 		}
 	}
-	oo_log('[Stream Settings Tab] Fetched Derived KPIs for Stream ' . $current_stream_id . ': ' . count($stream_derived_kpis), 'StreamDashboardView');
 	?>
 	<table class="wp-list-table widefat fixed striped table-view-list derived-kpi-definitions-stream" style="margin-top:20px;">
 		<thead>
@@ -207,14 +198,10 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 	</table>
 
 	<!-- ALL MODALS FROM THE ORIGINAL FILE -->
-	<!-- Add Phase Modal -->
-	<div id="addOOPhaseModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
-		<!-- ... (full modal content) ... -->
-	</div>
-	<!-- Edit Phase Modal -->
-	<div id="editOOPhaseModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
-		<!-- ... (full modal content) ... -->
-	</div>
-	<!-- Add/Edit KPI and Derived KPI Modals -->
-	<!-- ... (all other modals) ... -->
+	<div id="addOOPhaseModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">...</div>
+	<div id="editOOPhaseModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">...</div>
+	<div id="addKpiMeasureModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">...</div>
+	<div id="editKpiMeasureModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">...</div>
+	<div id="addDerivedKpiModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">...</div>
+	<div id="editDerivedKpiModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">...</div>
 </div> 

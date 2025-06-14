@@ -1,6 +1,7 @@
 <?php
 /**
  * View for the "Phase Log Actions" tab in the Stream Dashboard.
+ * This file is a direct copy of the working logic from the original monolithic template.
  *
  * @package Operations_Organizer
  */
@@ -12,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // These globals are inherited from the main `index.php` of the feature.
 global $current_stream_id, $current_stream_name, $phases;
 
-// Prepare phases for the current stream for Quick Actions
+// The $stream_phases variable is also needed here.
 $stream_phases = array();
 if (isset($current_stream_id) && !empty($phases)) {
     foreach ($phases as $phase_item) {
