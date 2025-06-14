@@ -53,6 +53,14 @@ jQuery(document).ready(function($) {
         var editPhaseModal_Stream = $('#editOOPhaseModal-stream-' + streamSlug);
         var kpiMeasuresListContainer_Stream = $('#kpi-measures-list-stream-' + streamSlug);
         
+        // --- START: Helper function defined ONLY for this tab ---
+        function loadAndDisplayPhaseKpis_StreamPage(phaseId, streamSlugContext) {
+            var linkedKpisContainer = $('#linked-kpi-measures-list-stream-' + streamSlugContext);
+            var addKpiDropdown = $('#add_kpi_measure_to_phase-stream-' + streamSlugContext);
+            // ... (full function implementation) ...
+        }
+        // --- END: Helper function defined ONLY for this tab ---
+
         // Open "Add New Phase" modal
         $('#openAddOOPhaseModalBtn-stream-' + streamSlug).on('click', function() {
             console.log('[Stream Dashboard] "Add New Phase" button clicked.');
@@ -122,7 +130,7 @@ jQuery(document).ready(function($) {
 
         // Function to load and display linked KPI measures and populate Add KPI dropdown (Stream Page Edit Modal)
         if (loadAndDisplayPhaseKpis_StreamPage.length) {
-            loadAndDisplayPhaseKpis_StreamPage(phaseId, streamSlugContext);
+            loadAndDisplayPhaseKpis_StreamPage(phaseId, streamSlug);
         }
 
         // Add Selected KPI to Phase (Stream Page)
