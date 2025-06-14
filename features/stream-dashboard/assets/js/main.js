@@ -49,11 +49,7 @@ jQuery(document).ready(function($) {
     if ($('#phase-kpi-settings-content').length) {
         console.log('[DEBUG] Initializing Phase & KPI Settings tab logic...');
 
-        var addPhaseModal_Stream = $('#addOOPhaseModal-stream-' + streamSlug);
-        var editPhaseModal_Stream = $('#editOOPhaseModal-stream-' + streamSlug);
-        var kpiMeasuresListContainer_Stream = $('#kpi-measures-list-stream-' + streamSlug);
-        
-        // --- START: Helper function DEFINED FIRST ---
+        // Define helper function in the correct scope for this tab
         function loadAndDisplayPhaseKpis_StreamPage(phaseId, streamSlugContext) {
             console.log('[DEBUG] loadAndDisplayPhaseKpis_StreamPage called for phaseId:', phaseId);
             var linkedKpisContainer = $('#linked-kpi-measures-list-stream-' + streamSlugContext);
@@ -61,19 +57,23 @@ jQuery(document).ready(function($) {
             // ... (full function implementation with more logs) ...
             console.log('[DEBUG] loadAndDisplayPhaseKpis_StreamPage finished.');
         }
-        // --- END: Helper function DEFINED FIRST ---
 
-        console.log('[DEBUG] Attaching "Add New Phase" button handler...');
+        // Attach all event handlers for this tab
+        console.log('[DEBUG] Attaching handlers for Phase & KPI Settings tab...');
+        
+        var addPhaseModal_Stream = $('#addOOPhaseModal-stream-' + streamSlug);
+        var editPhaseModal_Stream = $('#editOOPhaseModal-stream-' + streamSlug);
+        var kpiMeasuresListContainer_Stream = $('#kpi-measures-list-stream-' + streamSlug);
+        
         $(document).on('click', '#openAddOOPhaseModalBtn-stream-' + streamSlug, function() {
             console.log('[DEBUG] "Add New Phase" button clicked.');
             addPhaseModal_Stream.show();
         });
 
-        console.log('[DEBUG] Attaching "Edit Phase" button handler...');
         $(document).on('click', '#phase-kpi-settings-content .oo-edit-phase-button-stream', function() { 
             console.log('[DEBUG] "Edit Phase" button clicked.');
             var phaseId = $(this).data('phase-id');
-            loadAndDisplayPhaseKpis_StreamPage(phaseId, streamSlug); // This will now work
+            loadAndDisplayPhaseKpis_StreamPage(phaseId, streamSlug);
             var phaseName = $(this).closest('tr').find('td:first-child .oo-edit-phase-button-stream').text().trim() || $(this).data('phase-name');
             
             editPhaseModal_Stream.data('current-phase-id', phaseId); 
