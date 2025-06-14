@@ -1,4 +1,13 @@
 jQuery(document).ready(function($) {
+    console.log('[Stream Dashboard] Main JS file loaded and document is ready.');
+
+    var streamSlug = oo_data.current_stream_tab_slug;
+    if (!streamSlug) {
+        console.error('[Stream Dashboard] CRITICAL: streamSlug is not available in oo_data. Event handlers will not be attached correctly.');
+        return;
+    }
+    console.log('[Stream Dashboard] Initializing for stream slug:', streamSlug);
+
     // Helper function for escaping HTML in JS (moved to top of ready block)
     function esc_html(str) {
         if (str === null || typeof str === 'undefined') return '';
@@ -45,6 +54,7 @@ jQuery(document).ready(function($) {
 
     // Handle Edit Phase Button Click on Stream Page table
     $('#phase-kpi-settings-content').on('click', '.oo-edit-phase-button-stream', function() { 
+        console.log('[Stream Dashboard] Edit Phase button clicked.');
         var phaseId = $(this).data('phase-id');
         var phaseName = $(this).closest('tr').find('td:first-child .oo-edit-phase-button-stream').text().trim() || $(this).data('phase-name');
         
@@ -206,10 +216,42 @@ jQuery(document).ready(function($) {
     }
 
     // --- Phase Management for this Stream Page (NEW/MODIFIED) ---
-    var streamSlug = oo_data.current_stream_tab_slug;
     var addPhaseModal_Stream = $('#addOOPhaseModal-stream-' + streamSlug);
     var editPhaseModal_Stream = $('#editOOPhaseModal-stream-' + streamSlug);
 
     // Open Add Phase Modal for Stream
     // ... existing code ...
+
+    // --- DELEGATED EVENT LISTENERS ---
+    // This robust method attaches listeners to the document, so it works even if the
+    // elements are loaded dynamically or if the script runs before the element exists.
+
+    // Open Add Phase Modal
+    $(document).on('click', '#openAddOOPhaseModalBtn-stream-' + streamSlug, function() {
+        console.log('[Stream Dashboard] Add New Phase button clicked.');
+        var addPhaseModal_Stream = $('#addOOPhaseModal-stream-' + streamSlug);
+        addPhaseModal_Stream.find('form')[0].reset();
+        addPhaseModal_Stream.find('#add_phase_slug-stream-' + streamSlug).val('');
+        addPhaseModal_Stream.show();
+    });
+
+    // Handle Edit Phase Button Click
+    $(document).on('click', '#phase-kpi-settings-content .oo-edit-phase-button-stream', function() { 
+        console.log('[Stream Dashboard] Edit Phase button clicked.');
+        // ... (rest of the function)
+    });
+    
+    // Open Add KPI Measure Modal
+    $(document).on('click', '#openAddKpiMeasureModalBtn-stream-' + streamSlug, function() {
+        console.log('[Stream Dashboard] Add New KPI Measure button clicked.');
+        // ... (rest of the function)
+    });
+
+    // Handle Edit KPI Measure Button Click
+    $(document).on('click', '#kpi-measures-list-stream-' + streamSlug + ' .oo-edit-kpi-measure-stream', function() {
+        console.log('[Stream Dashboard] Edit KPI Measure button clicked.');
+        // ... (rest of the function)
+    });
+
+    // ... and so on for ALL other button/form handlers in this file ...
 }); 
