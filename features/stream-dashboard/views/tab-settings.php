@@ -200,8 +200,71 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug;
 	</table>
 
 	<!-- ALL MODALS FROM THE ORIGINAL FILE -->
-	<div id="addOOPhaseModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">...</div>
-	<div id="editOOPhaseModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">...</div>
+	<div id="addOOPhaseModal" class="oo-modal" style="display:none;">
+		<div class="oo-modal-content">
+			<span class="oo-modal-close">&times;</span>
+			<h2><?php esc_html_e( 'Add New Phase to', 'operations-organizer' ); ?> <?php echo esc_html($current_stream_name); ?></h2>
+			<form id="add-phase-form">
+				<table class="form-table oo-form-table">
+					<tr valign="top">
+						<th scope="row"><?php esc_html_e( 'Phase Name', 'operations-organizer' ); ?></th>
+						<td><input type="text" id="add_phase_name" name="phase_name" required /></td>
+					</tr>
+					<tr valign="top">
+						<th scope="row"><?php esc_html_e( 'Description', 'operations-organizer' ); ?></th>
+						<td><textarea id="add_phase_description" name="phase_description"></textarea></td>
+					</tr>
+					<tr valign="top">
+						<th scope="row"><?php esc_html_e( 'Operations KPIs', 'operations-organizer' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" id="add_includes_kpi" name="includes_kpi" value="1" checked>
+								<?php esc_html_e( 'Includes operations KPIs', 'operations-organizer' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e('If checked, this phase will appear in the stream page and users can input tracking data.', 'operations-organizer'); ?></p>
+						</td>
+					</tr>
+				</table>
+				<p class="submit">
+					<button type="submit" class="button button-primary"><?php esc_html_e( 'Add Phase', 'operations-organizer' ); ?></button>
+					<span class="spinner"></span>
+				</p>
+			</form>
+		</div>
+	</div>
+
+	<div id="editOOPhaseModal" class="oo-modal" style="display:none;">
+		<div class="oo-modal-content">
+			<span class="oo-modal-close">&times;</span>
+			<h2><?php esc_html_e( 'Edit Phase', 'operations-organizer' ); ?></h2>
+			<form id="edit-phase-form">
+				<input type="hidden" id="edit_phase_id" name="edit_phase_id" value="" />
+				<table class="form-table oo-form-table">
+					<tr valign="top">
+						<th scope="row"><?php esc_html_e( 'Phase Name', 'operations-organizer' ); ?></th>
+						<td><input type="text" id="edit_phase_name" name="edit_phase_name" required /></td>
+					</tr>
+					<tr valign="top">
+						<th scope="row"><?php esc_html_e( 'Description', 'operations-organizer' ); ?></th>
+						<td><textarea id="edit_phase_description" name="edit_phase_description"></textarea></td>
+					</tr>
+					<tr valign="top">
+						<th scope="row"><?php esc_html_e( 'Operations KPIs', 'operations-organizer' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" id="edit_includes_kpi" name="edit_includes_kpi" value="1">
+								<?php esc_html_e( 'Includes operations KPIs', 'operations-organizer' ); ?>
+							</label>
+						</td>
+					</tr>
+				</table>
+				<p class="submit">
+					<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Changes', 'operations-organizer' ); ?></button>
+					<span class="spinner"></span>
+				</p>
+			</form>
+		</div>
+	</div>
 	<div id="addKpiMeasureModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">...</div>
 	<div id="editKpiMeasureModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">...</div>
 	<div id="addDerivedKpiModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">...</div>
