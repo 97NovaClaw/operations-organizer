@@ -23,7 +23,7 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phas
 	<?php 
 	$current_stream_phases_for_table = array(); 
 	if (isset($current_stream_id)) {
-		$current_stream_phases_for_table = OO_DB::get_phases(array(
+		$current_stream_phases_for_table = OO_Stream_Dashboard_DB::get_phases(array(
 			'stream_id' => $current_stream_id, 
 			'is_active' => null,
 			'orderby' => 'order_in_stream', 
