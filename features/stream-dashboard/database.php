@@ -97,6 +97,36 @@ class OO_Stream_Dashboard_DB {
 		return $wpdb->get_results( $sql );
 	}
 
+	public static function update_phase_order( $stream_id, $phase_order ) {
+		self::init();
+		global $wpdb;
+
+		if ( empty($phase_order) ) {
+			return new WP_Error('empty_order', 'No phase order was provided.');
+		}
+
+		$wpdb->query('START TRANSACTION');
+
+		foreach ( $phase_order as $index => $phase_id ) {
+			$order = $index + 1;
+			$result = $wpdb->update(
+				self::$phases_table,
+				array( 'order_in_stream' => $order ),
+				array( 'phase_id' => $phase_id, 'stream_id' => $stream_id ),
+				array( '%d' ),
+				array( '%d', '%d' )
+			);
+
+			if ( false === $result ) {
+				$wpdb->query('ROLLBACK');
+				return new WP_Error('db_update_error', 'Could not update the order for phase_id ' . $phase_id);
+			}
+		}
+
+		$wpdb->query('COMMIT');
+		return true;
+	}
+
 	// --- KPI Methods ---
 	public static function get_kpi_measures_for_stream($stream_id, $args = array()) {
 		self::init();

@@ -35,6 +35,7 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug;
 	<table class="wp-list-table widefat fixed striped table-view-list phases" style="margin-top:20px;">
 		<thead>
 			<tr>
+				<th style="width: 30px;"><?php esc_html_e('Order', 'operations-organizer'); ?></th>
 				<th><?php esc_html_e('Phase Name', 'operations-organizer'); ?></th>
 				<th><?php esc_html_e('Slug', 'operations-organizer'); ?></th>
 				<th><?php esc_html_e('Description', 'operations-organizer'); ?></th>
@@ -47,7 +48,8 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug;
 		<tbody>
 			<?php if ( ! empty( $current_stream_phases_for_table ) ) : ?>
 				<?php foreach ( $current_stream_phases_for_table as $phase ) : ?>
-					<tr class="<?php echo $phase->is_active ? 'active' : 'inactive'; ?>">
+					<tr class="<?php echo $phase->is_active ? 'active' : 'inactive'; ?>" data-phase-id="<?php echo esc_attr($phase->phase_id); ?>">
+						<td><span class="oo-phase-drag-handle dashicons dashicons-menu" style="cursor: move;" title="Drag to reorder"></span></td>
 						<td><strong><button type="button" class="button-link oo-edit-phase-button-stream" data-phase-id="<?php echo esc_attr( $phase->phase_id ); ?>" data-phase-name="<?php echo esc_attr( $phase->phase_name ); ?>"><?php echo esc_html( $phase->phase_name ); ?></button></strong></td>
 						<td><code><?php echo esc_html( $phase->phase_slug ); ?></code></td>
 						<td><?php echo esc_html( $phase->phase_description ); ?></td>
@@ -69,7 +71,7 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug;
 					</tr>
 				<?php endforeach; ?>
 			<?php else : ?>
-				<tr><td colspan="7"><?php esc_html_e( 'No phases found for this stream.', 'operations-organizer' ); ?></td></tr>
+				<tr><td colspan="8"><?php esc_html_e( 'No phases found for this stream.', 'operations-organizer' ); ?></td></tr>
 			<?php endif; ?>
 		</tbody>
 	</table>

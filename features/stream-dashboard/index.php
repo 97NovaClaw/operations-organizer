@@ -40,6 +40,7 @@ require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/ajax.php';
 
 // Initialize feature components
+OO_Stream_Dashboard_DB::init();
 OO_Stream_Dashboard_AJAX::init();
 
 // These globals are passed from class-oo-admin-pages.php and are available to this feature.

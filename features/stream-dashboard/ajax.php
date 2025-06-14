@@ -37,6 +37,7 @@ class OO_Stream_Dashboard_AJAX {
 			'get_phases_for_stream_linking',
 			'get_phase_links_for_kpi_in_stream',
 			'get_stream_job_logs',
+			'update_phase_order_from_stream',
 		];
 		foreach ( $actions as $action ) {
 			add_action( 'wp_ajax_oo_' . $action, array( __CLASS__, 'ajax_' . $action ) );
@@ -859,5 +860,34 @@ class OO_Stream_Dashboard_AJAX {
             'recordsFiltered' => $total_filtered_records,
             'data'            => $data,
         ));
+    }
+
+    /**
+     * AJAX handler for updating the order of phases within a stream.
+     */
+    public static function ajax_update_phase_order_from_stream() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
+        check_ajax_referer( 'oo_update_phase_order_nonce', '_ajax_nonce' );
+
+        if ( ! current_user_can( oo_get_capability() ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 );
+            return;
+        }
+
+        $stream_id = isset( $_POST['stream_id'] ) ? intval( $_POST['stream_id'] ) : 0;
+        $phase_order = isset( $_POST['order'] ) && is_array( $_POST['order'] ) ? array_map( 'intval', $_POST['order'] ) : array();
+
+        if ( empty( $stream_id ) || empty( $phase_order ) ) {
+            wp_send_json_error( array( 'message' => 'Error: Stream ID and phase order are required.' ) );
+            return;
+        }
+
+        $result = OO_Stream_Dashboard_DB::update_phase_order( $stream_id, $phase_order );
+
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => 'Error: ' . $result->get_error_message() ) );
+        } else {
+            wp_send_json_success( array( 'message' => 'Phase order updated successfully.' ) );
+        }
     }
 } 

@@ -158,7 +158,23 @@ if ( is_admin() ) {
                 'user_stream_default_columns' => array(), // Default to empty, will be populated below for specific stream pages
                 'nonces' => array(), // Placeholder for dynamically generated nonces if needed later by JS
                 'nonce_get_phases' => wp_create_nonce('oo_get_phases_nonce'), // Nonce for getting phases for a stream
-                'current_stream_tab_slug' => '' // Placeholder for current stream tab slug
+                'current_stream_tab_slug' => '', // Placeholder for current stream tab slug
+                
+                // Stream Dashboard specific nonces
+                'nonces' => array(
+                    'update_phase_order' => wp_create_nonce('oo_update_phase_order_nonce'),
+                    'add_phase' => wp_create_nonce('oo_add_phase_nonce'),
+                    'get_phase' => wp_create_nonce('oo_edit_phase_nonce'),
+                    'update_phase' => wp_create_nonce('oo_edit_phase_nonce'),
+                    'delete_phase' => wp_create_nonce('oo_delete_phase_ajax_nonce'),
+                ),
+                
+                // Internationalization strings for Stream Dashboard
+                'i18n' => array(
+                    'confirmDeletePhase' => __('Are you sure you want to delete this phase?', 'operations-organizer'),
+                    'genericError' => __('An unexpected error occurred. Please try again.', 'operations-organizer'),
+                    'saving' => __('Saving...', 'operations-organizer'),
+                )
             );
 
             // If on a stream page, load the specific column preferences for that stream
