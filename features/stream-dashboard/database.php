@@ -96,14 +96,76 @@ class OO_Stream_Dashboard_DB {
 		$sql .= $limit_clause;
 		return $wpdb->get_results( $sql );
 	}
-	
-	// ... (All other necessary DB methods will be added here with their full implementation) ...
 
+	// --- KPI Methods ---
 	public static function get_kpi_measures_for_stream($stream_id, $args = array()) {
-		oo_log('OO_Stream_Dashboard_DB::get_kpi_measures_for_stream() called with stream_id: ' . $stream_id, 'StreamDashboardDB');
-		oo_log($args, 'StreamDashboardDB get_kpi_measures_for_stream args');
 		self::init();
 		global $wpdb;
-		// ... existing code ...
+		$defaults = array('is_active' => 1);
+		$args = wp_parse_args($args, $defaults);
+		$sql = "SELECT DISTINCT km.* FROM " . self::$kpi_measures_table . " km
+				JOIN " . self::$phase_kpi_measures_link_table . " pkl ON km.kpi_measure_id = pkl.kpi_measure_id
+				JOIN " . self::$phases_table . " p ON pkl.phase_id = p.phase_id
+				WHERE p.stream_id = %d";
+		$params = array($stream_id);
+		if ( !is_null($args['is_active']) ) {
+			$sql .= " AND km.is_active = %d";
+			$params[] = $args['is_active'];
+		}
+		$sql .= " ORDER BY km.measure_name ASC";
+		return $wpdb->get_results($wpdb->prepare($sql, $params));
+	}
+
+	public static function get_phase_names_for_kpi_in_stream($kpi_measure_id, $stream_id) {
+		self::init();
+		global $wpdb;
+		$sql = "SELECT p.phase_name FROM " . self::$phases_table . " p
+				JOIN " . self::$phase_kpi_measures_link_table . " pkl ON p.phase_id = pkl.phase_id
+				WHERE p.stream_id = %d AND pkl.kpi_measure_id = %d AND p.is_active = 1";
+		return $wpdb->get_col($wpdb->prepare($sql, $stream_id, $kpi_measure_id));
+	}
+
+	public static function get_derived_kpi_definitions( $params = array() ) {
+		self::init();
+		global $wpdb;
+		$defaults = array(
+			'is_active' => null,
+			'number' => 20,
+			'offset' => 0,
+			'orderby' => 'definition_name',
+			'order' => 'ASC',
+			'primary_kpi_measure_id' => null
+		);
+		$params = wp_parse_args($params, $defaults);
+		$sql_base = "SELECT * FROM " . self::$derived_kpi_definitions_table;
+		$where_clauses = array();
+		$query_params = array();
+		if ( !is_null($params['is_active']) ) {
+			$where_clauses[] = "is_active = %d";
+			$query_params[] = $params['is_active'];
+		}
+		if ( !is_null($params['primary_kpi_measure_id']) ) {
+			$where_clauses[] = "primary_kpi_measure_id = %d";
+			$query_params[] = intval($params['primary_kpi_measure_id']);
+		}
+		$sql_where = "";
+		if ( !empty($where_clauses) ) {
+			$sql_where = " WHERE " . implode(" AND ", $where_clauses);
+		}
+		$sql = $sql_base . $sql_where;
+		if (!empty($query_params)){
+			$sql = $wpdb->prepare($sql, $query_params);
+		}
+		$sql .= " ORDER BY " . sanitize_sql_orderby($params['orderby']) . " " . (strtoupper($params['order']) === 'DESC' ? 'DESC' : 'ASC');
+		if ($params['number'] > 0) {
+			$sql .= $wpdb->prepare(" LIMIT %d OFFSET %d", $params['number'], $params['offset']);
+		}
+		return $wpdb->get_results($sql);
+	}
+
+	public static function get_kpi_measure($kpi_measure_id) {
+		self::init();
+		global $wpdb;
+		return $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::$kpi_measures_table . " WHERE kpi_measure_id = %d", $kpi_measure_id));
 	}
 } 
