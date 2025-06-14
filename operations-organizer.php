@@ -211,21 +211,17 @@ if ( is_admin() ) {
                 wp_enqueue_script(
                     'oo-stream-dashboard-script',
                     OO_PLUGIN_URL . 'features/stream-dashboard/assets/js/main.js',
-                    array('oo-admin-scripts', 'jquery-ui-dialog'), // Ensure it depends on main scripts
+                    array('jquery', 'jquery-ui-sortable', 'jquery-ui-dialog'), // Correct dependencies
                     OO_PLUGIN_VERSION,
                     true
                 );
+
+                // Localize the script WITH the data.
+                wp_localize_script( 'oo-stream-dashboard-script', 'oo_data', $localized_data );
+            } else {
+                 // Localize the main admin scripts if not on a stream page
+                wp_localize_script( 'oo-admin-scripts', 'oo_data', $localized_data );
             }
-
-            // Dynamically generate nonces for individual KPI measure toggle/delete actions if needed by JS
-            // This is an example if we decide to pre-generate all possible nonces.
-            // However, the current JS for toggle/delete relies on nonce_action_check passed to PHP, 
-            // and PHP creating those specific nonces for buttons or oo_data.nonces if populated here.
-            // For now, the AJAX handlers in OO_KPI_Measure use check_ajax_referer with the specific nonce action string passed from JS.
-            // The $localized_data['nonces'] array can be populated with specific nonces if a different strategy is chosen.
-            // Example: if $all_kpis = OO_DB::get_kpi_measures(); foreach($all_kpis as $kpi){ $localized_data['nonces']['oo_toggle_kpi_measure_status_'.$kpi->kpi_measure_id] = wp_create_nonce('oo_toggle_kpi_measure_status_'.$kpi->kpi_measure_id); }
-
-            wp_localize_script( 'oo-admin-scripts', 'oo_data', $localized_data );
 
             wp_enqueue_script('datatables', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', array('jquery'), '1.13.6', true);
             wp_enqueue_style('datatables-css', 'https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css');
