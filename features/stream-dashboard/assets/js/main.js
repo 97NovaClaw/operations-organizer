@@ -202,12 +202,75 @@ jQuery(document).ready(function($) {
         }
 
         // Handle Edit KPI Measure Button Click
-        if ($('#kpi-measures-list-stream-' + streamSlug + ' .oo-edit-kpi-measure-stream').length) {
-            $(document).on('click', '#kpi-measures-list-stream-' + streamSlug + ' .oo-edit-kpi-measure-stream', function() {
-                console.log('[Stream Dashboard] Edit KPI Measure button clicked.');
-                // ... (rest of the function)
+        $(document).on('click', '#kpi-measures-list-stream-' + streamSlug + ' .oo-edit-kpi-measure-stream', function() {
+            console.log('[Stream Dashboard] Edit KPI Measure button clicked.');
+            var kpiMeasureId = $(this).data('kpi-measure-id');
+            var editKpiMeasureModal_Stream = $('#editKpiMeasureModal-stream-' + streamSlug);
+            var $phaseChecklistContainer = editKpiMeasureModal_Stream.find('#edit-kpi-link-to-phases-list-' + streamSlug);
+            
+            editKpiMeasureModal_Stream.find('#editKpiMeasureNameDisplay-' + streamSlug).text('Loading...');
+            $phaseChecklistContainer.html('<p>Loading phases...</p>');
+
+            $.when(
+                $.post(oo_data.ajax_url, {
+                    action: 'oo_get_kpi_measure_details',
+                    kpi_measure_id: kpiMeasureId,
+                    _ajax_nonce: oo_data.nonce_get_kpi_measure_details
+                }),
+                $.post(oo_data.ajax_url, {
+                    action: 'oo_get_phases_for_stream',
+                    stream_id: oo_data.current_stream_id,
+                    _ajax_nonce: oo_data.nonce_get_phases
+                }),
+                $.post(oo_data.ajax_url, {
+                    action: 'oo_get_phase_links_for_kpi_in_stream',
+                    kpi_measure_id: kpiMeasureId,
+                    stream_id: oo_data.current_stream_id,
+                    _ajax_nonce: oo_data.nonce_get_phase_kpi_links
+                })
+            ).done(function(kpiDetailsResponse, phasesResponse, existingLinksResponse) {
+                console.log('[EDIT KPI MODAL] AJAX Success:', { kpiDetails: kpiDetailsResponse[0], phases: phasesResponse[0], links: existingLinksResponse[0] });
+
+                if (kpiDetailsResponse[0].success && phasesResponse[0].success && existingLinksResponse[0].success) {
+                    var kpi = kpiDetailsResponse[0].data.kpi_measure;
+                    var phasesInStream = phasesResponse[0].data.phases;
+                    var linkedIdsData = existingLinksResponse[0].data.linked_phase_ids;
+                    var existingPhaseIdsLinked = (Array.isArray(linkedIdsData)) ? linkedIdsData.map(String) : [];
+                    
+                    console.log('[EDIT KPI MODAL] All Phases in Stream:', phasesInStream);
+                    console.log('[EDIT KPI MODAL] Already Linked Phase IDs:', existingPhaseIdsLinked);
+
+                    editKpiMeasureModal_Stream.find('#edit_kpi_measure_id-stream-' + streamSlug).val(kpi.kpi_measure_id);
+                    editKpiMeasureModal_Stream.find('#editKpiMeasureNameDisplay-' + streamSlug).text(esc_html(kpi.measure_name));
+                    editKpiMeasureModal_Stream.find('#edit_kpi_measure_name-stream-' + streamSlug).val(kpi.measure_name);
+                    editKpiMeasureModal_Stream.find('#edit_kpi_measure_key-stream-' + streamSlug).val(kpi.measure_key);
+                    editKpiMeasureModal_Stream.find('#edit_kpi_unit_type-stream-' + streamSlug).val(kpi.unit_type);
+                    editKpiMeasureModal_Stream.find('#edit_kpi_is_active-stream-' + streamSlug).prop('checked', parseInt(kpi.is_active) === 1);
+
+                    $phaseChecklistContainer.empty();
+                    if (phasesInStream && phasesInStream.length > 0) {
+                        $.each(phasesInStream, function(index, phase) {
+                            var isChecked = existingPhaseIdsLinked.indexOf(phase.phase_id.toString()) !== -1;
+                            console.log('[EDIT KPI MODAL] Checking phase "' + phase.phase_name + '" (ID: ' + phase.phase_id + '). Is linked? ' + isChecked);
+                            var checkbox = '<label style="display: block;"><input type="checkbox" name="link_to_phases[]" value="' + phase.phase_id + '" ' + (isChecked ? 'checked' : '') + '> ' + esc_html(phase.phase_name) + '</label>';
+                            $phaseChecklistContainer.append(checkbox);
+                        });
+                    } else {
+                        $phaseChecklistContainer.html('<p>No active phases found in this stream to link to.</p>');
+                    }
+                    editKpiMeasureModal_Stream.show();
+                } else {
+                    var errorMsg = 'Could not load KPI Measure data or phase list.';
+                    if (kpiDetailsResponse[0] && !kpiDetailsResponse[0].success) errorMsg = kpiDetailsResponse[0].data.message;
+                    else if (phasesResponse[0] && !phasesResponse[0].success) errorMsg = phasesResponse[0].data.message;
+                    else if (existingLinksResponse[0] && !existingLinksResponse[0].success) errorMsg = existingLinksResponse[0].data.message;
+                    showNotice('error', errorMsg);
+                }
+            }).fail(function() {
+                showNotice('error', 'Request to load KPI Measure data or phase list failed.');
+                $phaseChecklistContainer.html('<p>Error loading phases.</p>');
             });
-        }
+        });
 
         // ... and so on for ALL other button/form handlers in this file ...
     }
