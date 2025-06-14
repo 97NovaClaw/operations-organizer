@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.4.5.6
+ * Version:           1.4.5.7
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.4.5.6' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.4.5.7' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -96,6 +96,10 @@ if ( is_admin() ) {
             wp_enqueue_style( 'oo-admin-styles', OO_PLUGIN_URL . 'admin/css/admin-styles.css', array(), OO_PLUGIN_VERSION );
             wp_enqueue_script( 'oo-admin-scripts', OO_PLUGIN_URL . 'admin/js/admin-scripts.js', array( 'jquery', 'jquery-ui-datepicker' ), OO_PLUGIN_VERSION, true );
             
+            // --- FIX: Add ALL necessary data for the new JS file ---
+            $all_kpis = OO_DB::get_kpi_measures(array('is_active' => null, 'number' => -1));
+            // --- END FIX ---
+            
             $localized_data = array(
                 'ajax_url'        => admin_url( 'admin-ajax.php' ),
                 'admin_url'       => admin_url(),
@@ -149,7 +153,7 @@ if ( is_admin() ) {
                 'text_error_generic' => __( 'An error occurred.', 'operations-organizer' ),
                 'text_error_ajax' => __( 'AJAX request failed.', 'operations-organizer' ),
                 'text_kpi_values' => __( 'KPI Values', 'operations-organizer' ),
-                'all_kpi_measures' => OO_DB::get_kpi_measures(array('is_active' => 1, 'number' => -1)),
+                'all_kpi_measures' => $all_kpis,
                 'user_content_default_columns' => get_user_meta(get_current_user_id(), 'oo_content_dashboard_columns', true) ?: array(),
                 'user_stream_default_columns' => array(), // Default to empty, will be populated below for specific stream pages
                 'nonces' => array(), // Placeholder for dynamically generated nonces if needed later by JS
