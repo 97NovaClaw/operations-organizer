@@ -14,13 +14,43 @@ jQuery(document).ready(function($) {
     }
     console.log('[Stream Dashboard] Initializing for stream slug:', currentStreamSlug, 'and stream ID:', currentStreamId);
 
-    // --- Helper function for escaping HTML ---
+    // Helper function for escaping HTML in JS (moved to top of ready block)
     function esc_html(str) {
         if (str === null || typeof str === 'undefined') return '';
         var p = document.createElement("p");
         p.appendChild(document.createTextNode(String(str)));
         return p.innerHTML;
     }
+
+    // JS for Quick Phase Actions in this Stream tab
+    $('.oo-stream-page .oo-start-link-btn, .oo-stream-page .oo-stop-link-btn').on('click', function(e) {
+        e.preventDefault();
+        var $button = $(this);
+        var $row = $button.closest('.oo-phase-action-row');
+        var jobNumber = $row.find('.oo-job-number-input').val();
+        var phaseId = $button.data('phase-id');
+        var isAdminUrl = oo_data.admin_url;
+        var returnTabSlug = currentStreamSlug;
+
+        if (!jobNumber) {
+            alert('<?php echo esc_js(__("Please enter a Job Number first.", "operations-organizer")); ?>');
+            return;
+        }
+
+        var actionPage = $button.hasClass('oo-start-link-btn') ? 'oo_start_job' : 'oo_stop_job';
+        var url = isAdminUrl + 'admin.php?page=' + actionPage + '&job_number=' + encodeURIComponent(jobNumber) + '&phase_id=' + encodeURIComponent(phaseId) + '&return_tab=' + returnTabSlug;
+        
+        window.location.href = url;
+    });
+
+    // Initialize Jobs Table for this Stream
+    var streamJobsTable = $('#stream-jobs-table-' + currentStreamSlug).DataTable({
+        ajax: {
+            data: function(d) {
+                d.stream_id = currentStreamId;
+            },
+        },
+    });
 
     // --- LOGIC FOR "Phase & KPI Settings" TAB ---
     if ($('#phase-kpi-settings-content').length) {
