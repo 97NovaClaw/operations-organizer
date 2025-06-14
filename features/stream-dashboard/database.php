@@ -36,6 +36,7 @@ class OO_Stream_Dashboard_DB {
 	private static $stream_data_content_table;
 
 	public static function init() {
+		oo_log('OO_Stream_Dashboard_DB::init() called.', 'StreamDashboardDB');
 		global $wpdb;
 		self::$jobs_table = $wpdb->prefix . 'oo_jobs';
 		self::$streams_table = $wpdb->prefix . 'oo_streams';
@@ -54,6 +55,7 @@ class OO_Stream_Dashboard_DB {
 		self::$stream_data_electronics_table = $wpdb->prefix . 'oo_stream_data_electronics';
 		self::$stream_data_art_table = $wpdb->prefix . 'oo_stream_data_art';
 		self::$stream_data_content_table = $wpdb->prefix . 'oo_stream_data_content';
+		oo_log('OO_Stream_Dashboard_DB::init() finished. phases_table set to: ' . self::$phases_table, 'StreamDashboardDB');
 	}
 
 	// --- Employee Methods ---
@@ -96,4 +98,12 @@ class OO_Stream_Dashboard_DB {
 	}
 	
 	// ... (All other necessary DB methods will be added here with their full implementation) ...
+
+	public static function get_kpi_measures_for_stream($stream_id, $args = array()) {
+		oo_log('OO_Stream_Dashboard_DB::get_kpi_measures_for_stream() called with stream_id: ' . $stream_id, 'StreamDashboardDB');
+		oo_log($args, 'StreamDashboardDB get_kpi_measures_for_stream args');
+		self::init();
+		global $wpdb;
+		// ... existing code ...
+	}
 } 
