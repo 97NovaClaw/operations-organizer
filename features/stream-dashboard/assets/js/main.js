@@ -1,79 +1,31 @@
-// This is the full, corrected, and heavily-debugged main.js file.
-// It is structured to prevent race conditions and scope errors.
-
 jQuery(document).ready(function($) {
-    console.log('[Stream Dashboard] Main JS file loaded and document is ready.');
-    var oo_data = window.oo_data || {};
-    var currentStreamSlug = oo_data.current_stream_tab_slug || '';
-    var currentStreamId = oo_data.current_stream_id || 0;
 
-    if (!currentStreamSlug) {
-        console.error('[Stream Dashboard] CRITICAL: streamSlug is not available. Aborting script.');
-        return;
-    }
-    console.log('[DEBUG] Initializing for stream slug:', currentStreamSlug, 'and stream ID:', currentStreamId);
-
-    // Helper function for escaping HTML in JS (moved to top of ready block)
-    function esc_html(str) {
-        if (str === null || typeof str === 'undefined') return '';
-        var p = document.createElement("p");
-        p.appendChild(document.createTextNode(String(str)));
-        return p.innerHTML;
+    // Check if we are on the stream dashboard page and have the necessary data
+    if (typeof oo_data === 'undefined' || !oo_data.current_stream_id) {
+        return; // Exit if data is missing.
     }
 
-    // JS for Quick Phase Actions in this Stream tab
-    $('.oo-stream-page .oo-start-link-btn, .oo-stream-page .oo-stop-link-btn').on('click', function(e) {
-        console.log('[DEBUG] Quick Action button clicked.');
-        e.preventDefault();
-        var $button = $(this);
-        var $row = $button.closest('.oo-phase-action-row');
-        var jobNumber = $row.find('.oo-job-number-input').val();
-        var phaseId = $button.data('phase-id');
-        var isAdminUrl = oo_data.admin_url;
-        var returnTabSlug = currentStreamSlug;
-
-        if (!jobNumber) {
-            alert("Please enter a Job Number first.");
-            return;
-        }
-
-        var actionPage = $button.hasClass('oo-start-link-btn') ? 'oo_start_job' : 'oo_stop_job';
-        var url = isAdminUrl + 'admin.php?page=' + actionPage + '&job_number=' + encodeURIComponent(jobNumber) + '&phase_id=' + encodeURIComponent(phaseId) + '&return_tab=' + returnTabSlug;
-        
-        window.location.href = url;
-    });
-
-    // Initialize Jobs Table for this Stream
-    var streamJobsTable = $('#stream-jobs-table-' + currentStreamSlug).DataTable({
-        ajax: {
-            data: function(d) {
-                d.stream_id = currentStreamId;
-            },
-        },
-    });
+    var streamId = oo_data.current_stream_id;
+    var streamSlug = oo_data.current_stream_tab_slug;
 
     // ========================================================================
-    // Phase Management Logic
+    // Phase Management Logic (Corrected)
     // ========================================================================
 
     // 1. Setup jQuery UI Sortable for Phase Reordering
-    var $phasesTable = $('#phase-kpi-settings-content table.phases tbody');
-    if ($phasesTable.length) {
-        $phasesTable.sortable({
+    var $phasesTableBody = $('#phase-kpi-settings-content table.phases tbody');
+    if ($phasesTableBody.length) {
+        $phasesTableBody.sortable({
             handle: '.oo-phase-drag-handle',
             placeholder: 'oo-phase-sortable-placeholder',
             helper: function(e, ui) {
-                ui.children().each(function() {
-                    $(this).width($(this).width());
-                });
+                ui.children().each(function() { $(this).width($(this).width()); });
                 return ui;
             },
             update: function(event, ui) {
                 var phaseOrder = $(this).sortable('toArray', { attribute: 'data-phase-id' });
-                
-                // Show a saving indicator
                 var $spinner = $('<span class="spinner is-active" style="float:left;"></span>');
-                $('#openAddOOPhaseModalBtn-stream-' + oo_data.current_stream_tab_slug).after($spinner);
+                ui.item.closest('table').parent().find('.page-title-action').first().after($spinner);
 
                 $.ajax({
                     url: oo_data.ajax_url,
@@ -81,14 +33,11 @@ jQuery(document).ready(function($) {
                     data: {
                         action: 'oo_update_phase_order_from_stream',
                         _ajax_nonce: oo_data.nonces.update_phase_order,
-                        stream_id: currentStreamId,
+                        stream_id: streamId,
                         order: phaseOrder
                     },
                     success: function(response) {
-                        if (response.success) {
-                            // Optionally, give user feedback
-                            console.log('Phase order saved successfully.');
-                        } else {
+                        if (!response.success) {
                             alert('Error saving phase order: ' + response.data.message);
                         }
                     },
@@ -96,7 +45,6 @@ jQuery(document).ready(function($) {
                         alert('An unexpected error occurred while saving the phase order.');
                     },
                     complete: function() {
-                        // Remove saving indicator
                         $spinner.remove();
                     }
                 });
@@ -104,14 +52,11 @@ jQuery(document).ready(function($) {
         });
     }
 
-
     // 2. Add New Phase
-    // Show modal
-    $(document).on('click', '[id^="openAddOOPhaseModalBtn-stream-"]', function() {
+    $(document).on('click', '#openAddOOPhaseModalBtn-stream-' + streamSlug, function() {
         $('#addOOPhaseModal').show();
     });
 
-    // Handle form submission
     $('#add-phase-form').on('submit', function(e) {
         e.preventDefault();
         var $form = $(this);
@@ -119,8 +64,8 @@ jQuery(document).ready(function($) {
 
         var formData = {
             action: 'oo_add_phase_from_stream',
-            oo_add_phase_nonce: oo_data.nonces.add_phase,
-            stream_type_id: currentStreamId,
+            _ajax_nonce: oo_data.nonces.add_phase,
+            stream_type_id: streamId,
             phase_name: $('#add_phase_name').val(),
             phase_description: $('#add_phase_description').val(),
             includes_kpi: $('#add_includes_kpi').is(':checked') ? 1 : 0,
@@ -128,30 +73,26 @@ jQuery(document).ready(function($) {
 
         $.post(oo_data.ajax_url, formData, function(response) {
             if (response.success) {
-                alert('Phase added successfully!');
                 location.reload();
             } else {
                 alert('Error: ' + (response.data.message || 'Could not add phase.'));
-                $form.find('.spinner').removeClass('is-active');
             }
         }).fail(function() {
             alert('An unknown error occurred.');
+        }).always(function(){
             $form.find('.spinner').removeClass('is-active');
         });
     });
 
     // 3. Edit Phase
-    // Show modal and populate with data
     $(document).on('click', '.oo-edit-phase-button-stream', function() {
         var phaseId = $(this).data('phase-id');
-        
-        // Show spinner
         var $spinner = $('<span class="spinner is-active" style="margin-left: 5px;"></span>');
         $(this).after($spinner);
 
         $.post(oo_data.ajax_url, {
             action: 'oo_get_phase',
-            _ajax_nonce_get_phase: oo_data.nonces.get_phase,
+            _ajax_nonce: oo_data.nonces.get_phase,
             phase_id: phaseId
         }, function(response) {
             if (response.success) {
@@ -170,7 +111,6 @@ jQuery(document).ready(function($) {
         });
     });
 
-    // Handle edit form submission
     $('#edit-phase-form').on('submit', function(e) {
         e.preventDefault();
         var $form = $(this);
@@ -178,9 +118,9 @@ jQuery(document).ready(function($) {
 
         var formData = {
             action: 'oo_update_phase_from_stream',
-            oo_edit_phase_nonce: oo_data.nonces.update_phase,
+            _ajax_nonce: oo_data.nonces.update_phase,
             edit_phase_id: $('#edit_phase_id').val(),
-            edit_stream_type_id: currentStreamId,
+            edit_stream_type_id: streamId,
             edit_phase_name: $('#edit_phase_name').val(),
             edit_phase_description: $('#edit_phase_description').val(),
             edit_includes_kpi: $('#edit_includes_kpi').is(':checked') ? 1 : 0,
@@ -188,73 +128,54 @@ jQuery(document).ready(function($) {
 
         $.post(oo_data.ajax_url, formData, function(response) {
             if (response.success) {
-                alert('Phase updated successfully!');
                 location.reload();
             } else {
                 alert('Error: ' + (response.data.message || 'Could not update phase.'));
-                $form.find('.spinner').removeClass('is-active');
             }
         }).fail(function() {
             alert('An unknown error occurred.');
+        }).always(function(){
             $form.find('.spinner').removeClass('is-active');
         });
     });
 
-
     // 4. Delete Phase
     $(document).on('click', '.oo-delete-phase-button-stream', function(e) {
         e.preventDefault();
-        
-        if (!confirm(oo_data.i18n.confirmDeletePhase)) {
-            return;
-        }
+        var confirmMessage = oo_data.i18n.confirmDeletePhase || 'Are you sure you want to delete this phase?';
+        if (!confirm(confirmMessage)) return;
 
         var phaseId = $(this).data('phase-id');
-        var $row = $(this).closest('tr');
         var $spinner = $('<span class="spinner is-active"></span>');
-        $row.find('td.actions').append($spinner);
+        $(this).parent().append($spinner);
 
-        $.post(oo_data.ajax_url, {
-            action: 'oo_delete_phase_from_stream',
-            _ajax_nonce: oo_data.nonces.delete_phase,
-            phase_id: phaseId
-        }, function(response) {
-            if (response.success) {
-                if(response.data.confirmation_needed) {
-                    if(confirm(response.data.message)) {
-                        // User confirmed, send delete request again with force flag
-                        $.post(oo_data.ajax_url, {
-                            action: 'oo_delete_phase_from_stream',
-                            _ajax_nonce: oo_data.nonces.delete_phase,
-                            phase_id: phaseId,
-                            force_delete_logs: true
-                        }, function(force_response){
-                            if(force_response.success) {
-                                alert('Phase and associated logs deleted successfully.');
-                                location.reload();
-                            } else {
-                                alert('Error: ' + (force_response.data.message || 'Could not delete phase.'));
-                            }
-                        }).fail(function(){
-                             alert('An unknown error occurred during forced deletion.');
-                        }).always(function(){
-                            $spinner.remove();
-                        });
+        function performDelete(force) {
+            $.post(oo_data.ajax_url, {
+                action: 'oo_delete_phase_from_stream',
+                _ajax_nonce: oo_data.nonces.delete_phase,
+                phase_id: phaseId,
+                force_delete_logs: force
+            }, function(response) {
+                if (response.success) {
+                    if (response.data.confirmation_needed) {
+                        if (confirm(response.data.message)) {
+                            performDelete(true);
+                        } else {
+                             $spinner.remove();
+                        }
                     } else {
-                       $spinner.remove(); 
+                        location.reload();
                     }
                 } else {
-                    alert('Phase deleted successfully.');
-                    location.reload();
+                    alert('Error: ' + (response.data.message || 'Could not delete phase.'));
+                    $spinner.remove();
                 }
-            } else {
-                alert('Error: ' + (response.data.message || 'Could not delete phase.'));
+            }).fail(function() {
+                alert('An unknown error occurred during deletion.');
                 $spinner.remove();
-            }
-        }).fail(function() {
-            alert('An unknown error occurred during deletion.');
-            $spinner.remove();
-        });
+            });
+        }
+        performDelete(false);
     });
 
     // 5. Toggle Phase Status
@@ -262,13 +183,12 @@ jQuery(document).ready(function($) {
         var $button = $(this);
         var phaseId = $button.data('phase-id');
         var newStatus = $button.data('new-status');
-        var nonce = $button.data('nonce'); // Nonce is on the button for this action
-
+        var nonce = $button.data('nonce');
         $button.prop('disabled', true);
 
         $.post(oo_data.ajax_url, {
             action: 'oo_toggle_phase_status_from_stream',
-            _ajax_nonce: nonce, // Use the dynamic nonce from the button
+            _ajax_nonce: nonce,
             phase_id: phaseId,
             is_active: newStatus
         }, function(response) {
@@ -284,11 +204,143 @@ jQuery(document).ready(function($) {
         });
     });
 
+    // ========================================================================
+    // KPI Measure Management Logic (Ported from old template)
+    // ========================================================================
+
+    // Open "Add KPI" modal
+    $(document).on('click', '#openAddKpiMeasureModalBtn-stream-' + streamSlug, function() {
+        var $modal = $('#addKpiMeasureModal-stream-' + streamSlug);
+        $modal.find('form')[0].reset();
+        $modal.show();
+    });
+
+    // Handle "Add KPI" form submission
+    $(document).on('submit', '#oo-add-kpi-measure-form-stream-' + streamSlug, function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var formData = $form.serializeArray();
+        formData.push({name: '_ajax_nonce', value: oo_data.nonce_add_kpi_measure});
+        
+        $.post(oo_data.ajax_url, $.param(formData), function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (response.data.message || 'Could not add KPI Measure.'));
+            }
+        });
+    });
+
+    // Open "Edit KPI" modal and populate it
+    $(document).on('click', '.oo-edit-kpi-measure-stream', function() {
+        var kpiMeasureId = $(this).data('kpi-measure-id');
+        var $modal = $('#editKpiMeasureModal-stream-' + streamSlug);
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_get_kpi_measure_details',
+            _ajax_nonce: oo_data.nonce_get_kpi_measure_details,
+            kpi_measure_id: kpiMeasureId
+        }, function(response) {
+            if (response.success) {
+                var kpi = response.data.kpi_measure;
+                $modal.find('[name="kpi_measure_id"]').val(kpi.kpi_measure_id);
+                $modal.find('#editKpiMeasureNameDisplay-' + streamSlug).text(kpi.measure_name);
+                $modal.find('[name="measure_name"]').val(kpi.measure_name);
+                $modal.find('[name="measure_key"]').val(kpi.measure_key);
+                $modal.find('[name="unit_type"]').val(kpi.unit_type);
+                $modal.find('[name="is_active"]').prop('checked', parseInt(kpi.is_active) === 1);
+                $modal.show();
+            } else {
+                alert('Error fetching KPI details: ' + response.data.message);
+            }
+        });
+    });
+
+    // Handle "Edit KPI" form submission
+    $(document).on('submit', '#oo-edit-kpi-measure-form-stream-' + streamSlug, function(e) {
+        e.preventDefault();
+        var formData = $(this).serializeArray();
+        formData.push({name: '_ajax_nonce', value: oo_data.nonce_edit_kpi_measure});
+        
+        $.post(oo_data.ajax_url, $.param(formData), function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error updating KPI Measure: ' + (response.data.message || 'Unknown error'));
+            }
+        });
+    });
+
+    // ========================================================================
+    // Derived KPI Management Logic (Ported from old template)
+    // ========================================================================
+
+    // Open "Add Derived KPI" modal
+    $(document).on('click', '#openAddDerivedKpiModalBtn-stream-' + streamSlug, function() {
+        var $modal = $('#addDerivedKpiModal-stream-' + streamSlug);
+        $modal.find('form')[0].reset();
+        $modal.show();
+    });
+
+    // Handle "Add Derived KPI" form submission
+    $(document).on('submit', '#oo-add-derived-kpi-form-stream-' + streamSlug, function(e) {
+        e.preventDefault();
+        var formData = $(this).serialize(); // Nonce is already in the form via wp_nonce_field
+        
+        $.post(oo_data.ajax_url, formData, function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (response.data.message || 'Could not add Derived KPI.'));
+            }
+        });
+    });
+
+    // Open "Edit Derived KPI" modal and populate it
+    $(document).on('click', '.oo-edit-derived-kpi-stream', function() {
+        var derivedKpiId = $(this).data('derived-kpi-id');
+        var $modal = $('#editDerivedKpiModal-stream-' + streamSlug);
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_get_derived_kpi_definition_details',
+            _ajax_nonce: oo_data.nonce_get_derived_kpi_details,
+            derived_definition_id: derivedKpiId
+        }, function(response) {
+            if (response.success) {
+                var dkpi = response.data.definition;
+                $modal.find('[name="derived_definition_id"]').val(dkpi.derived_definition_id);
+                $modal.find('#editDerivedKpiNameDisplay-' + streamSlug).text(dkpi.definition_name);
+                $modal.find('[name="derived_definition_name"]').val(dkpi.definition_name);
+                $modal.find('input[name="primary_kpi_measure_id"]').val(dkpi.primary_kpi_measure_id);
+                $modal.find('[name="derived_calculation_type"]').val(dkpi.calculation_type);
+                $modal.find('[name="derived_secondary_kpi_measure_id"]').val(dkpi.secondary_kpi_measure_id);
+                $modal.find('[name="derived_time_unit_for_rate"]').val(dkpi.time_unit_for_rate);
+                $modal.find('[name="derived_output_description"]').val(dkpi.output_description);
+                $modal.find('[name="derived_is_active"]').prop('checked', parseInt(dkpi.is_active) === 1);
+                $modal.show();
+            } else {
+                alert('Error fetching Derived KPI details: ' + response.data.message);
+            }
+        });
+    });
+
+    // Handle "Edit Derived KPI" form submission
+    $(document).on('submit', '#oo-edit-derived-kpi-form-stream-' + streamSlug, function(e) {
+        e.preventDefault();
+        var formData = $(this).serialize(); // Nonce is already in the form
+        
+        $.post(oo_data.ajax_url, formData, function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error updating Derived KPI: ' + (response.data.message || 'Unknown error'));
+            }
+        });
+    });
 
     // Generic Modal Close Logic
     $('.oo-modal .oo-modal-close, .oo-modal .oo-modal-cancel').on('click', function() {
         $(this).closest('.oo-modal').hide();
     });
 
-    console.log('[Stream Dashboard] All event handlers attached.');
-}); 
+});
