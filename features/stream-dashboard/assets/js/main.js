@@ -145,10 +145,10 @@ jQuery(document).ready(function($) {
         var confirmMessage = oo_data.i18n.confirmDeletePhase || 'Are you sure you want to delete this phase?';
         if (!confirm(confirmMessage)) return;
 
-        var phaseId = $(this).data('phase-id');
+            var phaseId = $(this).data('phase-id');
         var $spinner = $('<span class="spinner is-active"></span>');
         $(this).parent().append($spinner);
-
+            
         function performDelete(force) {
             $.post(oo_data.ajax_url, {
                 action: 'oo_delete_phase_from_stream',
@@ -205,7 +205,7 @@ jQuery(document).ready(function($) {
     });
 
     // ========================================================================
-    // KPI Measure Management Logic (Ported from old template)
+    // KPI Measure Management Logic (Fixed with correct nonces)
     // ========================================================================
 
     // Open "Add KPI" modal
@@ -271,8 +271,59 @@ jQuery(document).ready(function($) {
         });
     });
 
+    // Handle "Delete KPI" button clicks
+    $(document).on('click', '.oo-delete-kpi-measure-stream', function(e) {
+        e.preventDefault();
+        if (!confirm('Are you sure you want to delete this KPI Measure?')) return;
+
+        var kpiMeasureId = $(this).data('kpi-measure-id');
+        var $spinner = $('<span class="spinner is-active"></span>');
+        $(this).parent().append($spinner);
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_delete_kpi_measure',
+            _ajax_nonce: oo_data.nonce_delete_kpi_measure,
+            kpi_measure_id: kpiMeasureId
+        }, function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (response.data.message || 'Could not delete KPI Measure.'));
+                $spinner.remove();
+            }
+        }).fail(function() {
+            alert('An unknown error occurred during deletion.');
+            $spinner.remove();
+        });
+    });
+
+    // Handle "Toggle KPI Status" button clicks
+    $(document).on('click', '.oo-toggle-kpi-status-stream', function() {
+        var $button = $(this);
+        var kpiMeasureId = $button.data('kpi-measure-id');
+        var newStatus = $button.data('new-status');
+        $button.prop('disabled', true);
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_toggle_kpi_measure_status',
+            _ajax_nonce: oo_data.nonce_toggle_kpi_status,
+            kpi_measure_id: kpiMeasureId,
+            is_active: newStatus
+        }, function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (response.data.message || 'Could not update KPI status.'));
+                $button.prop('disabled', false);
+            }
+        }).fail(function() {
+            alert('An unknown error occurred.');
+            $button.prop('disabled', false);
+        });
+    });
+
     // ========================================================================
-    // Derived KPI Management Logic (Ported from old template)
+    // Derived KPI Management Logic (Fixed with correct nonces)
     // ========================================================================
 
     // Open "Add Derived KPI" modal
@@ -338,9 +389,60 @@ jQuery(document).ready(function($) {
         });
     });
 
+    // Handle "Delete Derived KPI" button clicks
+    $(document).on('click', '.oo-delete-derived-kpi-stream', function(e) {
+        e.preventDefault();
+        if (!confirm('Are you sure you want to delete this Derived KPI?')) return;
+
+        var derivedKpiId = $(this).data('derived-kpi-id');
+        var $spinner = $('<span class="spinner is-active"></span>');
+        $(this).parent().append($spinner);
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_delete_derived_kpi',
+            _ajax_nonce: oo_data.nonce_delete_derived_kpi,
+            derived_definition_id: derivedKpiId
+        }, function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (response.data.message || 'Could not delete Derived KPI.'));
+                $spinner.remove();
+            }
+        }).fail(function() {
+            alert('An unknown error occurred during deletion.');
+            $spinner.remove();
+        });
+    });
+
+    // Handle "Toggle Derived KPI Status" button clicks
+    $(document).on('click', '.oo-toggle-derived-kpi-status-stream', function() {
+        var $button = $(this);
+        var derivedKpiId = $button.data('derived-kpi-id');
+        var newStatus = $button.data('new-status');
+        $button.prop('disabled', true);
+
+        $.post(oo_data.ajax_url, {
+            action: 'oo_toggle_derived_kpi_status',
+            _ajax_nonce: oo_data.nonce_toggle_derived_kpi_status,
+            derived_definition_id: derivedKpiId,
+            is_active: newStatus
+        }, function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (response.data.message || 'Could not update Derived KPI status.'));
+                $button.prop('disabled', false);
+            }
+        }).fail(function() {
+            alert('An unknown error occurred.');
+            $button.prop('disabled', false);
+        });
+    });
+
     // Generic Modal Close Logic
     $('.oo-modal .oo-modal-close, .oo-modal .oo-modal-cancel').on('click', function() {
         $(this).closest('.oo-modal').hide();
     });
 
-});
+}); 
