@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.0.25
+ * Version:           1.5.0.26
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.0.25' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.0.26' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -122,6 +122,7 @@ if ( is_admin() ) {
                 'nonce_delete_phase_ajax' => wp_create_nonce('oo_delete_phase_ajax_nonce'),
                 'nonce_save_column_prefs' => wp_create_nonce('oo_save_column_prefs_nonce'),
                 'nonce_get_stream_jobs' => wp_create_nonce('oo_get_stream_jobs_nonce'),
+                'nonce_update_phase_order' => wp_create_nonce('oo_update_phase_order_nonce'),
                 
                 // Nonces for Stream Page KPI Management
                 'nonce_add_kpi_measure' => wp_create_nonce('oo_add_kpi_measure_nonce'),
@@ -156,18 +157,8 @@ if ( is_admin() ) {
                 'all_kpi_measures' => $all_kpis,
                 'user_content_default_columns' => get_user_meta(get_current_user_id(), 'oo_content_dashboard_columns', true) ?: array(),
                 'user_stream_default_columns' => array(), // Default to empty, will be populated below for specific stream pages
-                'nonces' => array(), // Placeholder for dynamically generated nonces if needed later by JS
                 'nonce_get_phases' => wp_create_nonce('oo_get_phases_nonce'), // Nonce for getting phases for a stream
                 'current_stream_tab_slug' => '', // Placeholder for current stream tab slug
-                
-                // Stream Dashboard specific nonces
-                'nonces' => array(
-                    'update_phase_order' => wp_create_nonce('oo_update_phase_order_nonce'),
-                    'add_phase' => wp_create_nonce('oo_add_phase_nonce'),
-                    'get_phase' => wp_create_nonce('oo_edit_phase_nonce'),
-                    'update_phase' => wp_create_nonce('oo_edit_phase_nonce'),
-                    'delete_phase' => wp_create_nonce('oo_delete_phase_ajax_nonce'),
-                ),
                 
                 // Internationalization strings for Stream Dashboard
                 'i18n' => array(

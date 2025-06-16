@@ -30,12 +30,12 @@ jQuery(document).ready(function($) {
                 $.ajax({
                     url: oo_data.ajax_url,
                     type: 'POST',
-                    data: {
-                        action: 'oo_update_phase_order_from_stream',
-                        _ajax_nonce: oo_data.nonces.update_phase_order,
-                        stream_id: streamId,
-                        order: phaseOrder
-                    },
+                                    data: {
+                    action: 'oo_update_phase_order_from_stream',
+                    _ajax_nonce: oo_data.nonce_update_phase_order,
+                    stream_id: streamId,
+                    order: phaseOrder
+                },
                     success: function(response) {
                         if (!response.success) {
                             alert('Error saving phase order: ' + response.data.message);
@@ -64,7 +64,7 @@ jQuery(document).ready(function($) {
 
         var formData = {
             action: 'oo_add_phase_from_stream',
-            _ajax_nonce: oo_data.nonces.add_phase,
+            _ajax_nonce: oo_data.nonce_add_phase,
             stream_type_id: streamId,
             phase_name: $('#add_phase_name').val(),
             phase_description: $('#add_phase_description').val(),
@@ -93,7 +93,7 @@ jQuery(document).ready(function($) {
 
         var ajaxData = {
             action: 'oo_get_phase',
-            _ajax_nonce: oo_data.nonces.get_phase,
+            _ajax_nonce: oo_data.nonce_edit_phase,
             phase_id: phaseId
         };
 
@@ -122,7 +122,7 @@ jQuery(document).ready(function($) {
 
         var formData = {
             action: 'oo_update_phase_from_stream',
-            _ajax_nonce: oo_data.nonces.update_phase,
+            _ajax_nonce: oo_data.nonce_edit_phase,
             edit_phase_id: $('#edit_phase_id').val(),
             edit_stream_type_id: streamId,
             edit_phase_name: $('#edit_phase_name').val(),
@@ -155,12 +155,12 @@ jQuery(document).ready(function($) {
         $(this).parent().append($spinner);
             
         function performDelete(force) {
-            $.post(oo_data.ajax_url, {
-                action: 'oo_delete_phase_from_stream',
-                _ajax_nonce: oo_data.nonces.delete_phase,
-                phase_id: phaseId,
-                force_delete_logs: force
-            }, function(response) {
+                    $.post(oo_data.ajax_url, {
+            action: 'oo_delete_phase_from_stream',
+            _ajax_nonce: oo_data.nonce_delete_phase_ajax,
+            phase_id: phaseId,
+            force_delete_logs: force
+        }, function(response) {
                 if (response.success) {
                     if (response.data.confirmation_needed) {
                         if (confirm(response.data.message)) {
