@@ -631,8 +631,15 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_add_phase_from_stream() {
-        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
-        check_ajax_referer('oo_add_phase_nonce', 'oo_add_phase_nonce'); 
+        oo_log('[DEBUG] AJAX Reached: ajax_add_phase_from_stream. Received POST data:', $_POST);
+
+        // Manually verify nonce for better debugging
+        if ( ! isset( $_POST['_ajax_nonce'] ) || ! wp_verify_nonce( $_POST['_ajax_nonce'], 'oo_add_phase_nonce' ) ) {
+            oo_log('[DEBUG] Nonce verification FAILED for oo_add_phase_nonce.');
+            wp_send_json_error( array( 'message' => 'Nonce verification failed.' ), 403 );
+            return;
+        }
+        oo_log('[DEBUG] Nonce verification PASSED for oo_add_phase_nonce.');
 
         if ( ! current_user_can( oo_get_capability() ) ) {
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
@@ -659,8 +666,16 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_get_phase() {
-        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
-        check_ajax_referer('oo_edit_phase_nonce', '_ajax_nonce_get_phase'); 
+        oo_log('[DEBUG] AJAX Reached: ajax_get_phase. Received POST data:', $_POST);
+
+        // Manually verify nonce for better debugging
+        if ( ! isset( $_POST['_ajax_nonce'] ) || ! wp_verify_nonce( $_POST['_ajax_nonce'], 'oo_edit_phase_nonce' ) ) {
+            oo_log('[DEBUG] Nonce verification FAILED for oo_edit_phase_nonce (get_phase).');
+            wp_send_json_error( array( 'message' => 'Nonce verification failed.' ), 403 );
+            return;
+        }
+        oo_log('[DEBUG] Nonce verification PASSED for oo_edit_phase_nonce (get_phase).');
+
         if ( ! current_user_can( oo_get_capability() ) ) {
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
         }
@@ -677,8 +692,16 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_update_phase_from_stream() {
-        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
-        check_ajax_referer('oo_edit_phase_nonce', 'oo_edit_phase_nonce');
+        oo_log('[DEBUG] AJAX Reached: ajax_update_phase_from_stream. Received POST data:', $_POST);
+        
+        // Manually verify nonce for better debugging
+        if ( ! isset( $_POST['_ajax_nonce'] ) || ! wp_verify_nonce( $_POST['_ajax_nonce'], 'oo_edit_phase_nonce' ) ) {
+            oo_log('[DEBUG] Nonce verification FAILED for oo_edit_phase_nonce (update_phase).');
+            wp_send_json_error( array( 'message' => 'Nonce verification failed.' ), 403 );
+            return;
+        }
+        oo_log('[DEBUG] Nonce verification PASSED for oo_edit_phase_nonce (update_phase).');
+
         if ( ! current_user_can( oo_get_capability() ) ) { 
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
         }

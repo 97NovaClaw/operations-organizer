@@ -71,6 +71,7 @@ jQuery(document).ready(function($) {
             includes_kpi: $('#add_includes_kpi').is(':checked') ? 1 : 0,
         };
 
+        console.log('[DEBUG] Sending "Add Phase" AJAX with data:', formData);
         $.post(oo_data.ajax_url, formData, function(response) {
             if (response.success) {
                 location.reload();
@@ -90,11 +91,14 @@ jQuery(document).ready(function($) {
         var $spinner = $('<span class="spinner is-active" style="margin-left: 5px;"></span>');
         $(this).after($spinner);
 
-        $.post(oo_data.ajax_url, {
+        var ajaxData = {
             action: 'oo_get_phase',
             _ajax_nonce: oo_data.nonces.get_phase,
             phase_id: phaseId
-        }, function(response) {
+        };
+
+        console.log('[DEBUG] Sending "Get Phase" AJAX with data:', ajaxData);
+        $.post(oo_data.ajax_url, ajaxData, function(response) {
             if (response.success) {
                 $('#edit_phase_id').val(response.data.phase_id);
                 $('#edit_phase_name').val(response.data.phase_name);
@@ -126,6 +130,7 @@ jQuery(document).ready(function($) {
             edit_includes_kpi: $('#edit_includes_kpi').is(':checked') ? 1 : 0,
         };
 
+        console.log('[DEBUG] Sending "Update Phase" AJAX with data:', formData);
         $.post(oo_data.ajax_url, formData, function(response) {
             if (response.success) {
                 location.reload();
