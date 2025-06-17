@@ -87,7 +87,7 @@ class OO_Stream_Dashboard_AJAX {
         if (empty($link_to_phases)) {
             $phases_in_stream_for_linking = array();
             if ($stream_id_context > 0) {
-                 $phases_in_stream_for_linking = OO_Stream_Dashboard_DB::get_phases(array(
+                 $phases_in_stream_for_linking = OO_DB::get_phases(array(
                     'stream_id' => $stream_id_context,
                     'is_active' => 1, 
                     'number' => 1
@@ -108,7 +108,7 @@ class OO_Stream_Dashboard_AJAX {
             if ($new_kpi_measure_id > 0 && !empty($link_to_phases)) {
                 foreach ($link_to_phases as $phase_id) {
                     if ($phase_id > 0) {
-                        OO_Stream_Dashboard_DB::add_phase_kpi_link(array(
+                        OO_DB::add_phase_kpi_link(array(
                             'phase_id' => $phase_id,
                             'kpi_measure_id' => $new_kpi_measure_id,
                             'is_mandatory' => 0,
@@ -180,7 +180,7 @@ class OO_Stream_Dashboard_AJAX {
                 $selected_phase_ids_for_linking = isset($_POST['link_to_phases']) && is_array($_POST['link_to_phases']) ? array_map('intval', $_POST['link_to_phases']) : array();
 
                 if ($kpi_measure_id > 0 && $stream_id_context > 0) {
-                    $existing_links_raw = OO_Stream_Dashboard_DB::get_phase_kpi_links_for_phase($stream_id_context, array('join_measures' => true, 'active_only' => null));
+                    $existing_links_raw = OO_DB::get_phase_kpi_links_for_phase($stream_id_context, array('join_measures' => true, 'active_only' => null));
                     $currently_linked_phase_ids_in_stream = array();
                     if (is_array($existing_links_raw)) {
                         foreach ($existing_links_raw as $link) {
@@ -193,7 +193,7 @@ class OO_Stream_Dashboard_AJAX {
 
                     $phases_to_add_link = array_diff($selected_phase_ids_for_linking, $currently_linked_phase_ids_in_stream);
                     foreach ($phases_to_add_link as $phase_id_to_add) {
-                        OO_Stream_Dashboard_DB::add_phase_kpi_link(array(
+                        OO_DB::add_phase_kpi_link(array(
                             'phase_id' => $phase_id_to_add,
                             'kpi_measure_id' => $kpi_measure_id,
                             'is_mandatory' => 0, 
@@ -205,15 +205,15 @@ class OO_Stream_Dashboard_AJAX {
                     if (!empty($phases_to_remove_link)) {
                         foreach ($existing_links_raw as $link) {
                             if ($link->kpi_measure_id == $kpi_measure_id && in_array($link->phase_id, $phases_to_remove_link)) {
-                                OO_Stream_Dashboard_DB::delete_phase_kpi_link($link->link_id);
+                                OO_DB::delete_phase_kpi_link($link->link_id);
                             }
                         }
                     }
                 }
 
-                $all_links_for_kpi = OO_Stream_Dashboard_DB::get_phase_kpi_links_by_measure($kpi_measure_id, array('join_phases' => false));
+                $all_links_for_kpi = OO_DB::get_phase_kpi_links_by_measure($kpi_measure_id, array('join_phases' => false));
                 if (empty($all_links_for_kpi) && $args['is_active'] == 1) {
-                    OO_Stream_Dashboard_DB::toggle_kpi_measure_status($kpi_measure_id, 0);
+                    OO_DB::toggle_kpi_measure_status($kpi_measure_id, 0);
                     wp_send_json_success( array( 'message' => __( 'KPI Measure updated. All phase links removed, KPI automatically deactivated.', 'operations-organizer' ) ) );
                     return;
                 }
