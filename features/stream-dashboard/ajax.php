@@ -724,7 +724,9 @@ class OO_Stream_Dashboard_AJAX {
         if ( $phase_id <= 0 ) {
             wp_send_json_error( array( 'message' => 'Invalid phase ID.' ) ); return;
         }
-        $phase = OO_Stream_Dashboard_DB::get_phase( $phase_id );
+        oo_log('[EXTREME_DEBUG] About to call OO_DB::get_phase with phase_id:', $phase_id);
+        $phase = OO_DB::get_phase( $phase_id );
+        oo_log('[EXTREME_DEBUG] OO_DB::get_phase result:', $phase);
         if ( $phase ) {
             wp_send_json_success( $phase );
         } else {
@@ -758,7 +760,19 @@ class OO_Stream_Dashboard_AJAX {
             wp_send_json_error( array( 'message' => 'Error: Phase ID, Stream and Name are required.' ) ); return;
         }
         
-        $result = OO_Stream_Dashboard_DB::update_phase( $phase_id, $stream_id, $phase_name, $phase_slug, $phase_description, $sort_order, null, null, null, $includes_kpi );
+        oo_log('[EXTREME_DEBUG] About to call OO_DB::update_phase with parameters:', array(
+            'phase_id' => $phase_id,
+            'stream_id' => $stream_id,
+            'phase_name' => $phase_name,
+            'phase_slug' => $phase_slug,
+            'phase_description' => $phase_description,
+            'sort_order' => $sort_order,
+            'includes_kpi' => $includes_kpi
+        ));
+        
+        $result = OO_DB::update_phase( $phase_id, $stream_id, $phase_name, $phase_slug, $phase_description, $sort_order, null, null, null, $includes_kpi );
+        
+        oo_log('[EXTREME_DEBUG] OO_DB::update_phase result:', $result);
         
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => 'Error: ' . $result->get_error_message() ) );
@@ -800,7 +814,14 @@ class OO_Stream_Dashboard_AJAX {
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;
         }
         $new_status = isset( $_POST['is_active'] ) ? intval( $_POST['is_active'] ) : 0;
-        $result = OO_Stream_Dashboard_DB::toggle_phase_status( $phase_id, $new_status );
+        oo_log('[EXTREME_DEBUG] About to call OO_DB::toggle_phase_status with parameters:', array(
+            'phase_id' => $phase_id,
+            'new_status' => $new_status
+        ));
+        
+        $result = OO_DB::toggle_phase_status( $phase_id, $new_status );
+        
+        oo_log('[EXTREME_DEBUG] OO_DB::toggle_phase_status result:', $result);
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => 'Error: ' . $result->get_error_message() ) );
         } else {
@@ -822,7 +843,7 @@ class OO_Stream_Dashboard_AJAX {
             wp_send_json_error( array( 'message' => 'Invalid Phase ID.' ) );
             return;
         }
-        $job_logs_count = OO_Stream_Dashboard_DB::get_job_logs_count(array('phase_id' => $phase_id)); 
+        $job_logs_count = OO_DB::get_job_logs_count(array('phase_id' => $phase_id)); 
         if ( $job_logs_count > 0 && !$force_delete_logs ) {
             wp_send_json_success( array( 
                 'message' => sprintf('This phase is associated with %d job log(s). Are you sure you want to delete this phase AND all its associated job logs?', $job_logs_count),
@@ -832,10 +853,15 @@ class OO_Stream_Dashboard_AJAX {
             return;
         }
         if ($job_logs_count > 0 && $force_delete_logs) {
-            OO_Stream_Dashboard_DB::delete_job_logs_for_phase($phase_id);
+            oo_log('[EXTREME_DEBUG] About to delete job logs for phase:', $phase_id);
+            OO_DB::delete_job_logs_for_phase($phase_id);
         }
-        OO_Stream_Dashboard_DB::delete_phase_kpi_links_for_phase($phase_id);
-        $result = OO_Stream_Dashboard_DB::delete_phase( $phase_id );
+        oo_log('[EXTREME_DEBUG] About to delete phase KPI links for phase:', $phase_id);
+        OO_DB::delete_phase_kpi_links_for_phase($phase_id);
+        
+        oo_log('[EXTREME_DEBUG] About to delete phase:', $phase_id);
+        $result = OO_DB::delete_phase( $phase_id );
+        oo_log('[EXTREME_DEBUG] OO_DB::delete_phase result:', $result);
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         } else {
@@ -855,7 +881,7 @@ class OO_Stream_Dashboard_AJAX {
             wp_send_json_error( ['message' => 'Invalid Phase ID.'] );
             return;
         }
-        $kpi_links_raw = OO_Stream_Dashboard_DB::get_phase_kpi_links_for_phase( $phase_id, true );
+        $kpi_links_raw = OO_DB::get_phase_kpi_links_for_phase( $phase_id, true );
         if ( is_wp_error( $kpi_links_raw ) ) {
             wp_send_json_error( ['message' => $kpi_links_raw->get_error_message()] );
             return;
