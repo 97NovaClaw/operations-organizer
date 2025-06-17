@@ -309,6 +309,33 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug;
 					<p><?php esc_html_e( 'Inactive measures will not be available for new phase assignments.', 'operations-organizer' ); ?></p>
 				</div>
 
+				<div class="form-field form-required kpi-phase-linking-section-stream">
+					<label><?php printf(esc_html__('Link to Phases in %s (at least one required)', 'operations-organizer'), esc_html($current_stream_name)); ?></label>
+					<div id="add-kpi-link-to-phases-list-<?php echo esc_attr($current_stream_tab_slug); ?>" class="phase-checkbox-group" style="max-height: 150px; overflow-y: auto; border: 1px solid #ccd0d4; padding: 5px;">
+						<?php
+						// Fetch phases for the current stream to populate checkboxes
+						$phases_in_current_stream = array();
+						if (isset($current_stream_id)) {
+							$phases_in_current_stream = OO_DB::get_phases(array(
+								'stream_id' => $current_stream_id,
+								'is_active' => 1, // Only offer to link to active phases
+								'orderby' => 'order_in_stream',
+								'order' => 'ASC',
+								'number' => -1
+							));
+						}
+						if (!empty($phases_in_current_stream)) {
+							foreach ($phases_in_current_stream as $phase) {
+								echo '<label style="display: block;"><input type="checkbox" name="link_to_phases[]" value="' . esc_attr($phase->phase_id) . '"> ' . esc_html($phase->phase_name) . '</label>';
+							}
+						} else {
+							echo '<p>' . esc_html__('No active phases found in this stream to link to.', 'operations-organizer') . '</p>';
+						}
+						?>
+					</div>
+					<p class="description"><?php esc_html_e('This KPI measure will be associated with the selected phases in the current stream.', 'operations-organizer'); ?></p>
+				</div>
+
 				<?php submit_button( __( 'Add KPI Measure', 'operations-organizer' ), 'primary', 'submit_add_kpi_measure-stream-' . $current_stream_tab_slug ); ?>
 			</form>
 		</div>
@@ -356,6 +383,15 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug;
 						<?php esc_html_e( 'Active', 'operations-organizer' ); ?>
 					</label>
 					<p><?php esc_html_e( 'Inactive measures will not be available for new phase assignments.', 'operations-organizer' ); ?></p>
+				</div>
+
+				<div class="form-field kpi-phase-linking-section-stream">
+					<label><?php printf(esc_html__('Linked to Phases in %s', 'operations-organizer'), esc_html($current_stream_name)); ?></label>
+					<div id="edit-kpi-link-to-phases-list-<?php echo esc_attr($current_stream_tab_slug); ?>" class="phase-checkbox-group" style="max-height: 150px; overflow-y: auto; border: 1px solid #ccd0d4; padding: 5px;">
+						<!-- Checkboxes will be populated by JavaScript -->
+						<p><?php esc_html_e('Loading phases...', 'operations-organizer'); ?></p>
+					</div>
+					<p class="description"><?php esc_html_e('Select phases in the current stream to associate with this KPI measure.', 'operations-organizer'); ?></p>
 				</div>
 
 				<?php submit_button( __( 'Save KPI Measure Changes', 'operations-organizer' ), 'primary', 'submit_edit_kpi_measure-stream-' . $current_stream_tab_slug ); ?>

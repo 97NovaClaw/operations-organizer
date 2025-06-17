@@ -287,12 +287,49 @@ jQuery(document).ready(function($) {
                 $modal.find('[name="measure_key"]').val(kpi.measure_key);
                 $modal.find('[name="unit_type"]').val(kpi.unit_type);
                 $modal.find('[name="is_active"]').prop('checked', parseInt(kpi.is_active) === 1);
+                
+                // Load phase links for this KPI
+                loadPhaseLinksForKpi(kpiMeasureId, streamSlug);
+                
                 $modal.show();
             } else {
                 alert('Error fetching KPI details: ' + response.data.message);
             }
         });
     });
+
+    // Function to load phase links for KPI in edit modal
+    function loadPhaseLinksForKpi(kpiMeasureId, streamSlug) {
+        var $phaseList = $('#edit-kpi-link-to-phases-list-' + streamSlug);
+        $phaseList.html('<p>Loading phases...</p>');
+        
+        $.post(oo_data.ajax_url, {
+            action: 'oo_get_phase_links_for_kpi_in_stream',
+            _ajax_nonce: oo_data.nonce_get_phase_kpi_links,
+            kpi_measure_id: kpiMeasureId,
+            stream_id: oo_data.current_stream_id
+        }, function(response) {
+            if (response.success) {
+                var html = '';
+                var linkedPhaseIds = response.data.linked_phase_ids || [];
+                
+                if (response.data.phases && response.data.phases.length > 0) {
+                    response.data.phases.forEach(function(phase) {
+                        var isChecked = linkedPhaseIds.indexOf(parseInt(phase.phase_id)) !== -1 ? 'checked' : '';
+                        html += '<label style="display: block;"><input type="checkbox" name="link_to_phases[]" value="' + phase.phase_id + '" ' + isChecked + '> ' + phase.phase_name + '</label>';
+                    });
+                } else {
+                    html = '<p>No active phases found in this stream.</p>';
+                }
+                
+                $phaseList.html(html);
+            } else {
+                $phaseList.html('<p>Error loading phases: ' + (response.data.message || 'Unknown error') + '</p>');
+            }
+        }).fail(function() {
+            $phaseList.html('<p>Failed to load phases.</p>');
+        });
+    }
 
     // Handle "Edit KPI" form submission
     $(document).on('submit', '#oo-edit-kpi-measure-form-stream-' + streamSlug, function(e) {
