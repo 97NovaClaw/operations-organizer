@@ -877,23 +877,38 @@ class OO_Phase {
             return;
         }
 
-        $linked_phases_data = OO_DB::get_phase_kpi_links_for_phase( $stream_id, array(
-            'join_measures' => true, // We need kpi_measure_id from the join to filter
-            'active_only' => null // Get all links, regardless of KPI active status, just for the specific KPI ID
-        ) ); 
+        // First, get all active phases for this stream
+        $phases = OO_DB::get_phases(array(
+            'stream_id' => $stream_id,
+            'is_active' => 1, // Only active phases
+            'number'    => -1,
+            'orderby'   => 'order_in_stream',
+            'order'     => 'ASC'
+        ));
+
+        if (!is_array($phases) || empty($phases)) {
+            wp_send_json_success( array( 
+                'phases' => array(),
+                'linked_phase_ids' => array(),
+                'message' => 'No active phases found in this stream.'
+            ) );
+            return;
+        }
+
+        // Get all phase-KPI links for this specific KPI
+        $all_links = OO_DB::get_phase_kpi_links_by_measure($kpi_measure_id, array('join_phases' => false));
         
         $linked_phase_ids = array();
-        if (is_array($linked_phases_data)) {
-            foreach ($linked_phases_data as $link) {
-                if ($link->kpi_measure_id == $kpi_measure_id) {
-                    $linked_phase_ids[] = $link->phase_id;
-                }
+        if (is_array($all_links)) {
+            foreach ($all_links as $link) {
+                $linked_phase_ids[] = intval($link->phase_id);
             }
         }
-        // Ensure unique IDs, though DISTINCT in SQL might be better if query was direct
-        $linked_phase_ids = array_unique($linked_phase_ids);
 
-        wp_send_json_success( array( 'linked_phase_ids' => array_values($linked_phase_ids) ) ); // Re-index array
+        wp_send_json_success( array( 
+            'phases' => $phases,
+            'linked_phase_ids' => array_values(array_unique($linked_phase_ids))
+        ) );
     }
 
     public static function ajax_delete_phase() {
