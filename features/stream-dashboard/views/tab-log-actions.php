@@ -17,7 +17,10 @@ global $current_stream_id, $current_stream_name, $phases;
 $stream_phases = array();
 if (isset($current_stream_id) && !empty($phases)) {
     foreach ($phases as $phase_item) {
-        if ($phase_item->stream_id == $current_stream_id && !empty($phase_item->includes_kpi)) {
+        // Only include phases that are active, belong to current stream, and have KPIs enabled
+        if ($phase_item->stream_id == $current_stream_id && 
+            !empty($phase_item->includes_kpi) && 
+            !empty($phase_item->is_active)) {
             $stream_phases[] = $phase_item;
         }
     }
