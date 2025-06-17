@@ -237,7 +237,12 @@ jQuery(document).ready(function($) {
     // Open "Add KPI" modal
     $(document).on('click', '#openAddKpiMeasureModalBtn-stream-' + streamSlug, function() {
         var $modal = $('#addKpiMeasureModal-stream-' + streamSlug);
-        $modal.find('form')[0].reset();
+        var $form = $modal.find('form');
+        $form[0].reset(); // Reset all form fields
+        // Clear the auto-generated measure_key field specifically
+        $('#add_kpi_measure_key-stream-' + streamSlug).val('');
+        // Uncheck all phase checkboxes
+        $modal.find('input[name="link_to_phases[]"]').prop('checked', false);
         $modal.show();
     });
 
@@ -256,16 +261,22 @@ jQuery(document).ready(function($) {
     $(document).on('submit', '#oo-add-kpi-measure-form-stream-' + streamSlug, function(e) {
         e.preventDefault();
         var $form = $(this);
+        var $modal = $('#addKpiMeasureModal-stream-' + streamSlug);
         var formData = $form.serializeArray();
         formData.push({name: 'action', value: 'oo_add_kpi_measure'});
         formData.push({name: '_ajax_nonce', value: oo_data.nonce_add_kpi_measure});
         
         $.post(oo_data.ajax_url, $.param(formData), function(response) {
             if (response.success) {
-                location.reload();
+                alert('KPI measure added successfully!');
+                $form[0].reset(); // Reset the form
+                $modal.hide(); // Close the modal
+                location.reload(); // Refresh to show new KPI
             } else {
                 alert('Error: ' + (response.data.message || 'Could not add KPI Measure.'));
             }
+        }).fail(function() {
+            alert('Error: Failed to add KPI measure');
         });
     });
 
