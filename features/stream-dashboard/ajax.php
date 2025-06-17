@@ -686,7 +686,18 @@ class OO_Stream_Dashboard_AJAX {
             wp_send_json_error( array( 'message' => 'Error: Stream and Phase Name are required.' ) ); return;
         }
 
-        $result = OO_Stream_Dashboard_DB::add_phase( $stream_id, $phase_name, $phase_slug, $phase_description, $sort_order, null, null, 1, $includes_kpi );
+        oo_log('[EXTREME_DEBUG] About to call OO_DB::add_phase with parameters:', array(
+            'stream_id' => $stream_id,
+            'phase_name' => $phase_name,
+            'phase_slug' => $phase_slug,
+            'phase_description' => $phase_description,
+            'sort_order' => $sort_order,
+            'includes_kpi' => $includes_kpi
+        ));
+        
+        $result = OO_DB::add_phase( $stream_id, $phase_name, $phase_slug, $phase_description, $sort_order, null, null, 1, $includes_kpi );
+        
+        oo_log('[EXTREME_DEBUG] OO_DB::add_phase result:', $result);
 
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => 'Error: ' . $result->get_error_message() ) );
