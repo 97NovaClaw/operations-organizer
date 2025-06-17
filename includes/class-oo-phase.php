@@ -896,7 +896,11 @@ class OO_Phase {
         }
 
         // Get all phase-KPI links for this specific KPI
-        $all_links = OO_DB::get_phase_kpi_links_by_measure($kpi_measure_id, array('join_phases' => false));
+        $all_links = OO_DB::get_phase_kpi_links_by_measure($kpi_measure_id, array(
+            'join_phases' => true,  // We need the join to get phase info
+            'orderby' => 'p.phase_name',
+            'order' => 'ASC'
+        ));
         
         $linked_phase_ids = array();
         if (is_array($all_links)) {
