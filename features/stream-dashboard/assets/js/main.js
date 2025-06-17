@@ -367,13 +367,19 @@ jQuery(document).ready(function($) {
         var formData = $(this).serializeArray();
         formData.push({name: 'action', value: 'oo_edit_kpi_measure'});
         formData.push({name: '_ajax_nonce', value: oo_data.nonce_edit_kpi_measure});
+        formData.push({name: 'stream_id_context', value: oo_data.current_stream_id}); // Add stream context for phase linking
+        
+        console.log('[DEBUG] Edit KPI form data being sent:', formData);
         
         $.post(oo_data.ajax_url, $.param(formData), function(response) {
             if (response.success) {
+                alert('KPI measure updated successfully!');
                 location.reload();
             } else {
                 alert('Error updating KPI Measure: ' + (response.data.message || 'Unknown error'));
             }
+        }).fail(function() {
+            alert('Error: Failed to update KPI measure');
         });
     });
 
