@@ -99,7 +99,7 @@ class OO_Stream_Dashboard_AJAX {
             }
         }
 
-        $result = OO_Stream_Dashboard_DB::add_kpi_measure( $args );
+        $result = OO_DB::add_kpi_measure( $args );
 
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
@@ -137,7 +137,7 @@ class OO_Stream_Dashboard_AJAX {
         }
 
         $kpi_measure_id = intval( $_POST['kpi_measure_id'] );
-        $kpi_measure = OO_Stream_Dashboard_DB::get_kpi_measure( $kpi_measure_id );
+        $kpi_measure = OO_DB::get_kpi_measure( $kpi_measure_id );
 
         if ( $kpi_measure ) {
             wp_send_json_success( array( 'kpi_measure' => $kpi_measure ) );
@@ -170,7 +170,7 @@ class OO_Stream_Dashboard_AJAX {
         $args['unit_type'] = isset( $_POST['unit_type'] ) ? sanitize_text_field( $_POST['unit_type'] ) : 'integer';
         $args['is_active'] = isset( $_POST['is_active'] ) ? 1 : 0;
 
-        $result = OO_Stream_Dashboard_DB::update_kpi_measure( $kpi_measure_id, $args );
+        $result = OO_DB::update_kpi_measure( $kpi_measure_id, $args );
 
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
@@ -239,7 +239,7 @@ class OO_Stream_Dashboard_AJAX {
         }
 
         $new_status = isset( $_POST['is_active'] ) ? intval( $_POST['is_active'] ) : 0;
-        $result = OO_Stream_Dashboard_DB::toggle_kpi_measure_status( $kpi_measure_id, $new_status );
+        $result = OO_DB::toggle_kpi_measure_status( $kpi_measure_id, $new_status );
 
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
@@ -265,7 +265,7 @@ class OO_Stream_Dashboard_AJAX {
             wp_send_json_error( array( 'message' => __( 'KPI Measure ID is required for deletion.', 'operations-organizer' ) ) );
         }
 
-        $result = OO_Stream_Dashboard_DB::delete_kpi_measure( $kpi_measure_id );
+        $result = OO_DB::delete_kpi_measure( $kpi_measure_id );
 
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
@@ -294,11 +294,11 @@ class OO_Stream_Dashboard_AJAX {
         $stream_id = intval( $_POST['stream_id'] );
         $stream_slug = isset($_POST['stream_slug']) ? sanitize_key($_POST['stream_slug']) : '';
 
-        $kpis_from_db = OO_Stream_Dashboard_DB::get_kpi_measures_for_stream( $stream_id, array('is_active' => null) );
+        $kpis_from_db = OO_DB::get_kpi_measures_for_stream( $stream_id, array('is_active' => null) );
         $stream_kpi_measures_processed = array();
         if (!empty($kpis_from_db)) {
             foreach($kpis_from_db as $kpi) {
-                $phase_names = OO_Stream_Dashboard_DB::get_phase_names_for_kpi_in_stream($kpi->kpi_measure_id, $stream_id);
+                $phase_names = OO_DB::get_phase_names_for_kpi_in_stream($kpi->kpi_measure_id, $stream_id);
                 $kpi->used_in_phases_in_stream = !empty($phase_names) ? esc_html(implode(', ', $phase_names)) : 'N/A';
                 $stream_kpi_measures_processed[] = $kpi;
             }

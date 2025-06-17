@@ -246,6 +246,7 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         var $form = $(this);
         var formData = $form.serializeArray();
+        formData.push({name: 'action', value: 'oo_add_kpi_measure'});
         formData.push({name: '_ajax_nonce', value: oo_data.nonce_add_kpi_measure});
         
         $.post(oo_data.ajax_url, $.param(formData), function(response) {
@@ -286,6 +287,7 @@ jQuery(document).ready(function($) {
     $(document).on('submit', '#oo-edit-kpi-measure-form-stream-' + streamSlug, function(e) {
         e.preventDefault();
         var formData = $(this).serializeArray();
+        formData.push({name: 'action', value: 'oo_edit_kpi_measure'});
         formData.push({name: '_ajax_nonce', value: oo_data.nonce_edit_kpi_measure});
         
         $.post(oo_data.ajax_url, $.param(formData), function(response) {
@@ -324,7 +326,7 @@ jQuery(document).ready(function($) {
     });
 
     // Handle "Toggle KPI Status" button clicks
-    $(document).on('click', '.oo-toggle-kpi-status-stream', function() {
+    $(document).on('click', '.oo-toggle-kpi-measure-status-stream', function() {
         var $button = $(this);
         var kpiMeasureId = $button.data('kpi-measure-id');
         var newStatus = $button.data('new-status');

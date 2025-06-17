@@ -283,6 +283,19 @@ oo_log('[EXTREME_DEBUG] ========== INITIALIZING STREAM DASHBOARD AJAX GLOBALLY =
 OO_Stream_Dashboard_AJAX::init();
 oo_log('[EXTREME_DEBUG] ========== STREAM DASHBOARD AJAX INITIALIZED GLOBALLY ==========');
 
+// Register KPI Management AJAX handlers for Stream Dashboard
+add_action('wp_ajax_oo_add_kpi_measure', array('OO_Stream_Dashboard_AJAX', 'ajax_add_kpi_measure'));
+add_action('wp_ajax_oo_get_kpi_measure_details', array('OO_Stream_Dashboard_AJAX', 'ajax_get_kpi_measure_details'));
+add_action('wp_ajax_oo_edit_kpi_measure', array('OO_Stream_Dashboard_AJAX', 'ajax_update_kpi_measure'));
+add_action('wp_ajax_oo_toggle_kpi_measure_status', array('OO_Stream_Dashboard_AJAX', 'ajax_toggle_kpi_measure_status'));
+add_action('wp_ajax_oo_delete_kpi_measure', array('OO_Stream_Dashboard_AJAX', 'ajax_delete_kpi_measure'));
+
+// Register Derived KPI Management AJAX handlers for Stream Dashboard
+add_action('wp_ajax_oo_add_derived_kpi_definition', array('OO_Stream_Dashboard_AJAX', 'ajax_add_derived_kpi_definition'));
+add_action('wp_ajax_oo_update_derived_kpi_definition', array('OO_Stream_Dashboard_AJAX', 'ajax_update_derived_kpi_definition'));
+add_action('wp_ajax_oo_toggle_derived_kpi_status', array('OO_Stream_Dashboard_AJAX', 'ajax_toggle_derived_kpi_status'));
+add_action('wp_ajax_oo_delete_derived_kpi_definition', array('OO_Stream_Dashboard_AJAX', 'ajax_delete_derived_kpi_definition'));
+
 /**
  * Initialize hardcoded streams in the database.
  * This ensures the 4 specific streams are in the database as specified.
