@@ -209,7 +209,12 @@ class OO_Admin_Pages { // Renamed class
         // The view will handle the internal tabs
         
         // --- REFACTOR: Point to the new feature entry point ---
+        oo_log('[EXTREME_DEBUG] ========== ABOUT TO INCLUDE STREAM DASHBOARD ==========');
+        oo_log('[EXTREME_DEBUG] Current stream ID: ' . $current_stream_id);
+        oo_log('[EXTREME_DEBUG] Current stream name: ' . $current_stream_name);
+        oo_log('[EXTREME_DEBUG] Current stream tab slug: ' . $current_stream_tab_slug);
         include_once OO_PLUGIN_DIR . 'features/stream-dashboard/index.php';
+        oo_log('[EXTREME_DEBUG] ========== STREAM DASHBOARD INCLUDED ==========');
     }
 
     public static function handle_start_job_form() {

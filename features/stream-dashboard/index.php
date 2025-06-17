@@ -40,8 +40,11 @@ require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/ajax.php';
 
 // Initialize feature components
+oo_log('[EXTREME_DEBUG] ========== INITIALIZING STREAM DASHBOARD COMPONENTS ==========');
 OO_Stream_Dashboard_DB::init();
+oo_log('[EXTREME_DEBUG] Stream Dashboard DB initialized');
 OO_Stream_Dashboard_AJAX::init();
+oo_log('[EXTREME_DEBUG] Stream Dashboard AJAX initialized');
 
 // These globals are passed from class-oo-admin-pages.php and are available to this feature.
 global $current_stream_id, $current_stream_name, $current_stream_tab_slug, $phases, $employees;

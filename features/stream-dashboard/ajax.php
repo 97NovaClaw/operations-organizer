@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class OO_Stream_Dashboard_AJAX {
 
 	public static function init() {
+		oo_log('[EXTREME_DEBUG] ========== OO_Stream_Dashboard_AJAX::init() CALLED ==========');
 		$actions = [
 			'get_phase',
 			'get_kpi_measures',
@@ -40,7 +41,10 @@ class OO_Stream_Dashboard_AJAX {
 			'update_phase_order_from_stream',
 		];
 		foreach ( $actions as $action ) {
-			add_action( 'wp_ajax_oo_' . $action, array( __CLASS__, 'ajax_' . $action ) );
+			$hook_name = 'wp_ajax_oo_' . $action;
+			$callback = array( __CLASS__, 'ajax_' . $action );
+			oo_log('[EXTREME_DEBUG] Registering AJAX hook: ' . $hook_name . ' -> ' . $callback[1]);
+			add_action( $hook_name, $callback );
 		}
 
 		$derived_kpi_actions = array(
@@ -631,15 +635,41 @@ class OO_Stream_Dashboard_AJAX {
     }
 
     public static function ajax_add_phase_from_stream() {
-        oo_log('[DEBUG] AJAX Reached: ajax_add_phase_from_stream. Received POST data:', $_POST);
-
-        // Manually verify nonce for better debugging
-        if ( ! isset( $_POST['_ajax_nonce'] ) || ! wp_verify_nonce( $_POST['_ajax_nonce'], 'oo_add_phase_nonce' ) ) {
-            oo_log('[DEBUG] Nonce verification FAILED for oo_add_phase_nonce.');
-            wp_send_json_error( array( 'message' => 'Nonce verification failed.' ), 403 );
+        oo_log('[EXTREME_DEBUG] ========== AJAX HANDLER REACHED ==========');
+        oo_log('[EXTREME_DEBUG] Function: ajax_add_phase_from_stream');
+        oo_log('[EXTREME_DEBUG] Current user ID: ' . get_current_user_id());
+        oo_log('[EXTREME_DEBUG] Current user can manage_options: ' . (current_user_can('manage_options') ? 'YES' : 'NO'));
+        oo_log('[EXTREME_DEBUG] $_POST data received:', $_POST);
+        oo_log('[EXTREME_DEBUG] $_REQUEST data received:', $_REQUEST);
+        oo_log('[EXTREME_DEBUG] All available nonces in wp_nonce_tick:', wp_nonce_tick());
+        
+        // Check if nonce exists in POST
+        if ( ! isset( $_POST['_ajax_nonce'] ) ) {
+            oo_log('[EXTREME_DEBUG] CRITICAL: _ajax_nonce not found in $_POST');
+            oo_log('[EXTREME_DEBUG] Available POST keys: ' . implode(', ', array_keys($_POST)));
+            wp_send_json_error( array( 'message' => 'Nonce not provided in request.' ), 400 );
             return;
         }
-        oo_log('[DEBUG] Nonce verification PASSED for oo_add_phase_nonce.');
+        
+        $received_nonce = $_POST['_ajax_nonce'];
+        oo_log('[EXTREME_DEBUG] Received nonce value: ' . $received_nonce);
+        oo_log('[EXTREME_DEBUG] Expected nonce action: oo_add_phase_nonce');
+        
+        // Test nonce verification step by step
+        $nonce_verification_result = wp_verify_nonce( $received_nonce, 'oo_add_phase_nonce' );
+        oo_log('[EXTREME_DEBUG] wp_verify_nonce result: ' . var_export($nonce_verification_result, true));
+        
+        if ( ! $nonce_verification_result ) {
+            oo_log('[EXTREME_DEBUG] NONCE VERIFICATION FAILED!');
+            oo_log('[EXTREME_DEBUG] Trying to generate a fresh nonce for comparison...');
+            $fresh_nonce = wp_create_nonce('oo_add_phase_nonce');
+            oo_log('[EXTREME_DEBUG] Fresh nonce would be: ' . $fresh_nonce);
+            oo_log('[EXTREME_DEBUG] Received nonce was: ' . $received_nonce);
+            oo_log('[EXTREME_DEBUG] Do they match? ' . ($fresh_nonce === $received_nonce ? 'YES' : 'NO'));
+            wp_send_json_error( array( 'message' => 'Nonce verification failed. Expected: ' . $fresh_nonce . ', Got: ' . $received_nonce ), 403 );
+            return;
+        }
+        oo_log('[EXTREME_DEBUG] ✓ Nonce verification PASSED!');
 
         if ( ! current_user_can( oo_get_capability() ) ) {
             wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); return;

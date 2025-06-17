@@ -2,8 +2,18 @@ jQuery(document).ready(function($) {
 
     // Check if we are on the stream dashboard page and have the necessary data
     if (typeof oo_data === 'undefined' || !oo_data.current_stream_id) {
+        console.log('[EXTREME_DEBUG] oo_data is undefined or missing current_stream_id. Exiting.');
         return; // Exit if data is missing.
     }
+    
+    console.log('[EXTREME_DEBUG] ========== STREAM DASHBOARD JS LOADED ==========');
+    console.log('[EXTREME_DEBUG] oo_data object:', oo_data);
+    console.log('[EXTREME_DEBUG] Available nonces:', {
+        nonce_add_phase: oo_data.nonce_add_phase,
+        nonce_edit_phase: oo_data.nonce_edit_phase,
+        nonce_delete_phase_ajax: oo_data.nonce_delete_phase_ajax,
+        nonce_update_phase_order: oo_data.nonce_update_phase_order
+    });
 
     var streamId = oo_data.current_stream_id;
     var streamSlug = oo_data.current_stream_tab_slug;
@@ -71,15 +81,26 @@ jQuery(document).ready(function($) {
             includes_kpi: $('#add_includes_kpi').is(':checked') ? 1 : 0,
         };
 
-        console.log('[DEBUG] Sending "Add Phase" AJAX with data:', formData);
+        console.log('[EXTREME_DEBUG] ========== SENDING ADD PHASE AJAX ==========');
+        console.log('[EXTREME_DEBUG] AJAX URL:', oo_data.ajax_url);
+        console.log('[EXTREME_DEBUG] Form data being sent:', formData);
+        console.log('[EXTREME_DEBUG] Nonce being sent:', formData._ajax_nonce);
+        console.log('[EXTREME_DEBUG] Expected action:', formData.action);
+        
         $.post(oo_data.ajax_url, formData, function(response) {
+            console.log('[EXTREME_DEBUG] AJAX Response received:', response);
             if (response.success) {
                 location.reload();
             } else {
                 alert('Error: ' + (response.data.message || 'Could not add phase.'));
             }
-        }).fail(function() {
-            alert('An unknown error occurred.');
+        }).fail(function(xhr, status, error) {
+            console.log('[EXTREME_DEBUG] ADD PHASE AJAX FAILED!');
+            console.log('[EXTREME_DEBUG] XHR object:', xhr);
+            console.log('[EXTREME_DEBUG] Status:', status);
+            console.log('[EXTREME_DEBUG] Error:', error);
+            console.log('[EXTREME_DEBUG] Response text:', xhr.responseText);
+            alert('An unknown error occurred. Check console for details.');
         }).always(function(){
             $form.find('.spinner').removeClass('is-active');
         });
@@ -356,12 +377,12 @@ jQuery(document).ready(function($) {
     $(document).on('click', '.oo-edit-derived-kpi-stream', function() {
         var derivedKpiId = $(this).data('derived-kpi-id');
         var $modal = $('#editDerivedKpiModal-stream-' + streamSlug);
-
-        $.post(oo_data.ajax_url, {
+            
+            $.post(oo_data.ajax_url, {
             action: 'oo_get_derived_kpi_definition_details',
             _ajax_nonce: oo_data.nonce_get_derived_kpi_details,
             derived_definition_id: derivedKpiId
-        }, function(response) {
+            }, function(response) {
             if (response.success) {
                 var dkpi = response.data.definition;
                 $modal.find('[name="derived_definition_id"]').val(dkpi.derived_definition_id);
@@ -422,7 +443,7 @@ jQuery(document).ready(function($) {
 
     // Handle "Toggle Derived KPI Status" button clicks
     $(document).on('click', '.oo-toggle-derived-kpi-status-stream', function() {
-        var $button = $(this);
+            var $button = $(this);
         var derivedKpiId = $button.data('derived-kpi-id');
         var newStatus = $button.data('new-status');
         $button.prop('disabled', true);
