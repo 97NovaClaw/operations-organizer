@@ -324,9 +324,28 @@ jQuery(document).ready(function($) {
                 var html = '';
                 var linkedPhaseIds = response.data.linked_phase_ids || [];
                 
+                // Debug logging
+                console.log('[DEBUG] KPI ID:', kpiMeasureId);
+                console.log('[DEBUG] Linked Phase IDs from server:', linkedPhaseIds);
+                console.log('[DEBUG] Available phases:', response.data.phases);
+                
                 if (response.data.phases && response.data.phases.length > 0) {
                     response.data.phases.forEach(function(phase) {
-                        var isChecked = linkedPhaseIds.indexOf(parseInt(phase.phase_id)) !== -1 ? 'checked' : '';
+                        // Convert both to integers for comparison
+                        var phaseId = parseInt(phase.phase_id);
+                        var isLinked = false;
+                        
+                        // Check if this phase ID is in the linked phases array
+                        for (var i = 0; i < linkedPhaseIds.length; i++) {
+                            if (parseInt(linkedPhaseIds[i]) === phaseId) {
+                                isLinked = true;
+                                break;
+                            }
+                        }
+                        
+                        var isChecked = isLinked ? 'checked' : '';
+                        console.log('[DEBUG] Phase:', phase.phase_name, 'ID:', phaseId, 'Is Linked:', isLinked, 'Checked:', isChecked);
+                        
                         html += '<label style="display: block;"><input type="checkbox" name="link_to_phases[]" value="' + phase.phase_id + '" ' + isChecked + '> ' + phase.phase_name + '</label>';
                     });
                 } else {
