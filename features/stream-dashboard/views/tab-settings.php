@@ -283,7 +283,7 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug;
 
 				<div class="form-field form-required" style="display:none;">
 					<label for="add_kpi_measure_key-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Measure Key', 'operations-organizer' ); ?></label>
-					<input type="text" name="measure_key" id="add_kpi_measure_key-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+					<input type="text" name="measure_key" id="add_kpi_measure_key-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
 					<p><?php esc_html_e( 'A unique key for this KPI, used internally (e.g., "boxes_packed", "items_scanned"). Lowercase, underscores, no spaces. Cannot be changed after creation.', 'operations-organizer' ); ?></p>
 				</div>
 

@@ -241,6 +241,17 @@ jQuery(document).ready(function($) {
         $modal.show();
     });
 
+    // Auto-generate measure_key from measure_name in Add KPI modal
+    $(document).on('input', '#add_kpi_measure_name-stream-' + streamSlug, function() {
+        var measureName = $(this).val();
+        var measureKey = measureName.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+            .replace(/\s+/g, '_') // Replace spaces with underscores
+            .replace(/_+/g, '_') // Replace multiple underscores with single
+            .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+        $('#add_kpi_measure_key-stream-' + streamSlug).val(measureKey);
+    });
+
     // Handle "Add KPI" form submission
     $(document).on('submit', '#oo-add-kpi-measure-form-stream-' + streamSlug, function(e) {
         e.preventDefault();
