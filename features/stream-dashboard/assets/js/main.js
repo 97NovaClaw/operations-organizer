@@ -364,21 +364,34 @@ jQuery(document).ready(function($) {
     // Handle "Edit KPI" form submission
     $(document).on('submit', '#oo-edit-kpi-measure-form-stream-' + streamSlug, function(e) {
         e.preventDefault();
-        var formData = $(this).serializeArray();
+        var $form = $(this);
+        var formData = $form.serializeArray();
         formData.push({name: 'action', value: 'oo_edit_kpi_measure'});
         formData.push({name: '_ajax_nonce', value: oo_data.nonce_edit_kpi_measure});
         formData.push({name: 'stream_id_context', value: oo_data.current_stream_id}); // Add stream context for phase linking
         
-        console.log('[DEBUG] Edit KPI form data being sent:', formData);
+        console.log('[EXTREME_DEBUG] ========== EDIT KPI FORM SUBMISSION ==========');
+        console.log('[EXTREME_DEBUG] Raw form data (serializeArray):', formData);
+        console.log('[EXTREME_DEBUG] Form HTML:', $form[0].outerHTML);
+        console.log('[EXTREME_DEBUG] Is Active checkbox value:', $form.find('[name="is_active"]').prop('checked'));
+        console.log('[EXTREME_DEBUG] Checked phase checkboxes:', $form.find('[name="link_to_phases[]"]:checked').map(function() { return this.value; }).get());
+        console.log('[EXTREME_DEBUG] All phase checkboxes:', $form.find('[name="link_to_phases[]"]').map(function() { return {value: this.value, checked: this.checked}; }).get());
+        console.log('[EXTREME_DEBUG] URL Encoded form data:', $.param(formData));
         
         $.post(oo_data.ajax_url, $.param(formData), function(response) {
+            console.log('[EXTREME_DEBUG] AJAX Response received:', response);
             if (response.success) {
                 alert('KPI measure updated successfully!');
                 location.reload();
             } else {
                 alert('Error updating KPI Measure: ' + (response.data.message || 'Unknown error'));
             }
-        }).fail(function() {
+        }).fail(function(xhr, status, error) {
+            console.log('[EXTREME_DEBUG] AJAX FAILED!');
+            console.log('[EXTREME_DEBUG] XHR object:', xhr);
+            console.log('[EXTREME_DEBUG] Status:', status);
+            console.log('[EXTREME_DEBUG] Error:', error);
+            console.log('[EXTREME_DEBUG] Response text:', xhr.responseText);
             alert('Error: Failed to update KPI measure');
         });
     });

@@ -151,6 +151,11 @@ class OO_Stream_Dashboard_AJAX {
      */
     public static function ajax_update_kpi_measure() {
         oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
+        oo_log('[EXTREME_DEBUG] ========== EDIT KPI AJAX HANDLER ==========');
+        oo_log('[EXTREME_DEBUG] Full $_POST data:', $_POST);
+        oo_log('[EXTREME_DEBUG] is_active in POST:', isset($_POST['is_active']) ? $_POST['is_active'] : 'NOT SET');
+        oo_log('[EXTREME_DEBUG] link_to_phases in POST:', isset($_POST['link_to_phases']) ? $_POST['link_to_phases'] : 'NOT SET');
+        oo_log('[EXTREME_DEBUG] stream_id_context in POST:', isset($_POST['stream_id_context']) ? $_POST['stream_id_context'] : 'NOT SET');
         check_ajax_referer( 'oo_edit_kpi_measure_nonce', '_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -179,8 +184,15 @@ class OO_Stream_Dashboard_AJAX {
                 $stream_id_context = isset($_POST['stream_id_context']) ? intval($_POST['stream_id_context']) : 0;
                 $selected_phase_ids_for_linking = isset($_POST['link_to_phases']) && is_array($_POST['link_to_phases']) ? array_map('intval', $_POST['link_to_phases']) : array();
 
+                oo_log('[EXTREME_DEBUG] ========== PHASE LINKING LOGIC ==========');
+                oo_log('[EXTREME_DEBUG] KPI Measure ID:', $kpi_measure_id);
+                oo_log('[EXTREME_DEBUG] Stream ID Context:', $stream_id_context);
+                oo_log('[EXTREME_DEBUG] Selected Phase IDs for linking:', $selected_phase_ids_for_linking);
+
                 if ($kpi_measure_id > 0 && $stream_id_context > 0) {
                     $existing_links_raw = OO_DB::get_phase_kpi_links_for_phase($stream_id_context, array('join_measures' => true, 'active_only' => null));
+                    oo_log('[EXTREME_DEBUG] Raw existing links from DB:', $existing_links_raw);
+                    
                     $currently_linked_phase_ids_in_stream = array();
                     if (is_array($existing_links_raw)) {
                         foreach ($existing_links_raw as $link) {
@@ -190,9 +202,16 @@ class OO_Stream_Dashboard_AJAX {
                         }
                     }
                     $currently_linked_phase_ids_in_stream = array_unique($currently_linked_phase_ids_in_stream);
+                    oo_log('[EXTREME_DEBUG] Currently linked phase IDs in stream:', $currently_linked_phase_ids_in_stream);
 
                     $phases_to_add_link = array_diff($selected_phase_ids_for_linking, $currently_linked_phase_ids_in_stream);
+                    $phases_to_remove_link = array_diff($currently_linked_phase_ids_in_stream, $selected_phase_ids_for_linking);
+                    
+                    oo_log('[EXTREME_DEBUG] Phases to ADD link:', $phases_to_add_link);
+                    oo_log('[EXTREME_DEBUG] Phases to REMOVE link:', $phases_to_remove_link);
+                    
                     foreach ($phases_to_add_link as $phase_id_to_add) {
+                        oo_log('[EXTREME_DEBUG] Adding link for phase ID:', $phase_id_to_add);
                         OO_DB::add_phase_kpi_link(array(
                             'phase_id' => $phase_id_to_add,
                             'kpi_measure_id' => $kpi_measure_id,
@@ -201,13 +220,16 @@ class OO_Stream_Dashboard_AJAX {
                         ));
                     }
 
-                    $phases_to_remove_link = array_diff($currently_linked_phase_ids_in_stream, $selected_phase_ids_for_linking);
                     if (!empty($phases_to_remove_link)) {
+                        oo_log('[EXTREME_DEBUG] Processing removal of links...');
                         foreach ($existing_links_raw as $link) {
                             if ($link->kpi_measure_id == $kpi_measure_id && in_array($link->phase_id, $phases_to_remove_link)) {
+                                oo_log('[EXTREME_DEBUG] Removing link ID:', $link->link_id, 'for phase ID:', $link->phase_id);
                                 OO_DB::delete_phase_kpi_link($link->link_id);
                             }
                         }
+                    } else {
+                        oo_log('[EXTREME_DEBUG] No phases to remove links for.');
                     }
                 }
 
