@@ -370,6 +370,14 @@ jQuery(document).ready(function($) {
         formData.push({name: '_ajax_nonce', value: oo_data.nonce_edit_kpi_measure});
         formData.push({name: 'stream_id_context', value: oo_data.current_stream_id}); // Add stream context for phase linking
         
+        // Fix: Explicitly handle the is_active checkbox since serializeArray() doesn't include unchecked checkboxes
+        var isActiveChecked = $form.find('[name="is_active"]').prop('checked');
+        if (isActiveChecked) {
+            formData.push({name: 'is_active', value: '1'});
+        } else {
+            formData.push({name: 'is_active', value: '0'});
+        }
+        
         console.log('[EXTREME_DEBUG] ========== EDIT KPI FORM SUBMISSION ==========');
         console.log('[EXTREME_DEBUG] Raw form data (serializeArray):', formData);
         console.log('[EXTREME_DEBUG] Form HTML:', $form[0].outerHTML);

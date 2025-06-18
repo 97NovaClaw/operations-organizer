@@ -190,13 +190,15 @@ class OO_Stream_Dashboard_AJAX {
                 oo_log('[EXTREME_DEBUG] Selected Phase IDs for linking:', $selected_phase_ids_for_linking);
 
                 if ($kpi_measure_id > 0 && $stream_id_context > 0) {
-                    $existing_links_raw = OO_DB::get_phase_kpi_links_for_phase($stream_id_context, array('join_measures' => true, 'active_only' => null));
+                    // Fix: Get existing links by KPI measure, not by phase
+                    $existing_links_raw = OO_DB::get_phase_kpi_links_by_measure($kpi_measure_id, array('join_phases' => true));
                     oo_log('[EXTREME_DEBUG] Raw existing links from DB:', $existing_links_raw);
                     
                     $currently_linked_phase_ids_in_stream = array();
                     if (is_array($existing_links_raw)) {
                         foreach ($existing_links_raw as $link) {
-                            if ($link->kpi_measure_id == $kpi_measure_id) {
+                            // Only include phases that belong to the current stream
+                            if ($link->stream_id == $stream_id_context) {
                                 $currently_linked_phase_ids_in_stream[] = $link->phase_id;
                             }
                         }
@@ -223,7 +225,7 @@ class OO_Stream_Dashboard_AJAX {
                     if (!empty($phases_to_remove_link)) {
                         oo_log('[EXTREME_DEBUG] Processing removal of links...');
                         foreach ($existing_links_raw as $link) {
-                            if ($link->kpi_measure_id == $kpi_measure_id && in_array($link->phase_id, $phases_to_remove_link)) {
+                            if ($link->stream_id == $stream_id_context && in_array($link->phase_id, $phases_to_remove_link)) {
                                 oo_log('[EXTREME_DEBUG] Removing link ID:', $link->link_id, 'for phase ID:', $link->phase_id);
                                 OO_DB::delete_phase_kpi_link($link->link_id);
                             }
