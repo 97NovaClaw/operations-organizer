@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.0.41
+ * Version:           1.5.0.42
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.0.41' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.0.42' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -138,7 +138,7 @@ if ( is_admin() ) {
 
                 // Nonces for Stream Page Derived KPI Management
                 'nonce_add_derived_kpi' => wp_create_nonce('oo_add_derived_kpi_nonce'),
-                'nonce_edit_derived_kpi' => wp_create_nonce('oo_update_derived_kpi_nonce'),
+                'nonce_edit_derived_kpi' => wp_create_nonce('oo_edit_derived_kpi_nonce'),
                 'nonce_get_derived_kpi_details' => wp_create_nonce('oo_get_derived_kpi_details_stream_nonce'),
                 'nonce_toggle_derived_kpi_status' => wp_create_nonce('oo_toggle_derived_kpi_status_nonce'),
                 'nonce_delete_derived_kpi' => wp_create_nonce('oo_delete_derived_kpi_nonce'),
@@ -264,7 +264,7 @@ add_action('wp_ajax_oo_get_kpi_measures', array('OO_Phase', 'ajax_get_kpi_measur
 add_action('wp_ajax_oo_get_kpis_for_phase_form', array('OO_Phase', 'ajax_get_kpis_for_phase_form'));
 
 // AJAX for Derived KPI Definitions (NEW)
-add_action('wp_ajax_oo_get_derived_kpi_definition_details', array('OO_Admin_Pages', 'ajax_get_derived_kpi_definition_details'));
+        add_action('wp_ajax_oo_get_derived_kpi_definition_details', array('OO_Stream_Dashboard_AJAX', 'ajax_get_derived_kpi_definition_details'));
 // AJAX for getting current site time (NEW)
 add_action('wp_ajax_oo_get_current_site_time', array('OO_Admin_Pages', 'ajax_get_current_site_time'));
 // AJAX for deleting a phase (NEW)

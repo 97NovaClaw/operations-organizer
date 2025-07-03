@@ -50,13 +50,17 @@ class OO_Stream_Dashboard_AJAX {
 		$derived_kpi_actions = array(
 			'add_derived_kpi_definition',
 			'update_derived_kpi_definition',
+			'get_derived_kpi_definition_details',
 			'toggle_derived_kpi_status',
 			'delete_derived_kpi_definition',
 			'get_derived_kpis_for_stream_html',
 		);
 
 		foreach ( $derived_kpi_actions as $action ) {
-			add_action( 'wp_ajax_oo_' . $action, array( __CLASS__, 'ajax_' . $action ) );
+			$hook_name = 'wp_ajax_oo_' . $action;
+			$callback = array( __CLASS__, 'ajax_' . $action );
+			oo_log('[EXTREME_DEBUG] Registering Derived KPI AJAX hook: ' . $hook_name . ' -> ' . $callback[1]);
+			add_action( $hook_name, $callback );
 		}
 	}
 
@@ -508,6 +512,31 @@ class OO_Stream_Dashboard_AJAX {
             } else {
                 wp_send_json_error( array( 'message' => __( 'Could not update Derived KPI Definition. No changes made or an unexpected issue occurred.', 'operations-organizer' ) ) );
             }
+        }
+    }
+
+    /**
+     * AJAX handler for getting Derived KPI Definition details.
+     */
+    public static function ajax_get_derived_kpi_definition_details() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
+        check_ajax_referer( 'oo_get_derived_kpi_details_stream_nonce', '_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'You do not have permission to view derived KPI details.', 'operations-organizer' ) ) );
+        }
+
+        if ( empty( $_POST['derived_definition_id'] ) ) {
+            wp_send_json_error( array( 'message' => __( 'Derived KPI Definition ID is required.', 'operations-organizer' ) ) );
+        }
+
+        $derived_definition_id = intval( $_POST['derived_definition_id'] );
+        $definition = OO_Stream_Dashboard_DB::get_derived_kpi_definition( $derived_definition_id );
+
+        if ( $definition ) {
+            wp_send_json_success( array( 'definition' => $definition ) );
+        } else {
+            wp_send_json_error( array( 'message' => __( 'Derived KPI Definition not found.', 'operations-organizer' ) ) );
         }
     }
 

@@ -619,11 +619,11 @@ jQuery(document).ready(function($) {
         var $modal = $('#editDerivedKpiModal-stream-' + streamSlug);
         $modal.find('#editDerivedKpiNameDisplay-' + streamSlug).text('Loading...');
             
-        $.post(oo_data.ajax_url, {
+            $.post(oo_data.ajax_url, {
             action: 'oo_get_derived_kpi_definition_details',
             _ajax_nonce: oo_data.nonce_get_derived_kpi_details,
             derived_definition_id: derivedKpiId
-        }, function(response) {
+            }, function(response) {
             if (response.success) {
                 var dkpi = response.data.definition;
                 var primary_kpi = response.data.primary_kpi; // Expecting this from backend
@@ -704,7 +704,7 @@ jQuery(document).ready(function($) {
 
     // Handle "Delete Derived KPI" button clicks
     $(document).on('click', '.oo-delete-derived-kpi-stream', function(e) {
-        e.preventDefault();
+            e.preventDefault();
         if (!confirm('Are you sure you want to delete this Derived KPI?')) return;
 
         var derivedKpiId = $(this).data('derived-kpi-id');
@@ -731,7 +731,7 @@ jQuery(document).ready(function($) {
 
     // Handle "Toggle Derived KPI Status" button clicks
     $(document).on('click', '.oo-toggle-derived-kpi-status-stream', function() {
-        var $button = $(this);
+            var $button = $(this);
         var derivedKpiId = $button.data('derived-kpi-id');
         var newStatus = $button.data('new-status');
         $button.prop('disabled', true);

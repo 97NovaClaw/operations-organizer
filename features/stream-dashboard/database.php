@@ -198,4 +198,123 @@ class OO_Stream_Dashboard_DB {
 		global $wpdb;
 		return $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::$kpi_measures_table . " WHERE kpi_measure_id = %d", $kpi_measure_id));
 	}
+
+	/**
+	 * Get KPI measures for a specific stream.
+	 */
+	public static function get_kpi_measures_for_stream($stream_id, $args = array()) {
+		// Delegate to the main OO_DB class
+		return OO_DB::get_kpi_measures_for_stream($stream_id, $args);
+	}
+
+	/**
+	 * Get a single derived KPI definition by ID.
+	 */
+	public static function get_derived_kpi_definition($derived_definition_id) {
+		self::init();
+		global $wpdb;
+		$derived_definition_id = intval($derived_definition_id);
+		if ($derived_definition_id <= 0) return null;
+		return $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::$derived_kpi_definitions_table . " WHERE derived_definition_id = %d", $derived_definition_id));
+	}
+
+	/**
+	 * Add a new derived KPI definition.
+	 */
+	public static function add_derived_kpi_definition($data) {
+		self::init();
+		global $wpdb;
+		
+		$defaults = array(
+			'definition_name' => '',
+			'primary_kpi_measure_id' => 0,
+			'calculation_type' => 'rate_per_time',
+			'secondary_kpi_measure_id' => null,
+			'time_unit_for_rate' => null,
+			'output_description' => '',
+			'is_active' => 1
+		);
+		$data = wp_parse_args($data, $defaults);
+		
+		$result = $wpdb->insert(self::$derived_kpi_definitions_table, $data);
+		if ($result === false) {
+			return new WP_Error('db_insert_error', 'Could not add derived KPI definition: ' . $wpdb->last_error);
+		}
+		return $wpdb->insert_id;
+	}
+
+	/**
+	 * Update a derived KPI definition.
+	 */
+	public static function update_derived_kpi_definition($derived_definition_id, $data) {
+		self::init();
+		global $wpdb;
+		$derived_definition_id = intval($derived_definition_id);
+		if ($derived_definition_id <= 0) {
+			return new WP_Error('invalid_id', 'Invalid derived KPI definition ID');
+		}
+		
+		$result = $wpdb->update(
+			self::$derived_kpi_definitions_table,
+			$data,
+			array('derived_definition_id' => $derived_definition_id),
+			null,
+			array('%d')
+		);
+		
+		if ($result === false) {
+			return new WP_Error('db_update_error', 'Could not update derived KPI definition: ' . $wpdb->last_error);
+		}
+		return true;
+	}
+
+	/**
+	 * Delete a derived KPI definition.
+	 */
+	public static function delete_derived_kpi_definition($derived_definition_id) {
+		self::init();
+		global $wpdb;
+		$derived_definition_id = intval($derived_definition_id);
+		if ($derived_definition_id <= 0) {
+			return new WP_Error('invalid_id', 'Invalid derived KPI definition ID');
+		}
+		
+		$result = $wpdb->delete(
+			self::$derived_kpi_definitions_table,
+			array('derived_definition_id' => $derived_definition_id),
+			array('%d')
+		);
+		
+		if ($result === false) {
+			return new WP_Error('db_delete_error', 'Could not delete derived KPI definition: ' . $wpdb->last_error);
+		}
+		return true;
+	}
+
+	/**
+	 * Toggle derived KPI definition status.
+	 */
+	public static function toggle_derived_kpi_status($derived_definition_id, $new_status) {
+		self::init();
+		global $wpdb;
+		$derived_definition_id = intval($derived_definition_id);
+		$new_status = intval($new_status);
+		
+		if ($derived_definition_id <= 0) {
+			return new WP_Error('invalid_id', 'Invalid derived KPI definition ID');
+		}
+		
+		$result = $wpdb->update(
+			self::$derived_kpi_definitions_table,
+			array('is_active' => $new_status),
+			array('derived_definition_id' => $derived_definition_id),
+			array('%d'),
+			array('%d')
+		);
+		
+		if ($result === false) {
+			return new WP_Error('db_update_error', 'Could not toggle derived KPI status: ' . $wpdb->last_error);
+		}
+		return true;
+	}
 } 
