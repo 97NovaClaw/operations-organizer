@@ -267,6 +267,7 @@ jQuery(document).ready(function($) {
         formData.push({name: '_ajax_nonce', value: oo_data.nonce_add_kpi_measure});
         
         $.post(oo_data.ajax_url, $.param(formData), function(response) {
+            console.log('[EXTREME_DEBUG] AJAX Response received:', response);
             if (response.success) {
                 alert('KPI measure added successfully!');
                 $form[0].reset(); // Reset the form
@@ -796,5 +797,293 @@ jQuery(document).ready(function($) {
     $('.oo-modal .oo-modal-close, .oo-modal .oo-modal-cancel').on('click', function() {
         $(this).closest('.oo-modal').hide();
     });
+
+    // ========================================================================
+    // Detailed Job Logs DataTable Initialization (Missing from refactor)
+    // ========================================================================
+
+    // Initialize the detailed job logs table if the section exists
+    if ($('#stream-job-logs-section').length > 0 && $('#content-dashboard-table').length > 0) {
+        
+        var initialContentColumns = getInitialContentColumns_StreamPage();
+        var contentDashboardTable; 
+
+        var initialDefaultColumns = (oo_data.user_content_default_columns && Array.isArray(oo_data.user_content_default_columns)) ? 
+                                    oo_data.user_content_default_columns : [];
+        window.contentSelectedKpiObjects = JSON.parse(JSON.stringify(initialDefaultColumns)); 
+        var $saveDefaultButton = $('#save_content_columns_as_default');
+        var $defaultSavedMsg = $('#content_columns_default_saved_msg');
+
+        function checkColumnChangesAndToggleSaveButton() {
+            var currentSelectionJson = JSON.stringify(window.contentSelectedKpiObjects.map(o => ({type: o.type, key: o.key, id: o.id, original_value_string: o.original_value_string })).sort((a,b) => (a.key || a.id) > (b.key || b.id) ? 1 : -1));
+            var defaultSelectionJson = JSON.stringify(initialDefaultColumns.map(o => ({type: o.type, key: o.key, id: o.id, original_value_string: o.original_value_string })).sort((a,b) => (a.key || a.id) > (b.key || b.id) ? 1 : -1));
+            
+            if (currentSelectionJson !== defaultSelectionJson) {
+                $saveDefaultButton.show();
+            } else {
+                $saveDefaultButton.hide();
+            }
+            $defaultSavedMsg.hide(); 
+        }
+
+        function initializeContentDashboardTable_StreamPage(dynamicColumnObjects) { 
+            var columnsConfig = [].concat(initialContentColumns);
+            
+            if (dynamicColumnObjects && dynamicColumnObjects.length > 0) {
+                dynamicColumnObjects.forEach(function(kpi) {
+                    if (kpi.type === 'primary') {
+                        columnsConfig.push({
+                            data: 'kpi_' + kpi.key,
+                            title: kpi.name,
+                            defaultContent: 'N/A',
+                            orderable: true,
+                            searchable: true
+                        });
+                    } else if (kpi.type === 'derived') {
+                        columnsConfig.push({
+                            data: 'derived_metric_val_' + kpi.id, 
+                            title: kpi.name,
+                            defaultContent: 'N/A',
+                            orderable: true, 
+                            searchable: true 
+                        });
+                    } else if (kpi.type === 'raw_json') {
+                         columnsConfig.push({
+                            data: 'kpi_data',
+                            title: kpi.name,
+                            defaultContent: 'N/A',
+                            orderable: false, 
+                            searchable: true 
+                        });
+                    }
+                });
+            }
+            columnsConfig.push(getActionsColumnDefinition_StreamPage());
+
+            var $table = $('#content-dashboard-table');
+            $table.find('thead').empty(); 
+            $table.find('tbody').empty(); 
+
+            var $theadTr = $('<tr>');
+            columnsConfig.forEach(function(col) {
+                $theadTr.append($('<th>').text(col.title));
+            });
+            $table.find('thead').append($theadTr);
+
+            if ($.fn.DataTable.isDataTable('#content-dashboard-table')) {
+                contentDashboardTable.destroy();
+            }
+
+            contentDashboardTable = $table.DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: oo_data.ajax_url,
+                    type: 'POST',
+                    data: function(d) { 
+                        d.action = 'oo_get_dashboard_data';
+                        d.nonce = oo_data.nonce_dashboard; 
+                        d.filter_employee_id = $('#content_filter_employee_id').val();
+                        d.filter_job_number = $('#content_filter_job_number').val();
+                        d.filter_phase_id = $('#content_filter_phase_id').val();
+                        d.filter_date_from = $('#content_filter_date_from').val();
+                        d.filter_date_to = $('#content_filter_date_to').val();
+                        d.filter_status = $('#content_filter_status').val();
+                        d.filter_stream_id = streamId; // Use current stream ID
+                        d.selected_columns_config = window.contentSelectedKpiObjects || [];
+                        
+                        if (!d.order || d.order.length === 0) {
+                             d.order = [{ "column": getColumnIndexByData_StreamPage('start_time', columnsConfig), "dir": "desc" }];
+                        }
+                        console.log('Sending stream page job logs request data:', d);
+                        return d;
+                    },
+                    dataSrc: function(json) {
+                        console.log('Received stream page job logs response:', json);
+                        if (json && json.success === true && json.data && json.data.data) {
+                            return json.data.data;
+                        }
+                        return json.data || [];
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('Stream Page DataTables AJAX error:', error, thrown, xhr.responseText);
+                        alert('Error loading job log data for stream: ' + error);
+                    }
+                },
+                columns: columnsConfig, 
+                pageLength: 10,
+                language: {
+                    search: "Search Logs:",
+                    emptyTable: "No job logs found for this stream.",
+                    zeroRecords: "No matching job logs found",
+                    processing: "Loading logs..."
+                },
+                 drawCallback: function(settings) {
+                    var api = this.api();
+                    var pageInfo = api.page.info();
+                    var displayedRows = pageInfo.recordsDisplay;
+                    if (displayedRows === 0) {
+                        var columnCount = api.columns().header().length;
+                        $('#content-dashboard-table tbody').html(
+                            '<tr><td colspan="' + columnCount + '" class="dataTables_empty" style="padding: 20px; text-align: center;">' +
+                            'No job logs found matching your criteria.' +
+                            '</td></tr>'
+                        );
+                    }
+                },
+                initComplete: function(settings, json) {
+                    var api = this.api();
+                    var allDataOnInit = api.rows().data().toArray();
+                    if (allDataOnInit.length > 0 && api.rows( { page: 'current' } ).count() === 0) {
+                        setTimeout(function() { api.draw(false); }, 200);
+                    }
+                }
+            });
+        }
+
+        function getInitialContentColumns_StreamPage() {
+            return [
+                { data: "employee_name", title: "Employee Name" },
+                { data: "job_number", title: "Job No." },
+                { data: "phase_name", title: "Phase" },
+                { data: "start_time", title: "Start Time" },
+                { data: "end_time", title: "End Time" },
+                { data: "duration", title: "Duration" },
+                { 
+                    data: "status", title: "Status",
+                    render: function(data, type, row) {
+                        if (type === 'display' && data) return data;
+                        return data || '';
+                    }
+                },
+                { data: "notes", title: "Notes" }
+            ];
+        }
+
+        function getActionsColumnDefinition_StreamPage(){
+            return {
+                data: null, 
+                title: "Actions",
+                orderable: false,
+                searchable: false,
+                render: function (data, type, row) {
+                    if (!row || !row.log_id) return '<div class="row-actions"><span>Error: No log ID</span></div>';
+                    var actionButtons = '<div class="row-actions">';
+                    if (row.status && (row.status.toLowerCase().includes('running') || row.status.toLowerCase().includes('started'))) {
+                        actionButtons += '<span class="edit"><a href="' + 
+                            oo_data.admin_url + 'admin.php?page=oo_stop_job&log_id=' + row.log_id + '&return_tab=' + streamSlug + 
+                            '" class="oo-stop-job-action">Stop</a> | </span>';
+                    }
+                    actionButtons += '<span class="edit"><a href="#" class="oo-edit-log-action" data-log-id="' + 
+                        row.log_id + '">Edit</a> | </span>';
+                    actionButtons += '<span class="trash"><a href="#" class="oo-delete-log-action" data-log-id="' + 
+                        row.log_id + '">Delete</a></span>';
+                    actionButtons += '</div>';
+                    return actionButtons;
+                }
+            };
+        }
+        
+        function getColumnIndexByData_StreamPage(dataProperty, columnsArray) {
+            for (var i = 0; i < columnsArray.length; i++) {
+                if (columnsArray[i].data === dataProperty) return i;
+            }
+            return 0; 
+        }
+
+        function reinitializeContentDashboardTable_StreamPage(){
+            initializeContentDashboardTable_StreamPage(window.contentSelectedKpiObjects || []);
+            checkColumnChangesAndToggleSaveButton();
+        }
+        
+        // Initialize the table
+        reinitializeContentDashboardTable_StreamPage();
+
+        // Filter buttons
+        $('#content_apply_filters_button').on('click', function(e) { 
+            e.preventDefault(); 
+            contentDashboardTable.ajax.reload(); 
+        });
+        
+        $('#content_clear_filters_button').on('click', function(e) { 
+            e.preventDefault(); 
+            $('#content_filter_employee_id, #content_filter_job_number, #content_filter_phase_id, #content_filter_date_from, #content_filter_date_to, #content_filter_status').val(''); 
+            contentDashboardTable.ajax.reload(); 
+        });
+
+        // Initialize datepickers if available
+        if ($.fn.datepicker) {
+            $('#content_filter_date_from, #content_filter_date_to').datepicker({
+                dateFormat: 'yy-mm-dd',
+                changeMonth: true,
+                changeYear: true
+            });
+        }
+
+        // Edit log modal functionality
+        $(document).on('click', '.oo-edit-log-action', function(e) {
+            e.preventDefault();
+            var logId = $(this).data('log-id');
+            console.log('[DEBUG] Edit log clicked for log ID:', logId);
+            
+            // TODO: Implement edit log functionality
+            // This would need to load the log data and populate the edit modal
+            // For now, show a placeholder message
+            alert('Edit log functionality needs to be implemented. Log ID: ' + logId);
+        });
+
+        // Delete log modal functionality
+        $(document).on('click', '.oo-delete-log-action', function(e) {
+            e.preventDefault();
+            var logId = $(this).data('log-id');
+            
+            if (confirm('Are you sure you want to delete this job log?')) {
+                console.log('[DEBUG] Delete log clicked for log ID:', logId);
+                
+                // TODO: Implement delete log functionality
+                // For now, show a placeholder message
+                alert('Delete log functionality needs to be implemented. Log ID: ' + logId);
+            }
+        });
+
+        // Modal close functionality
+        $('.oo-modal-close, .oo-modal-cancel').on('click', function() { 
+            $('.oo-modal').css('display', 'none'); 
+        });
+        
+        $(window).on('click', function(event) { 
+            if ($(event.target).hasClass('oo-modal')) { 
+                $('.oo-modal').css('display', 'none'); 
+            } 
+        });
+
+        // Export functionality
+        $('#content_export_csv_button').on('click', function(e) {
+            e.preventDefault();
+            console.log('[DEBUG] Export CSV clicked');
+            
+            // TODO: Implement CSV export functionality
+            alert('CSV export functionality needs to be implemented.');
+        });
+
+        // KPI Column Selector functionality
+        $('#content_open_kpi_selector_modal').on('click', function(e) {
+            e.preventDefault();
+            console.log('[DEBUG] KPI Column Selector clicked');
+            
+            // TODO: Implement KPI column selector functionality
+            alert('KPI column selector functionality needs to be implemented.');
+        });
+
+        // Save default columns functionality
+        $saveDefaultButton.on('click', function(e) {
+            e.preventDefault();
+            console.log('[DEBUG] Save default columns clicked');
+            
+            // TODO: Implement save default columns functionality
+            alert('Save default columns functionality needs to be implemented.');
+        });
+
+    } // End if ($('#stream-job-logs-section').length)
 
 }); 
