@@ -534,7 +534,16 @@ class OO_Stream_Dashboard_AJAX {
         $definition = OO_Stream_Dashboard_DB::get_derived_kpi_definition( $derived_definition_id );
 
         if ( $definition ) {
-            wp_send_json_success( array( 'definition' => $definition ) );
+            // Also fetch the primary KPI details for the frontend
+            $primary_kpi = null;
+            if ( !empty( $definition->primary_kpi_measure_id ) ) {
+                $primary_kpi = OO_Stream_Dashboard_DB::get_kpi_measure( $definition->primary_kpi_measure_id );
+            }
+            
+            wp_send_json_success( array( 
+                'definition' => $definition,
+                'primary_kpi' => $primary_kpi
+            ) );
         } else {
             wp_send_json_error( array( 'message' => __( 'Derived KPI Definition not found.', 'operations-organizer' ) ) );
         }
