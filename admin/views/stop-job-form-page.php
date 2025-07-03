@@ -153,6 +153,26 @@ jQuery(document).ready(function($) {
     }
 
     // AJAX submission is in admin-scripts.js
+    
+    // Debug: Check if KPI loading is working
+    console.log('[STOP JOB DEBUG] Page loaded');
+    console.log('[STOP JOB DEBUG] phase_id_get from PHP:', phaseIdGet);
+    console.log('[STOP JOB DEBUG] Container exists:', $('#phase-kpi-fields-container-stop').length > 0);
+    console.log('[STOP JOB DEBUG] oo_form_data available:', typeof oo_form_data !== 'undefined');
+    if (typeof oo_form_data !== 'undefined') {
+        console.log('[STOP JOB DEBUG] oo_form_data.phase_id:', oo_form_data.phase_id);
+    }
+    
+    // Manual trigger for testing
+    setTimeout(function() {
+        console.log('[STOP JOB DEBUG] Checking KPI loading after 2 seconds...');
+        var containerContent = $('#phase-kpi-fields-container-stop').html();
+        console.log('[STOP JOB DEBUG] Container content:', containerContent);
+        
+        if (containerContent.includes('Loading KPI fields...')) {
+            console.log('[STOP JOB DEBUG] Still showing loading message - KPI loading may have failed');
+        }
+    }, 2000);
 });
 </script> 
 <?php
