@@ -199,13 +199,7 @@ class OO_Stream_Dashboard_DB {
 		return $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::$kpi_measures_table . " WHERE kpi_measure_id = %d", $kpi_measure_id));
 	}
 
-	/**
-	 * Get KPI measures for a specific stream.
-	 */
-	public static function get_kpi_measures_for_stream($stream_id, $args = array()) {
-		// Delegate to the main OO_DB class
-		return OO_DB::get_kpi_measures_for_stream($stream_id, $args);
-	}
+
 
 	/**
 	 * Get a single derived KPI definition by ID.
