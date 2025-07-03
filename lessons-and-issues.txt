@@ -239,6 +239,187 @@ ARCHITECTURAL LESSONS:
 - Verify AJAX functionality with browser developer tools
 - Check database operations with direct queries when needed
 
+OVERARCHING THEMES & META-LESSONS FOR FUTURE DEVELOPMENT:
+=========================================================
+
+After completing this extensive refactoring project, several high-level patterns and themes emerged that transcend the specific technical issues. These meta-lessons should guide future development work:
+
+## 1. THE "PORTING PATTERN" - A Systematic Approach to Refactoring
+
+**THE PATTERN:**
+When moving functionality from monolithic to modular architecture, we discovered a reliable 3-step process:
+1. **Identify the Source** - Find the working implementation in the old system
+2. **Map the Dependencies** - Trace all connections (AJAX handlers, nonces, database methods, JavaScript events)
+3. **Port Systematically** - Move each piece while maintaining the exact same interfaces
+
+**WHY THIS WORKS:**
+- Reduces the risk of breaking functionality during refactoring
+- Provides a clear checklist for completeness
+- Makes debugging easier by isolating what changed vs. what stayed the same
+
+**ANTI-PATTERN TO AVOID:**
+Trying to "improve" the code while refactoring. This leads to multiple variables changing simultaneously, making it impossible to isolate the source of bugs.
+
+## 2. THE "CHECKBOX SERIALIZATION TRAP" - A Recurring Issue
+
+**THE PATTERN:**
+We encountered the same checkbox handling bug THREE times:
+- KPI Measures activation checkbox
+- Derived KPI activation checkbox  
+- Phase "includes KPI" checkbox
+
+**THE ROOT CAUSE:**
+JavaScript's `serialize()` method doesn't include unchecked checkboxes, but backend PHP code often uses `isset()` to check for checkbox values. This creates a mismatch where:
+- Checked: Sends `field=1`, `isset()` returns `true` → Works
+- Unchecked: Sends nothing, `isset()` returns `false` → Works
+- BUT when you explicitly send `field=0`, `isset()` still returns `true` → Breaks
+
+**THE UNIVERSAL FIX:**
+```javascript
+// WRONG:
+var formData = $(this).serialize();
+
+// RIGHT:
+var formData = $(this).serializeArray();
+var isActiveChecked = $form.find('[name="is_active"]').prop('checked');
+formData.push({name: 'is_active', value: isActiveChecked ? '1' : '0'});
+```
+
+```php
+// WRONG:
+'is_active' => isset($_POST['is_active']) ? 1 : 0,
+
+// RIGHT:
+'is_active' => isset($_POST['is_active']) ? intval($_POST['is_active']) : 0,
+```
+
+**LESSON:** This is a systematic issue that will recur. Create a standard pattern and apply it consistently across all checkbox handling.
+
+## 3. THE "CONTEXT PROBLEM" - Why Modular Systems Need More Data
+
+**THE PATTERN:**
+Multiple bugs were caused by insufficient context being passed between frontend and backend:
+- KPI phase linking needed `stream_id_context`
+- Modal forms needed current stream information
+- AJAX handlers needed to know which stream they were operating on
+
+**THE ROOT CAUSE:**
+Monolithic systems have implicit context (everything operates on "the current page"). Modular systems lose this implicit context and must pass it explicitly.
+
+**THE SOLUTION PATTERN:**
+Always include contextual identifiers in AJAX requests:
+```javascript
+formData.push({name: 'stream_id_context', value: oo_data.current_stream_id});
+formData.push({name: 'return_to_stream', value: streamSlug});
+```
+
+**LESSON:** When modularizing, audit every interaction to ensure sufficient context is being passed.
+
+## 4. THE "NONCE NAMING CHAOS" - Consistency as a Debugging Tool
+
+**THE PATTERN:**
+Nonce mismatches were a recurring source of 403 errors. The issues were always subtle naming inconsistencies:
+- Frontend: `oo_data.nonce_edit_phase` vs Backend: `oo_edit_phase_nonce`
+- Frontend: `oo_data.nonces.add_phase` vs Backend: `oo_data.nonce_add_phase`
+
+**THE SOLUTION:**
+Establish and enforce a strict naming convention:
+- **Frontend:** Always `oo_data.nonce_{action}_{entity}`
+- **Backend:** Always `oo_{action}_{entity}_nonce`
+- **Creation:** Always `wp_create_nonce('oo_{action}_{entity}_nonce')`
+
+**LESSON:** Naming consistency isn't just aesthetics—it's a debugging tool. Inconsistent naming makes bugs harder to spot and fix.
+
+## 5. THE "AJAX LIFECYCLE TRAP" - Understanding WordPress Request Flow
+
+**THE PATTERN:**
+The most fundamental bug was AJAX handlers returning "0" because they weren't registered properly.
+
+**THE ROOT CAUSE:**
+Misunderstanding WordPress's request lifecycle:
+- Page rendering: Loads page-specific files
+- AJAX requests: Separate lifecycle, only loads globally registered handlers
+
+**THE SOLUTION:**
+AJAX handlers MUST be registered during WordPress initialization (`init` hook), not during page rendering.
+
+**LESSON:** Understand the framework's request lifecycle. Don't assume page-rendering logic applies to AJAX requests.
+
+## 6. THE "PROGRESSIVE DEBUGGING STRATEGY" - From Broad to Specific
+
+**THE EFFECTIVE PATTERN:**
+1. **Network Level:** Check if AJAX request reaches the server (200 vs 0 vs 403 vs 500)
+2. **Handler Level:** Verify the correct handler is being called (logging at function start)
+3. **Authentication Level:** Check nonce verification (logging nonce values)
+4. **Data Level:** Examine the data being processed (logging $_POST contents)
+5. **Database Level:** Verify database operations (logging query results)
+6. **Response Level:** Check what's being returned (logging response data)
+
+**WHY THIS WORKS:**
+- Isolates the problem to a specific layer
+- Prevents wasting time debugging the wrong component
+- Provides a systematic approach when multiple things could be wrong
+
+**LESSON:** Don't debug randomly. Follow the data flow systematically from frontend to backend.
+
+## 7. THE "FEATURE ISOLATION PRINCIPLE" - Modular Architecture Best Practices
+
+**THE PATTERN:**
+Successful modularization required clear boundaries:
+- Each feature has its own AJAX handlers
+- Each feature has its own database methods
+- Each feature has its own JavaScript files
+- BUT features share common infrastructure (nonces, base classes, utilities)
+
+**THE BALANCE:**
+- **Isolate:** Feature-specific logic
+- **Share:** Infrastructure and utilities
+- **Standardize:** Interfaces between modules
+
+**LESSON:** Modular architecture requires discipline about what gets shared vs. what stays isolated.
+
+## 8. THE "DEBUGGING INFRASTRUCTURE INVESTMENT" - Tools That Pay Off
+
+**WHAT WORKED:**
+- Extensive logging with searchable prefixes (`[EXTREME_DEBUG]`)
+- Frontend console logging for AJAX requests
+- Systematic error handling with meaningful messages
+- Version tracking for iterative debugging
+
+**THE PAYOFF:**
+Initial time investment in debugging infrastructure paid massive dividends when complex bugs arose.
+
+**LESSON:** Invest in debugging infrastructure early. The time spent setting up logging saves exponentially more time during debugging.
+
+## 9. THE "REFERENCE IMPLEMENTATION STRATEGY" - Keep the Old System Running
+
+**THE PATTERN:**
+Instead of replacing the old system immediately, we kept both systems running in parallel and used the old system as a reference implementation.
+
+**THE BENEFITS:**
+- Could compare behavior side-by-side
+- Had a working example to copy from
+- Could verify that refactored functionality matched original behavior
+
+**LESSON:** During refactoring, preserve the original implementation as long as possible. It's your best debugging tool.
+
+## 10. THE "INCREMENTAL COMPLEXITY PRINCIPLE" - One Variable at a Time
+
+**THE PATTERN:**
+Most successful debugging sessions involved changing only one thing at a time and testing immediately.
+
+**THE ANTI-PATTERN:**
+Making multiple changes simultaneously and then trying to figure out which change fixed or broke something.
+
+**THE DISCIPLINE:**
+- Change one thing
+- Test immediately  
+- Commit if it works
+- Revert if it breaks
+- Repeat
+
+**LESSON:** Resist the urge to fix multiple things at once. Incremental progress is faster than debugging complex interactions.
+
 FUTURE RECOMMENDATIONS:
 ======================
 
@@ -259,6 +440,11 @@ VERSION HISTORY:
 - v1.5.0.31: Fixed Phase Log Actions filtering
 - v1.5.0.39: Fixed KPI edit modal phase linking and activation bugs.
 - v1.5.0.40: Corrected DB query logic for optional JOINs to prevent SQL errors.
+- v1.5.0.41: Ported Derived KPI modal functionality to stream dashboard
+- v1.5.0.42: Fixed Derived KPI AJAX handler registration and database method issues
+- v1.5.0.43: Resolved fatal error from duplicate method declarations
+- v1.5.0.44: Fixed Edit Derived KPI modal data population
+- v1.5.0.45: Resolved Derived KPI checkbox activation issue
 
 FINAL STATUS:
 ============
@@ -268,5 +454,14 @@ FINAL STATUS:
 ✅ Toggle Phase Status: Working
 ✅ Drag-and-drop Reordering: Working
 ✅ Phase Log Actions: Working (inactive phases filtered out)
+✅ Add KPI Measure: Working
+✅ Edit KPI Measure: Working (including phase linking and activation)
+✅ Delete KPI Measure: Working
+✅ Toggle KPI Status: Working
+✅ Add Derived KPI: Working
+✅ Edit Derived KPI: Working (including checkbox activation)
+✅ Delete Derived KPI: Working
+✅ Toggle Derived KPI Status: Working
 
-All phase management functionality has been successfully restored and improved. 
+All phase management, KPI management, and derived KPI functionality has been successfully 
+restored and improved. The modular architecture is now stable and follows established patterns. 
