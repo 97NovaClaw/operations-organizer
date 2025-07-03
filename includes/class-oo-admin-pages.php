@@ -535,6 +535,10 @@ class OO_Admin_Pages { // Renamed class
         $meta_key = '';
         if ($context === 'content_stream_table') {
             $meta_key = 'oo_content_stream_table_default_columns';
+        } elseif (strpos($context, 'stream_dashboard_') === 0) {
+            // Extract stream slug from context like 'stream_dashboard_content'
+            $stream_slug = str_replace('stream_dashboard_', '', $context);
+            $meta_key = 'oo_stream_dashboard_columns_' . sanitize_key($stream_slug);
         } // Add other contexts here
 
         if (empty($meta_key)) {

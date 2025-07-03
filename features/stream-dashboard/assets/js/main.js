@@ -1258,8 +1258,8 @@ jQuery(document).ready(function($) {
             $.post(oo_data.ajax_url, {
                 action: 'oo_save_user_column_preference',
                 _ajax_nonce: oo_data.nonce_save_column_prefs,
-                meta_key: streamColumnMetaKey,
-                columns: window.contentSelectedKpiObjects
+                context: 'stream_dashboard_' + streamSlug,
+                columns_config: JSON.stringify(window.contentSelectedKpiObjects)
             }, function(response) {
                 if (response.success) {
                     $defaultSavedMsg.fadeIn().delay(2000).fadeOut();
