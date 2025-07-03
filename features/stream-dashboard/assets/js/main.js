@@ -456,6 +456,43 @@ jQuery(document).ready(function($) {
     });
 
     // ========================================================================
+    // Quick Phase Actions (Start/Stop Job) Logic
+    // ========================================================================
+
+    // Handle Start/Stop Job button clicks
+    $(document).on('click', '.oo-start-link-btn, .oo-stop-link-btn', function(e) {
+        e.preventDefault();
+        var $button = $(this);
+        var $row = $button.closest('.oo-phase-action-row');
+        var jobNumber = $row.find('.oo-job-number-input').val().trim();
+        var phaseId = $button.data('phase-id');
+        var isAdminUrl = oo_data.admin_url;
+        var returnTabSlug = oo_data.current_stream_tab_slug;
+
+        // Validation
+        if (!jobNumber) {
+            alert('Please enter a Job Number first.');
+            $row.find('.oo-job-number-input').focus();
+            return;
+        }
+
+        if (!phaseId) {
+            alert('Error: Phase ID not found.');
+            return;
+        }
+
+        // Determine which page to redirect to
+        var actionPage = $button.hasClass('oo-start-link-btn') ? 'oo_start_job' : 'oo_stop_job';
+        var url = isAdminUrl + 'admin.php?page=' + actionPage + 
+                  '&job_number=' + encodeURIComponent(jobNumber) + 
+                  '&phase_id=' + encodeURIComponent(phaseId) + 
+                  '&return_tab=' + encodeURIComponent(returnTabSlug);
+        
+        console.log('[DEBUG] Redirecting to:', url);
+        window.location.href = url;
+    });
+
+    // ========================================================================
     // Derived KPI Management Logic (Fixed with correct nonces)
     // ========================================================================
 
