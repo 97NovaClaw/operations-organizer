@@ -1064,11 +1064,11 @@ jQuery(document).ready(function($) {
             $.post(oo_data.ajax_url, {
                 action: 'oo_get_job_log_details',
                 log_id: logId,
-                _ajax_nonce: oo_data.nonce_get_log_details
+                nonce: oo_data.nonce_edit_log
             }, function(response) {
                 if (response.success && response.data) {
-                    var log = response.data.log;
-                    var kpiData = response.data.kpi_data || {};
+                    var log = response.data;
+                    var kpiData = response.data.recorded_kpis_array || {};
                     
                     // Populate form fields
                     $('#edit_log_id').val(log.log_id);
@@ -1091,7 +1091,7 @@ jQuery(document).ready(function($) {
                     }
                     
                     // Load KPI fields for this phase
-                    loadKpiFieldsForEditLog(log.phase_id, kpiData);
+                    loadKpiFieldsForEditLogFromDefinitions(log.phase_kpi_definitions || [], kpiData);
                     
                     // Set appropriate button visibility
                     updateEditLogButtons(log.status);
@@ -1138,33 +1138,24 @@ jQuery(document).ready(function($) {
             }
         }
         
-        function loadKpiFieldsForEditLog(phaseId, existingKpiData) {
+        function loadKpiFieldsForEditLogFromDefinitions(kpiDefinitions, existingKpiData) {
             var $container = $('#edit-log-dynamic-kpi-fields');
-            $container.html('<p>Loading KPI fields...</p>');
+            $container.empty();
             
-            $.post(oo_data.ajax_url, {
-                action: 'oo_get_phase_kpi_links',
-                phase_id: phaseId,
-                _ajax_nonce: oo_data.nonce_get_phase_kpi_links
-            }, function(response) {
-                $container.empty();
-                if (response.success && response.data && response.data.length > 0) {
-                    $.each(response.data, function(index, kpi) {
-                        var fieldValue = existingKpiData[kpi.measure_key] || '';
-                        var fieldHtml = createKpiField(kpi, fieldValue, 'edit');
-                        $container.append(fieldHtml);
-                    });
-                } else {
-                    $container.html('<p>No KPI fields configured for this phase.</p>');
-                }
-            }).fail(function() {
-                $container.html('<p style="color:red;">Failed to load KPI fields.</p>');
-            });
+            if (kpiDefinitions && kpiDefinitions.length > 0) {
+                $.each(kpiDefinitions, function(index, kpi) {
+                    var fieldValue = existingKpiData[kpi.measure_key] || '';
+                    var fieldHtml = createKpiField(kpi, fieldValue, 'edit');
+                    $container.append(fieldHtml);
+                });
+            } else {
+                $container.html('<p>No KPI fields configured for this phase.</p>');
+            }
         }
         
         function createKpiField(kpi, value, prefix) {
             var inputId = prefix + '_kpi_' + kpi.measure_key;
-            var inputName = 'kpi_values[' + kpi.measure_key + ']';
+            var inputName = 'edit_kpi_values[' + kpi.measure_key + ']';
             var labelText = kpi.measure_name + (kpi.is_mandatory == 1 ? ' <span style="color:red;">*</span>' : '');
             var requiredAttr = kpi.is_mandatory == 1 ? 'required' : '';
             
