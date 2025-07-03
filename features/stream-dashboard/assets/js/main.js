@@ -808,17 +808,45 @@ jQuery(document).ready(function($) {
         var initialContentColumns = getInitialContentColumns_StreamPage();
         var contentDashboardTable; 
 
-        var initialDefaultColumns = (oo_data.user_content_default_columns && Array.isArray(oo_data.user_content_default_columns)) ? 
-                                    oo_data.user_content_default_columns : [];
-        window.contentSelectedKpiObjects = JSON.parse(JSON.stringify(initialDefaultColumns)); 
+        // Initialize column preferences system
+        var streamColumnMetaKey = 'oo_stream_dashboard_columns_' + streamSlug;
+        var initialDefaultColumns = (oo_data.user_stream_default_columns && Array.isArray(oo_data.user_stream_default_columns)) ? 
+                                    oo_data.user_stream_default_columns : [];
+
+        function getFactoryDefaultColumns() {
+            return getInitialContentColumns_StreamPage().map(function(col) {
+                return { type: 'standard', key: col.data, name: col.title };
+            });
+        }
+
+        if (!initialDefaultColumns || initialDefaultColumns.length === 0) {
+            window.contentSelectedKpiObjects = getFactoryDefaultColumns();
+            initialDefaultColumns = getFactoryDefaultColumns(); // The baseline for comparison is now the factory default
+        } else {
+            window.contentSelectedKpiObjects = JSON.parse(JSON.stringify(initialDefaultColumns));
+        }
+
         var $saveDefaultButton = $('#save_content_columns_as_default');
         var $defaultSavedMsg = $('#content_columns_default_saved_msg');
 
         function checkColumnChangesAndToggleSaveButton() {
-            var currentSelectionJson = JSON.stringify(window.contentSelectedKpiObjects.map(o => ({type: o.type, key: o.key, id: o.id, original_value_string: o.original_value_string })).sort((a,b) => (a.key || a.id) > (b.key || b.id) ? 1 : -1));
-            var defaultSelectionJson = JSON.stringify(initialDefaultColumns.map(o => ({type: o.type, key: o.key, id: o.id, original_value_string: o.original_value_string })).sort((a,b) => (a.key || a.id) > (b.key || b.id) ? 1 : -1));
+            const normalize = function(arr) {
+                return JSON.stringify(
+                    arr.map(function(o) {
+                        return {
+                            t: o.type, // t for type
+                            v: o.type === 'derived' ? o.id.toString() : o.key // v for value/key/id
+                        };
+                    }).sort(function(a, b) {
+                        return a.v.localeCompare(b.v);
+                    })
+                );
+            };
+
+            var currentSelectionNormalized = normalize(window.contentSelectedKpiObjects);
+            var defaultSelectionNormalized = normalize(initialDefaultColumns);
             
-            if (currentSelectionJson !== defaultSelectionJson) {
+            if (currentSelectionNormalized !== defaultSelectionNormalized) {
                 $saveDefaultButton.show();
             } else {
                 $saveDefaultButton.hide();
@@ -1067,12 +1095,154 @@ jQuery(document).ready(function($) {
         });
 
         // KPI Column Selector functionality
+        var $modal = $('#kpi-column-selector-modal-stream-' + streamSlug);
+        var $listContainer = $('#kpi-column-list-stream-' + streamSlug);
+
+        function populateKpiColumnSelectorModal() {
+            $listContainer.html('<p>Loading columns...</p>');
+
+            $.when(
+                $.post(oo_data.ajax_url, { 
+                    action: 'oo_get_json_kpi_measures_for_stream', 
+                    stream_id: streamId,
+                    _ajax_nonce: oo_data.nonce_get_kpi_measures
+                }),
+                $.post(oo_data.ajax_url, { 
+                    action: 'oo_get_json_derived_kpi_definitions',
+                    stream_id: streamId,
+                    _ajax_nonce: oo_data.nonce_get_derived_kpis
+                })
+            ).done(function(primaryKpisResponse, derivedKpisResponse) {
+                var streamPrimaryKpis = (primaryKpisResponse[0] && primaryKpisResponse[0].success) ? primaryKpisResponse[0].data.kpis : [];
+                var streamDerivedKpis = (derivedKpisResponse[0] && derivedKpisResponse[0].success) ? derivedKpisResponse[0].data.definitions : [];
+                
+                console.log('[DEBUG] Primary KPIs:', streamPrimaryKpis);
+                console.log('[DEBUG] Derived KPIs:', streamDerivedKpis);
+                
+                var kpiHierarchy = {};
+                streamPrimaryKpis.forEach(function(p_kpi) {
+                    kpiHierarchy[p_kpi.kpi_measure_id] = {
+                        primary: p_kpi,
+                        derived: []
+                    };
+                });
+                streamDerivedKpis.forEach(function(d_kpi) {
+                    if (kpiHierarchy[d_kpi.primary_kpi_measure_id]) {
+                        kpiHierarchy[d_kpi.primary_kpi_measure_id].derived.push(d_kpi);
+                    }
+                });
+
+                $listContainer.empty();
+                var columnsHtml = '<h4>Standard Columns</h4>';
+                
+                var standardColumns = getInitialContentColumns_StreamPage();
+                standardColumns.forEach(function(col) {
+                    var isChecked = window.contentSelectedKpiObjects.some(function(selCol) {
+                        return selCol.key === col.data && selCol.type === 'standard';
+                    });
+                    columnsHtml += '<div><label><input type="checkbox" name="kpi_column_select_stream" value="' + col.data + '" data-col-name="' + col.title + '" data-col-type="standard" ' + (isChecked ? 'checked' : '') + '> ' + col.title + '</label></div>';
+                });
+
+                if (Object.keys(kpiHierarchy).length > 0) {
+                    columnsHtml += '<h4 style="margin-top:15px;">KPI Columns (Stream Relevant)</h4>';
+                    for (var kpiId in kpiHierarchy) {
+                        if (kpiHierarchy.hasOwnProperty(kpiId)) {
+                            var item = kpiHierarchy[kpiId];
+                            var p_kpi = item.primary;
+                            var isPChecked = window.contentSelectedKpiObjects.some(function(selCol) {
+                                return selCol.key === p_kpi.measure_key && selCol.type === 'primary';
+                            });
+                            columnsHtml += '<div style="font-weight: bold;"><label><input type="checkbox" name="kpi_column_select_stream" value="' + p_kpi.measure_key + '" data-kpi-id="' + p_kpi.kpi_measure_id + '" data-col-name="' + p_kpi.measure_name + '" data-col-type="primary" ' + (isPChecked ? 'checked' : '') + '> ' + p_kpi.measure_name + ' (<code>' + p_kpi.measure_key + '</code>)</label></div>';
+
+                            if (item.derived.length > 0) {
+                                item.derived.forEach(function(d_kpi) {
+                                    var isDChecked = window.contentSelectedKpiObjects.some(function(selCol) {
+                                        return selCol.id === d_kpi.derived_definition_id.toString() && selCol.type === 'derived';
+                                    });
+                                    columnsHtml += '<div style="margin-left: 25px;"><label><input type="checkbox" name="kpi_column_select_stream" value="' + d_kpi.derived_definition_id + '" data-col-name="' + d_kpi.definition_name + '" data-col-type="derived" ' + (isDChecked ? 'checked' : '') + '> ' + d_kpi.definition_name + '</label></div>';
+                                });
+                            }
+                        }
+                    }
+                }
+
+                var rawJsonChecked = window.contentSelectedKpiObjects.some(function(selCol) {
+                    return selCol.key === 'kpi_data_raw' && selCol.type === 'raw_json';
+                });
+                columnsHtml += '<h4 style="margin-top: 15px;">Advanced</h4>';
+                columnsHtml += '<div><label><input type="checkbox" name="kpi_column_select_stream" value="kpi_data_raw" data-col-name="Raw KPI Data (JSON)" data-col-type="raw_json" ' + (rawJsonChecked ? 'checked' : '') + '> Raw KPI Data (JSON)</label></div>';
+
+                $listContainer.html(columnsHtml);
+                $listContainer.css('padding-bottom', '20px');
+                updateSelectedKpiCount();
+            }).fail(function(jqXHR, textStatus, errorThrown) {
+                console.error("Error loading KPI/column data for modal:", textStatus, errorThrown, jqXHR.responseText);
+                $listContainer.html('<p style="color:red;">Error loading column options. Check console and ensure AJAX handlers exist and return JSON.</p>');
+            });
+        }
+
+        function updateSelectedKpiCount() {
+            var count = $listContainer.find('input[name="kpi_column_select_stream"]:checked').length;
+            $('#content_selected_kpi_count').text(count + ' columns selected');
+        }
+
+        // Open Modal
         $('#content_open_kpi_selector_modal').on('click', function(e) {
             e.preventDefault();
             console.log('[DEBUG] KPI Column Selector clicked');
-            
-            // TODO: Implement KPI column selector functionality
-            alert('KPI column selector functionality needs to be implemented.');
+            populateKpiColumnSelectorModal();
+            $modal.show();
+        });
+
+        // Apply selected columns
+        $('#apply_selected_kpi_columns_stream_' + streamSlug).on('click', function() {
+            window.contentSelectedKpiObjects = []; 
+            $listContainer.find('input[name="kpi_column_select_stream"]:checked').each(function() {
+                var $cb = $(this);
+                var colType = $cb.data('col-type');
+                var val = $cb.val();
+                var name = $cb.data('col-name');
+                var kpiId = $cb.data('kpi-id');
+                
+                if (colType === 'standard') {
+                    window.contentSelectedKpiObjects.push({ type: 'standard', key: val, name: name });
+                } else if (colType === 'primary') {
+                    window.contentSelectedKpiObjects.push({ type: 'primary', key: val, id: kpiId, name: name });
+                } else if (colType === 'derived') {
+                    window.contentSelectedKpiObjects.push({ type: 'derived', id: val, name: name });
+                } else if (colType === 'raw_json') {
+                    window.contentSelectedKpiObjects.push({ type: 'raw_json', key: 'kpi_data_raw', name: name});
+                }
+            });
+            $modal.hide();
+            reinitializeContentDashboardTable_StreamPage();
+            checkColumnChangesAndToggleSaveButton();
+        });
+
+        // Select/Deselect All
+        $('#kpi_selector_select_all_stream_' + streamSlug).on('click', function() {
+            $listContainer.find('input[type="checkbox"]').prop('checked', true).trigger('change');
+        });
+        
+        $('#kpi_selector_deselect_all_stream_' + streamSlug).on('click', function() {
+            $listContainer.find('input[type="checkbox"]').prop('checked', false).trigger('change');
+        });
+
+        // Update count on change
+        $listContainer.on('change', 'input[type="checkbox"]', function() {
+            updateSelectedKpiCount();
+        });
+
+        // Close Modal via X button
+        $modal.on('click', '.oo-modal-close', function() {
+            $modal.hide();
+        });
+
+        // Close Modal by clicking on the backdrop
+        $(window).on('click', function(event) {
+            if ($(event.target).is($modal)) {
+                $modal.hide();
+            }
         });
 
         // Save default columns functionality
@@ -1080,8 +1250,30 @@ jQuery(document).ready(function($) {
             e.preventDefault();
             console.log('[DEBUG] Save default columns clicked');
             
-            // TODO: Implement save default columns functionality
-            alert('Save default columns functionality needs to be implemented.');
+            var $button = $(this);
+            $button.prop('disabled', true).text('Saving...');
+
+            var streamColumnMetaKey = 'oo_stream_dashboard_columns_' + streamSlug;
+
+            $.post(oo_data.ajax_url, {
+                action: 'oo_save_user_column_preference',
+                _ajax_nonce: oo_data.nonce_save_column_prefs,
+                meta_key: streamColumnMetaKey,
+                columns: window.contentSelectedKpiObjects
+            }, function(response) {
+                if (response.success) {
+                    $defaultSavedMsg.fadeIn().delay(2000).fadeOut();
+                    $button.hide(); // Hide after successful save
+                    // Update the initial default columns for future comparison
+                    initialDefaultColumns = JSON.parse(JSON.stringify(window.contentSelectedKpiObjects));
+                } else {
+                    alert('Error saving column preferences: ' + (response.data.message || 'Could not save preference.'));
+                }
+            }).fail(function() {
+                alert('Request to save column preferences failed.');
+            }).always(function() {
+                $button.prop('disabled', false).text('Save as Default');
+            });
         });
 
     } // End if ($('#stream-job-logs-section').length)

@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.0.48
+ * Version:           1.5.0.49
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.0.48' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.0.49' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -147,6 +147,9 @@ if ( is_admin() ) {
                 // Column Preferences Nonce
                 'nonce_save_user_meta' => wp_create_nonce('oo_save_user_meta_nonce'),
                 'nonce_get_user_meta' => wp_create_nonce('oo_get_user_meta_nonce'),
+                
+                // KPI Column Selector Nonces
+                'nonce_get_derived_kpis' => wp_create_nonce('oo_get_derived_kpis_nonce'),
 
                 'text_please_select_employee' => __('Please select an employee.', 'operations-organizer'),
                 'text_please_enter_emp_no' => __('Please enter an employee number.', 'operations-organizer'),
@@ -295,6 +298,10 @@ add_action('wp_ajax_oo_add_derived_kpi_definition', array('OO_Stream_Dashboard_A
 add_action('wp_ajax_oo_update_derived_kpi_definition', array('OO_Stream_Dashboard_AJAX', 'ajax_update_derived_kpi_definition'));
 add_action('wp_ajax_oo_toggle_derived_kpi_status', array('OO_Stream_Dashboard_AJAX', 'ajax_toggle_derived_kpi_status'));
 add_action('wp_ajax_oo_delete_derived_kpi_definition', array('OO_Stream_Dashboard_AJAX', 'ajax_delete_derived_kpi_definition'));
+
+// Register JSON data AJAX handlers for KPI Column Selector
+add_action('wp_ajax_oo_get_json_kpi_measures_for_stream', array('OO_Stream_Dashboard_AJAX', 'ajax_get_json_kpi_measures_for_stream'));
+add_action('wp_ajax_oo_get_json_derived_kpi_definitions', array('OO_Stream_Dashboard_AJAX', 'ajax_get_json_derived_kpi_definitions'));
 
 /**
  * Initialize hardcoded streams in the database.
