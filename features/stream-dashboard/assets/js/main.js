@@ -1054,11 +1054,145 @@ jQuery(document).ready(function($) {
             var logId = $(this).data('log-id');
             console.log('[DEBUG] Edit log clicked for log ID:', logId);
             
-            // TODO: Implement edit log functionality
-            // This would need to load the log data and populate the edit modal
-            // For now, show a placeholder message
-            alert('Edit log functionality needs to be implemented. Log ID: ' + logId);
+            // Reset the form and show loading state
+            $('#edit-log-form')[0].reset();
+            $('#edit-log-modal').show();
+            $('#edit-log-dynamic-kpi-fields').html('<p>Loading KPI fields...</p>');
+            resetButtonStates();
+            
+            // Fetch log details via AJAX
+            $.post(oo_data.ajax_url, {
+                action: 'oo_get_job_log_details',
+                log_id: logId,
+                _ajax_nonce: oo_data.nonce_get_log_details
+            }, function(response) {
+                if (response.success && response.data) {
+                    var log = response.data.log;
+                    var kpiData = response.data.kpi_data || {};
+                    
+                    // Populate form fields
+                    $('#edit_log_id').val(log.log_id);
+                    $('#edit_log_employee_id').val(log.employee_id);
+                    $('#edit_log_job_id').val(log.job_id);
+                    $('#edit_log_phase_id').val(log.phase_id);
+                    $('#edit_log_status').val(log.status);
+                    $('#edit_log_job_number').val(log.job_number);
+                    $('#edit_log_notes').val(log.notes || '');
+                    
+                    // Format and set datetime fields
+                    if (log.start_time) {
+                        var startTime = new Date(log.start_time + 'Z'); // Assume UTC
+                        $('#edit_log_start_time_editable').val(formatDateTimeLocal(startTime));
+                    }
+                    
+                    if (log.end_time) {
+                        var endTime = new Date(log.end_time + 'Z'); // Assume UTC
+                        $('#edit_log_end_time').val(formatDateTimeLocal(endTime));
+                    }
+                    
+                    // Load KPI fields for this phase
+                    loadKpiFieldsForEditLog(log.phase_id, kpiData);
+                    
+                    // Set appropriate button visibility
+                    updateEditLogButtons(log.status);
+                    
+                } else {
+                    alert('Error loading log details: ' + (response.data.message || 'Unknown error'));
+                    $('#edit-log-modal').hide();
+                }
+            }).fail(function() {
+                alert('Failed to load log details. Please try again.');
+                $('#edit-log-modal').hide();
+            });
         });
+
+        // Supporting functions for edit log modal
+        function formatDateTimeLocal(date) {
+            var year = date.getFullYear();
+            var month = padNumber(date.getMonth() + 1);
+            var day = padNumber(date.getDate());
+            var hours = padNumber(date.getHours());
+            var minutes = padNumber(date.getMinutes());
+            return year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
+        }
+        
+        function padNumber(num) {
+            return num.toString().padStart(2, '0');
+        }
+        
+        function resetButtonStates() {
+            $('#save_as_running, #save_as_completed, #save_changes').hide();
+            $('#job_number_warning').hide();
+            $('#edit_log_job_number').prop('readonly', true);
+            $('#enable_job_number_edit').prop('checked', false);
+        }
+        
+        function updateEditLogButtons(status) {
+            resetButtonStates();
+            if (status && (status.toLowerCase().includes('running') || status.toLowerCase().includes('started'))) {
+                $('#save_as_running, #save_as_completed').show();
+                $('#edit_log_end_time_description').show();
+            } else {
+                $('#save_changes').show();
+                $('#edit_log_end_time_description').hide();
+            }
+        }
+        
+        function loadKpiFieldsForEditLog(phaseId, existingKpiData) {
+            var $container = $('#edit-log-dynamic-kpi-fields');
+            $container.html('<p>Loading KPI fields...</p>');
+            
+            $.post(oo_data.ajax_url, {
+                action: 'oo_get_phase_kpi_links',
+                phase_id: phaseId,
+                _ajax_nonce: oo_data.nonce_get_phase_kpi_links
+            }, function(response) {
+                $container.empty();
+                if (response.success && response.data && response.data.length > 0) {
+                    $.each(response.data, function(index, kpi) {
+                        var fieldValue = existingKpiData[kpi.measure_key] || '';
+                        var fieldHtml = createKpiField(kpi, fieldValue, 'edit');
+                        $container.append(fieldHtml);
+                    });
+                } else {
+                    $container.html('<p>No KPI fields configured for this phase.</p>');
+                }
+            }).fail(function() {
+                $container.html('<p style="color:red;">Failed to load KPI fields.</p>');
+            });
+        }
+        
+        function createKpiField(kpi, value, prefix) {
+            var inputId = prefix + '_kpi_' + kpi.measure_key;
+            var inputName = 'kpi_values[' + kpi.measure_key + ']';
+            var labelText = kpi.measure_name + (kpi.is_mandatory == 1 ? ' <span style="color:red;">*</span>' : '');
+            var requiredAttr = kpi.is_mandatory == 1 ? 'required' : '';
+            
+            var fieldWrapper = $('<div class="oo-kpi-field-wrapper" style="margin-bottom: 10px;"></div>');
+            var label = $('<label for="' + inputId + '" style="display:block; font-weight:bold; margin-bottom:3px;">' + labelText + '</label>');
+            var inputElement;
+            
+            switch (kpi.unit_type) {
+                case 'integer':
+                    inputElement = $('<input type="number" id="' + inputId + '" name="' + inputName + '" value="' + value + '" ' + requiredAttr + ' step="1" class="regular-text" />');
+                    break;
+                case 'decimal':
+                    inputElement = $('<input type="number" id="' + inputId + '" name="' + inputName + '" value="' + value + '" ' + requiredAttr + ' step="0.01" class="regular-text" />');
+                    break;
+                case 'text':
+                    inputElement = $('<textarea id="' + inputId + '" name="' + inputName + '" ' + requiredAttr + ' rows="2" class="widefat">' + value + '</textarea>');
+                    break;
+                case 'boolean':
+                    var isChecked = (value == '1' || value === true) ? 'checked' : '';
+                    inputElement = $('<input type="checkbox" id="' + inputId + '" name="' + inputName + '" value="1" ' + isChecked + ' style="margin-top: 5px;"/>');
+                    break;
+                default:
+                    inputElement = $('<input type="text" id="' + inputId + '" name="' + inputName + '" value="' + value + '" ' + requiredAttr + ' class="regular-text" />');
+            }
+            
+            fieldWrapper.append(label).append(inputElement);
+            return fieldWrapper;
+        }
 
         // Delete log modal functionality
         $(document).on('click', '.oo-delete-log-action', function(e) {
@@ -1068,10 +1202,91 @@ jQuery(document).ready(function($) {
             if (confirm('Are you sure you want to delete this job log?')) {
                 console.log('[DEBUG] Delete log clicked for log ID:', logId);
                 
-                // TODO: Implement delete log functionality
-                // For now, show a placeholder message
-                alert('Delete log functionality needs to be implemented. Log ID: ' + logId);
+                $('#delete_log_id').val(logId);
+                $('#delete-log-modal').show();
             }
+        });
+
+        // Edit log form event handlers
+        $('#set_start_time_now').on('click', function() {
+            var now = new Date();
+            $('#edit_log_start_time_editable').val(formatDateTimeLocal(now));
+        });
+        
+        $('#set_end_time_now').on('click', function() {
+            var now = new Date();
+            $('#edit_log_end_time').val(formatDateTimeLocal(now));
+        });
+        
+        $('#enable_job_number_edit').on('change', function() {
+            var isChecked = $(this).is(':checked');
+            $('#edit_log_job_number').prop('readonly', !isChecked);
+            $('#job_number_warning').toggle(isChecked);
+        });
+        
+        // Edit log form submission
+        $('#edit-log-form').on('submit', function(e) {
+            e.preventDefault();
+            submitEditLogForm();
+        });
+        
+        $('#save_as_running, #save_as_completed, #save_changes').on('click', function(e) {
+            e.preventDefault();
+            var action = $(this).attr('id');
+            
+            // Set end time based on action
+            if (action === 'save_as_completed') {
+                var now = new Date();
+                $('#edit_log_end_time').val(formatDateTimeLocal(now));
+            } else if (action === 'save_as_running') {
+                $('#edit_log_end_time').val(''); // Clear end time to keep running
+            }
+            
+            submitEditLogForm();
+        });
+        
+        function submitEditLogForm() {
+            var $form = $('#edit-log-form');
+            var $submitButtons = $('#save_as_running, #save_as_completed, #save_changes');
+            
+            $submitButtons.prop('disabled', true);
+            
+            $.post(oo_data.ajax_url, $form.serialize(), function(response) {
+                if (response.success) {
+                    alert('Job log updated successfully!');
+                    $('#edit-log-modal').hide();
+                    contentDashboardTable.ajax.reload();
+                } else {
+                    alert('Error updating job log: ' + (response.data.message || 'Unknown error'));
+                }
+            }).fail(function() {
+                alert('Failed to update job log. Please try again.');
+            }).always(function() {
+                $submitButtons.prop('disabled', false);
+            });
+        }
+        
+        // Delete log form submission
+        $('#delete-log-form').on('submit', function(e) {
+            e.preventDefault();
+            var $form = $(this);
+            var $submitButton = $form.find('button[type="submit"]');
+            
+            $submitButton.prop('disabled', true).text('Deleting...');
+            
+            $.post(oo_data.ajax_url, $form.serialize(), function(response) {
+                if (response.success) {
+                    alert('Job log deleted successfully!');
+                    $('#delete-log-modal').hide();
+                    contentDashboardTable.ajax.reload();
+                } else {
+                    alert('Error deleting job log: ' + (response.data.message || 'Unknown error'));
+                }
+            }).fail(function() {
+                alert('Failed to delete job log. Please try again.');
+            }).always(function() {
+                $submitButton.prop('disabled', false).text('Delete');
+            });
         });
 
         // Modal close functionality

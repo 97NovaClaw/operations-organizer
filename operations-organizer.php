@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.0.50
+ * Version:           1.5.0.51
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.0.50' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.0.51' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -150,6 +150,9 @@ if ( is_admin() ) {
                 
                 // KPI Column Selector Nonces
                 'nonce_get_derived_kpis' => wp_create_nonce('oo_get_derived_kpis_nonce'),
+                
+                // Edit Log Nonces
+                'nonce_get_log_details' => wp_create_nonce('oo_get_log_details_nonce'),
 
                 'text_please_select_employee' => __('Please select an employee.', 'operations-organizer'),
                 'text_please_enter_emp_no' => __('Please enter an employee number.', 'operations-organizer'),
