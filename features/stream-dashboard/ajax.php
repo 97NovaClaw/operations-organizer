@@ -457,7 +457,7 @@ class OO_Stream_Dashboard_AJAX {
             'secondary_kpi_measure_id' => isset( $_POST['derived_secondary_kpi_measure_id'] ) && !empty($_POST['derived_secondary_kpi_measure_id']) ? intval( $_POST['derived_secondary_kpi_measure_id'] ) : null,
             'time_unit_for_rate'       => isset( $_POST['derived_time_unit_for_rate'] ) && !empty($_POST['derived_time_unit_for_rate']) ? sanitize_text_field( $_POST['derived_time_unit_for_rate'] ) : null,
             'output_description'       => isset( $_POST['derived_output_description'] ) ? sanitize_textarea_field( $_POST['derived_output_description'] ) : '',
-            'is_active'                => isset( $_POST['derived_is_active'] ) ? 1 : 0,
+            'is_active'                => isset( $_POST['derived_is_active'] ) ? intval( $_POST['derived_is_active'] ) : 0,
         );
 
         $result = OO_Stream_Dashboard_DB::add_derived_kpi_definition( $args );
@@ -499,7 +499,7 @@ class OO_Stream_Dashboard_AJAX {
             'secondary_kpi_measure_id' => isset( $_POST['derived_secondary_kpi_measure_id'] ) && !empty($_POST['derived_secondary_kpi_measure_id']) ? intval( $_POST['derived_secondary_kpi_measure_id'] ) : null,
             'time_unit_for_rate'       => isset( $_POST['derived_time_unit_for_rate'] ) && !empty($_POST['derived_time_unit_for_rate']) ? sanitize_text_field( $_POST['derived_time_unit_for_rate'] ) : null,
             'output_description'       => isset( $_POST['derived_output_description'] ) ? sanitize_textarea_field( $_POST['derived_output_description'] ) : '',
-            'is_active'                => isset( $_POST['derived_is_active'] ) ? 1 : 0,
+            'is_active'                => isset( $_POST['derived_is_active'] ) ? intval( $_POST['derived_is_active'] ) : 0,
         );
 
         $result = OO_Stream_Dashboard_DB::update_derived_kpi_definition( $derived_definition_id, $args );
