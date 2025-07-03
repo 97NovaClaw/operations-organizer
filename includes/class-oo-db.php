@@ -4557,12 +4557,16 @@ class OO_DB { // Renamed class
         if ($args['join_phases']) {
             $sql_select .= ", p.phase_name, p.stream_id"; // Add more phase fields if needed
             $sql_from .= " LEFT JOIN " . self::$phases_table . " p ON pkm.phase_id = p.phase_id";
+            $allowed_orderby = ['p.phase_name', 'pkm.link_id'];
+            $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'p.phase_name';
+        } else {
+            // When not joining phases, we can only order by pkm columns
+            $allowed_orderby = ['pkm.link_id', 'pkm.phase_id', 'pkm.display_order'];
+            $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'pkm.link_id';
         }
         
         $sql = $sql_select . $sql_from . $sql_where;
 
-        $allowed_orderby = ['p.phase_name', 'pkm.link_id'];
-        $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'p.phase_name';
         $order = strtoupper($args['order']) === 'DESC' ? 'DESC' : 'ASC';
         $sql .= " ORDER BY $orderby $order";
 

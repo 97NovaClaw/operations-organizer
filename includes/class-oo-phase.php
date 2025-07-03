@@ -165,7 +165,6 @@ class OO_Phase {
         if ( is_wp_error( $result ) ) {
             return $result;
         }
-        $this->is_active = $new_status;
         $this->load(); // refresh updated_at
         return true;
     }
