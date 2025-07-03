@@ -459,24 +459,157 @@ jQuery(document).ready(function($) {
     // Derived KPI Management Logic (Fixed with correct nonces)
     // ========================================================================
 
+    // Helper functions for Derived KPI modals
+    function populateCalculationTypes(primaryKpiUnitType, $selectElement) {
+        $selectElement.empty();
+        $selectElement.append($('<option>', { value: '', text: '-- Select Calculation Type --' }));
+
+        var calcTypes = {
+            all: [
+                { value: 'sum_value', text: 'Sum of Primary KPI Value' },
+                { value: 'average_value', text: 'Average of Primary KPI Value' },
+            ],
+            numeric: [
+                { value: 'rate_per_time', text: 'Rate: Primary KPI per Time Unit' },
+                { value: 'ratio_to_kpi', text: 'Ratio: Primary KPI to Secondary KPI' },
+            ],
+            boolean: [
+                { value: 'count_if_true', text: 'Count occurrences if Primary KPI is TRUE' },
+                { value: 'count_if_false', text: 'Count occurrences if Primary KPI is FALSE' },
+            ]
+        };
+
+        // Add common calculation types
+        calcTypes.all.forEach(function(type) {
+            $selectElement.append($('<option>', { value: type.value, text: type.text }));
+        });
+
+        // Add type-specific calculation types
+        if (primaryKpiUnitType === 'integer' || primaryKpiUnitType === 'decimal') {
+            calcTypes.numeric.forEach(function(type) {
+                $selectElement.append($('<option>', { value: type.value, text: type.text }));
+            });
+        } else if (primaryKpiUnitType === 'boolean') {
+            calcTypes.boolean.forEach(function(type) {
+                $selectElement.append($('<option>', { value: type.value, text: type.text }));
+            });
+        }
+    }
+
+    function populateSecondaryKpis($selectElement, primaryKpiIdToExclude) {
+        $selectElement.empty().append($('<option>', { value: '', text: '-- Select Secondary KPI --' }));
+        if (oo_data.all_kpi_measures && oo_data.all_kpi_measures.length > 0) {
+            oo_data.all_kpi_measures.forEach(function(kpi) {
+                if (kpi.kpi_measure_id.toString() !== primaryKpiIdToExclude.toString()) {
+                    $selectElement.append($('<option>', { 
+                        value: kpi.kpi_measure_id, 
+                        text: kpi.measure_name + ' (' + kpi.unit_type + ')' 
+                    }));
+                }
+            });
+        }
+        if ($selectElement.children().length === 1) { // Only the default option
+             $selectElement.append('<option value="" disabled>No other KPIs available</option>');
+        }
+    }
+
+    function handleDerivedKpiCalcTypeChange($modal) {
+        var selectedType = $modal.find('select[name="derived_calculation_type"]').val();
+        var $secondaryKpiField = $modal.find('[id*="derived_secondary_kpi_field"]');
+        var $timeUnitField = $modal.find('[id*="derived_time_unit_field"]');
+
+        if (selectedType === 'ratio_to_kpi') {
+            $secondaryKpiField.show();
+            $timeUnitField.hide();
+        } else if (selectedType === 'rate_per_time') {
+            $secondaryKpiField.hide();
+            $timeUnitField.show();
+        } else {
+            $secondaryKpiField.hide();
+            $timeUnitField.hide();
+        }
+    }
+
     // Open "Add Derived KPI" modal
     $(document).on('click', '#openAddDerivedKpiModalBtn-stream-' + streamSlug, function() {
         var $modal = $('#addDerivedKpiModal-stream-' + streamSlug);
-        $modal.find('form')[0].reset();
-        $modal.show();
+        var $form = $modal.find('form');
+        var $primaryKpiSelect = $modal.find('#add_derived_primary_kpi_id-stream-' + streamSlug);
+        var $calcTypeSelect = $modal.find('#add_derived_calculation_type-stream-' + streamSlug);
+
+        // Reset the form first
+        $form[0].reset();
+        $primaryKpiSelect.empty().append('<option value="">Loading KPIs...</option>').prop('disabled', true);
+        $calcTypeSelect.empty().append('<option value="">-- Select Calculation Type --</option>');
+        handleDerivedKpiCalcTypeChange($modal); // Reset dependent fields
+
+        // Load available KPI measures for this stream
+        $.post(oo_data.ajax_url, {
+            action: 'oo_get_json_kpi_measures_for_stream',
+            stream_id: oo_data.current_stream_id,
+            _ajax_nonce: oo_data.nonce_get_kpi_measures
+        }, function(response) {
+            if (response.success && response.data.kpis) {
+                $primaryKpiSelect.empty().append('<option value="">-- Select Primary KPI --</option>').prop('disabled', false);
+                response.data.kpis.forEach(function(kpi) {
+                    $primaryKpiSelect.append($('<option>', {
+                        value: kpi.kpi_measure_id,
+                        text: kpi.measure_name + ' (' + kpi.unit_type + ')',
+                        'data-unit-type': kpi.unit_type
+                    }));
+                });
+            } else {
+                $primaryKpiSelect.empty().append('<option value="">No KPIs available</option>');
+            }
+        }).fail(function() {
+            $primaryKpiSelect.empty().append('<option value="">Failed to load KPIs</option>');
+        }).always(function() {
+            // After attempting to load, populate other fields based on current selection
+            var initialPrimaryKpiUnit = $primaryKpiSelect.find('option:selected').data('unit-type') || '';
+            populateCalculationTypes(initialPrimaryKpiUnit, $calcTypeSelect);
+            populateSecondaryKpis($modal.find('#add_derived_secondary_kpi_id-stream-' + streamSlug), $primaryKpiSelect.val());
+            $modal.show();
+        });
+    });
+
+    // Handle Primary KPI change in Add Derived KPI Modal
+    $(document).on('change', '#add_derived_primary_kpi_id-stream-' + streamSlug, function() {
+        var $modal = $('#addDerivedKpiModal-stream-' + streamSlug);
+        var unitType = $(this).find('option:selected').data('unit-type') || '';
+        var primaryKpiId = $(this).val();
+        populateCalculationTypes(unitType, $modal.find('#add_derived_calculation_type-stream-' + streamSlug));
+        populateSecondaryKpis($modal.find('#add_derived_secondary_kpi_id-stream-' + streamSlug), primaryKpiId);
+    });
+
+    // Handle Calculation Type change in Add Derived KPI Modal
+    $(document).on('change', '#add_derived_calculation_type-stream-' + streamSlug, function() {
+        var $modal = $('#addDerivedKpiModal-stream-' + streamSlug);
+        handleDerivedKpiCalcTypeChange($modal);
     });
 
     // Handle "Add Derived KPI" form submission
     $(document).on('submit', '#oo-add-derived-kpi-form-stream-' + streamSlug, function(e) {
         e.preventDefault();
-        var formData = $(this).serialize(); // Nonce is already in the form via wp_nonce_field
+        var $form = $(this);
+        var formData = $form.serializeArray();
         
-        $.post(oo_data.ajax_url, formData, function(response) {
+        // Fix: Explicitly handle the derived_is_active checkbox
+        var isActiveChecked = $form.find('[name="derived_is_active"]').prop('checked');
+        if (isActiveChecked) {
+            formData.push({name: 'derived_is_active', value: '1'});
+        } else {
+            formData.push({name: 'derived_is_active', value: '0'});
+        }
+        
+        $.post(oo_data.ajax_url, $.param(formData), function(response) {
             if (response.success) {
+                alert('Derived KPI added successfully!');
                 location.reload();
             } else {
                 alert('Error: ' + (response.data.message || 'Could not add Derived KPI.'));
             }
+        }).fail(function() {
+            alert('Error: Failed to add Derived KPI');
         });
     });
 
@@ -484,41 +617,88 @@ jQuery(document).ready(function($) {
     $(document).on('click', '.oo-edit-derived-kpi-stream', function() {
         var derivedKpiId = $(this).data('derived-kpi-id');
         var $modal = $('#editDerivedKpiModal-stream-' + streamSlug);
+        $modal.find('#editDerivedKpiNameDisplay-' + streamSlug).text('Loading...');
             
-            $.post(oo_data.ajax_url, {
+        $.post(oo_data.ajax_url, {
             action: 'oo_get_derived_kpi_definition_details',
             _ajax_nonce: oo_data.nonce_get_derived_kpi_details,
             derived_definition_id: derivedKpiId
-            }, function(response) {
+        }, function(response) {
             if (response.success) {
                 var dkpi = response.data.definition;
+                var primary_kpi = response.data.primary_kpi; // Expecting this from backend
+                
                 $modal.find('[name="derived_definition_id"]').val(dkpi.derived_definition_id);
                 $modal.find('#editDerivedKpiNameDisplay-' + streamSlug).text(dkpi.definition_name);
                 $modal.find('[name="derived_definition_name"]').val(dkpi.definition_name);
-                $modal.find('input[name="primary_kpi_measure_id"]').val(dkpi.primary_kpi_measure_id);
+                
+                // Primary KPI display (name and unit type)
+                $modal.find('#edit_derived_primary_kpi_name_display-stream-' + streamSlug).text(primary_kpi ? primary_kpi.measure_name : 'Unknown KPI');
+                $modal.find('#edit_derived_primary_kpi_unit_type-stream-' + streamSlug).val(primary_kpi ? primary_kpi.unit_type : '');
+                $modal.find('[name="primary_kpi_measure_id"]').val(dkpi.primary_kpi_measure_id);
+                
+                // Populate dynamic dropdowns and handle conditional visibility FIRST
+                populateCalculationTypes(primary_kpi ? primary_kpi.unit_type : '', $modal.find('[name="derived_calculation_type"]'));
                 $modal.find('[name="derived_calculation_type"]').val(dkpi.calculation_type);
-                $modal.find('[name="derived_secondary_kpi_measure_id"]').val(dkpi.secondary_kpi_measure_id);
-                $modal.find('[name="derived_time_unit_for_rate"]').val(dkpi.time_unit_for_rate);
+                $modal.find('[name="derived_calculation_type"]').trigger('change'); // This might re-render sections
+                
+                populateSecondaryKpis($modal.find('[name="derived_secondary_kpi_measure_id"]'), dkpi.primary_kpi_measure_id);
+                if (dkpi.calculation_type === 'ratio_to_kpi' && dkpi.secondary_kpi_measure_id) {
+                    $modal.find('[name="derived_secondary_kpi_measure_id"]').val(dkpi.secondary_kpi_measure_id);
+                }
+                if (dkpi.calculation_type === 'rate_per_time' && dkpi.time_unit_for_rate) {
+                    $modal.find('[name="derived_time_unit_for_rate"]').val(dkpi.time_unit_for_rate);
+                }
+                
                 $modal.find('[name="derived_output_description"]').val(dkpi.output_description);
                 $modal.find('[name="derived_is_active"]').prop('checked', parseInt(dkpi.is_active) === 1);
+                
                 $modal.show();
             } else {
                 alert('Error fetching Derived KPI details: ' + response.data.message);
             }
+        }).fail(function() {
+            alert('Error: Request to load Derived KPI data failed.');
         });
+    });
+
+    // Handle Calculation Type change in Edit Derived KPI Modal
+    $(document).on('change', '#edit_derived_calculation_type-stream-' + streamSlug, function() {
+        var $modal = $('#editDerivedKpiModal-stream-' + streamSlug);
+        handleDerivedKpiCalcTypeChange($modal);
+        // If changing to a type that doesn't need secondary KPI, clear its value
+        if ($(this).val() !== 'ratio_to_kpi') {
+            $modal.find('[name="derived_secondary_kpi_measure_id"]').val('');
+        }
+        // If changing to a type that doesn't need time unit, clear its value
+        if ($(this).val() !== 'rate_per_time') {
+            $modal.find('[name="derived_time_unit_for_rate"]').val('hour'); // Reset to default
+        }
     });
 
     // Handle "Edit Derived KPI" form submission
     $(document).on('submit', '#oo-edit-derived-kpi-form-stream-' + streamSlug, function(e) {
         e.preventDefault();
-        var formData = $(this).serialize(); // Nonce is already in the form
+        var $form = $(this);
+        var formData = $form.serializeArray();
         
-        $.post(oo_data.ajax_url, formData, function(response) {
+        // Fix: Explicitly handle the derived_is_active checkbox
+        var isActiveChecked = $form.find('[name="derived_is_active"]').prop('checked');
+        if (isActiveChecked) {
+            formData.push({name: 'derived_is_active', value: '1'});
+        } else {
+            formData.push({name: 'derived_is_active', value: '0'});
+        }
+        
+        $.post(oo_data.ajax_url, $.param(formData), function(response) {
             if (response.success) {
+                alert('Derived KPI updated successfully!');
                 location.reload();
             } else {
                 alert('Error updating Derived KPI: ' + (response.data.message || 'Unknown error'));
             }
+        }).fail(function() {
+            alert('Error: Failed to update Derived KPI');
         });
     });
 
@@ -532,11 +712,12 @@ jQuery(document).ready(function($) {
         $(this).parent().append($spinner);
 
         $.post(oo_data.ajax_url, {
-            action: 'oo_delete_derived_kpi',
+            action: 'oo_delete_derived_kpi_definition',
             _ajax_nonce: oo_data.nonce_delete_derived_kpi,
             derived_definition_id: derivedKpiId
         }, function(response) {
             if (response.success) {
+                alert('Derived KPI deleted successfully!');
                 location.reload();
             } else {
                 alert('Error: ' + (response.data.message || 'Could not delete Derived KPI.'));
@@ -550,7 +731,7 @@ jQuery(document).ready(function($) {
 
     // Handle "Toggle Derived KPI Status" button clicks
     $(document).on('click', '.oo-toggle-derived-kpi-status-stream', function() {
-            var $button = $(this);
+        var $button = $(this);
         var derivedKpiId = $button.data('derived-kpi-id');
         var newStatus = $button.data('new-status');
         $button.prop('disabled', true);
@@ -562,6 +743,7 @@ jQuery(document).ready(function($) {
             is_active: newStatus
         }, function(response) {
             if (response.success) {
+                alert('Derived KPI status updated successfully!');
                 location.reload();
             } else {
                 alert('Error: ' + (response.data.message || 'Could not update Derived KPI status.'));

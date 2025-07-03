@@ -399,19 +399,139 @@ global $current_stream_id, $current_stream_name, $current_stream_tab_slug;
 		</div>
 	</div>
 
-	<!-- Derived KPI Modals (simplified for now) -->
+	<!-- Add Derived KPI Modal -->
 	<div id="addDerivedKpiModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
 		<div class="oo-modal-content">
 			<span class="oo-modal-close">&times;</span>
 			<h2><?php esc_html_e( 'Add New Derived KPI Definition', 'operations-organizer' ); ?></h2>
-			<p><?php esc_html_e( 'Derived KPI functionality coming soon...', 'operations-organizer' ); ?></p>
+			<form id="oo-add-derived-kpi-form-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" method="post">
+				<?php wp_nonce_field( 'oo_add_derived_kpi_nonce', '_ajax_nonce' ); ?>
+				<input type="hidden" name="action" value="oo_add_derived_kpi_definition">
+				<input type="hidden" name="context" value="stream_page">
+				<input type="hidden" name="stream_id_context" value="<?php echo intval($current_stream_id); ?>">
+
+				<div class="form-field form-required">
+					<label for="add_derived_definition_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Derived Calculation Name', 'operations-organizer' ); ?></label>
+					<input type="text" name="derived_definition_name" id="add_derived_definition_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+					<p><?php esc_html_e( 'A descriptive name (e.g., "Items per Hour", "Cost per Item").', 'operations-organizer' ); ?></p>
+				</div>
+
+				<div class="form-field form-required">
+					<label for="add_derived_primary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Primary KPI', 'operations-organizer' ); ?></label>
+					<select name="primary_kpi_measure_id" id="add_derived_primary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+						<option value=""><?php esc_html_e( '-- Select Primary KPI --', 'operations-organizer' ); ?></option>
+						<!-- Options will be populated by JavaScript -->
+					</select>
+					<p><?php esc_html_e( 'The base KPI measure for this calculation.', 'operations-organizer' ); ?></p>
+				</div>
+
+				<div class="form-field form-required">
+					<label for="add_derived_calculation_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Calculation Type', 'operations-organizer' ); ?></label>
+					<select name="derived_calculation_type" id="add_derived_calculation_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+						<option value=""><?php esc_html_e( '-- Select Calculation Type --', 'operations-organizer' ); ?></option>
+						<!-- Options will be populated by JavaScript based on primary KPI unit type -->
+					</select>
+				</div>
+
+				<div class="form-field" id="add_derived_secondary_kpi_field-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" style="display:none;">
+					<label for="add_derived_secondary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Secondary KPI (for Ratio)', 'operations-organizer' ); ?></label>
+					<select name="derived_secondary_kpi_measure_id" id="add_derived_secondary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+						<option value=""><?php esc_html_e( '-- Select Secondary KPI --', 'operations-organizer' ); ?></option>
+						<!-- Options will be populated by JavaScript -->
+					</select>
+				</div>
+
+				<div class="form-field" id="add_derived_time_unit_field-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" style="display:none;">
+					<label for="add_derived_time_unit-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Time Unit (for Rate)', 'operations-organizer' ); ?></label>
+					<select name="derived_time_unit_for_rate" id="add_derived_time_unit-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+						<option value="hour"><?php esc_html_e( 'Hour', 'operations-organizer' ); ?></option>
+						<option value="minute"><?php esc_html_e( 'Minute', 'operations-organizer' ); ?></option>
+						<option value="day"><?php esc_html_e( 'Day', 'operations-organizer' ); ?></option>
+					</select>
+				</div>
+				
+				<div class="form-field">
+					<label for="add_derived_output_description-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Output Description (Optional)', 'operations-organizer' ); ?></label>
+					<textarea name="derived_output_description" id="add_derived_output_description-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" rows="2"></textarea>
+					<p><?php esc_html_e( 'Briefly describe what this calculation represents or its expected unit (e.g., "items/hr", "$/item").', 'operations-organizer' ); ?></p>
+				</div>
+
+				<div class="form-field">
+					<label for="add_derived_is_active-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+						<input type="checkbox" name="derived_is_active" id="add_derived_is_active-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" value="1" checked>
+						<?php esc_html_e( 'Active', 'operations-organizer' ); ?>
+					</label>
+				</div>
+
+				<?php submit_button( __( 'Add Derived KPI', 'operations-organizer' ), 'primary', 'submit_add_derived_kpi-stream-' . $current_stream_tab_slug ); ?>
+			</form>
 		</div>
 	</div>
+
+	<!-- Edit Derived KPI Modal -->
 	<div id="editDerivedKpiModal-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" class="oo-modal" style="display:none;">
 		<div class="oo-modal-content">
 			<span class="oo-modal-close">&times;</span>
 			<h2><?php esc_html_e( 'Edit Derived KPI Definition', 'operations-organizer' ); ?></h2>
-			<p><?php esc_html_e( 'Derived KPI functionality coming soon...', 'operations-organizer' ); ?></p>
+			<h3 id="editDerivedKpiNameDisplay-<?php echo esc_attr($current_stream_tab_slug); ?>"></h3>
+			<form id="oo-edit-derived-kpi-form-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" method="post">
+				<?php wp_nonce_field( 'oo_edit_derived_kpi_nonce', '_ajax_nonce' ); ?>
+				<input type="hidden" name="action" value="oo_update_derived_kpi_definition">
+				<input type="hidden" name="context" value="stream_page">
+				<input type="hidden" name="stream_id_context" value="<?php echo intval($current_stream_id); ?>">
+				<input type="hidden" name="derived_definition_id" id="edit_derived_definition_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" value="">
+
+				<div class="form-field">
+					<label><?php esc_html_e( 'Primary KPI:', 'operations-organizer' ); ?></label>
+					<span id="edit_derived_primary_kpi_name_display-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"></span>
+					<input type="hidden" name="primary_kpi_measure_id" id="edit_derived_primary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" value="">
+					<input type="hidden" id="edit_derived_primary_kpi_unit_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" value="">
+				</div>
+
+				<div class="form-field form-required">
+					<label for="edit_derived_definition_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Derived Calculation Name', 'operations-organizer' ); ?></label>
+					<input type="text" name="derived_definition_name" id="edit_derived_definition_name-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+				</div>
+
+				<div class="form-field form-required">
+					<label for="edit_derived_calculation_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Calculation Type', 'operations-organizer' ); ?></label>
+					<select name="derived_calculation_type" id="edit_derived_calculation_type-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" required>
+						<option value=""><?php esc_html_e( '-- Select Calculation Type --', 'operations-organizer' ); ?></option>
+						<!-- Options will be populated by JavaScript based on primary KPI unit type -->
+					</select>
+				</div>
+
+				<div class="form-field" id="edit_derived_secondary_kpi_field-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" style="display:none;">
+					<label for="edit_derived_secondary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Secondary KPI (for Ratio)', 'operations-organizer' ); ?></label>
+					<select name="derived_secondary_kpi_measure_id" id="edit_derived_secondary_kpi_id-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+						<option value=""><?php esc_html_e( '-- Select Secondary KPI --', 'operations-organizer' ); ?></option>
+						<!-- Options will be populated by JavaScript -->
+					</select>
+				</div>
+
+				<div class="form-field" id="edit_derived_time_unit_field-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" style="display:none;">
+					<label for="edit_derived_time_unit-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Time Unit (for Rate)', 'operations-organizer' ); ?></label>
+					<select name="derived_time_unit_for_rate" id="edit_derived_time_unit-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+						<option value="hour"><?php esc_html_e( 'Hour', 'operations-organizer' ); ?></option>
+						<option value="minute"><?php esc_html_e( 'Minute', 'operations-organizer' ); ?></option>
+						<option value="day"><?php esc_html_e( 'Day', 'operations-organizer' ); ?></option>
+					</select>
+				</div>
+				
+				<div class="form-field">
+					<label for="edit_derived_output_description-stream-<?php echo esc_attr($current_stream_tab_slug); ?>"><?php esc_html_e( 'Output Description (Optional)', 'operations-organizer' ); ?></label>
+					<textarea name="derived_output_description" id="edit_derived_output_description-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" rows="2"></textarea>
+				</div>
+
+				<div class="form-field">
+					<label for="edit_derived_is_active-stream-<?php echo esc_attr($current_stream_tab_slug); ?>">
+						<input type="checkbox" name="derived_is_active" id="edit_derived_is_active-stream-<?php echo esc_attr($current_stream_tab_slug); ?>" value="1">
+						<?php esc_html_e( 'Active', 'operations-organizer' ); ?>
+					</label>
+				</div>
+
+				<?php submit_button( __( 'Save Changes', 'operations-organizer' ), 'primary', 'submit_edit_derived_kpi-stream-' . $current_stream_tab_slug ); ?>
+			</form>
 		</div>
 	</div>
 </div> 

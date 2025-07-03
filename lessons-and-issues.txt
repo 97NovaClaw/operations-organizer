@@ -157,6 +157,36 @@ LESSON: When modularizing, ensure all HTML dependencies are properly migrated
 FILES AFFECTED:
 - features/stream-dashboard/views/tab-settings.php
 
+7. KPI EDIT MODAL & ACTIVATION LOGIC
+----------------------------------------
+PROBLEM: 
+1. Unchecking a phase in the "Edit KPI" modal did not unlink it upon saving.
+2. The "Activate" checkbox would only deactivate a KPI; it could not reactivate it.
+
+SYMPTOMS:
+- Phase links remained unchanged in the database regardless of checkbox state.
+- A checked "Active" box was ignored on save, and the KPI would become inactive.
+
+ROOT CAUSES:
+1. **Missing Context in AJAX Call:** The form was not sending the `stream_id` context, so the backend logic couldn't determine which stream's phase links to modify.
+2. **Incorrect Checkbox Serialization:** Standard jQuery `serialize()` does not include unchecked checkboxes. When the "Active" box was checked, it sent `is_active=1`. When unchecked, it sent nothing, which the PHP backend interpreted as `is_active=0` (the default). The fix for deactivating worked, but activating didn't, pointing to a deeper issue.
+3. **Flawed DB Query with Optional JOIN:** The `ajax_update_kpi_measure` handler called `OO_DB::get_phase_kpi_links_by_measure` with `join_phases` set to `false`. However, the DB method's `ORDER BY` clause still referenced the alias (`p.phase_name`) for the un-joined table. This caused a fatal SQL error, the query returned `[]` (an empty array), and the application logic incorrectly concluded the KPI had no links, automatically deactivating it as a safety measure.
+
+SOLUTIONS:
+1. **Added `stream_id_context` to Form Data:** Modified the AJAX submission in `main.js` to include the current stream ID, giving the backend the necessary context.
+2. **Explicit Checkbox Handling:** Updated the `main.js` form submission logic to read the `is_active` checkbox's checked property (`.prop('checked')`) and explicitly add `is_active=1` or `is_active=0` to the data sent to the server. This ensures the value is always present.
+3. **Made DB Query `ORDER BY` Clause Conditional:** Refactored the `get_phase_kpi_links_by_measure` method in `class-oo-db.php`. The `ORDER BY` clause now intelligently selects columns based on whether the `join_phases` argument is true or false, preventing the SQL error.
+
+LESSONS:
+- Client-side forms must always provide sufficient context (like stream/page IDs) for backend processing.
+- Never trust default browser form serialization for checkboxes; always handle their state explicitly in JavaScript to ensure a value is consistently sent.
+- Database methods with optional `JOIN`s must have logic to handle cases where the join is not performed, especially in `ORDER BY` or `WHERE` clauses that reference the optional table. A silent SQL error can lead to baffling application-level bugs.
+
+FILES AFFECTED:
+- `features/stream-dashboard/assets/js/main.js` (Added stream_id context and explicit checkbox handling)
+- `features/stream-dashboard/ajax.php` (Corrected logic to use the right DB methods for fetching links)
+- `includes/class-oo-db.php` (Made the ORDER BY clause in `get_phase_kpi_links_by_measure` conditional)
+
 DEBUGGING STRATEGIES THAT WORKED:
 =================================
 
@@ -227,6 +257,8 @@ VERSION HISTORY:
 - v1.5.0.29: Corrected method calls
 - v1.5.0.30: Fixed phase-related method calls
 - v1.5.0.31: Fixed Phase Log Actions filtering
+- v1.5.0.39: Fixed KPI edit modal phase linking and activation bugs.
+- v1.5.0.40: Corrected DB query logic for optional JOINs to prevent SQL errors.
 
 FINAL STATUS:
 ============
