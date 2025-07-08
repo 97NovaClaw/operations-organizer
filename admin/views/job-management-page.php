@@ -74,6 +74,7 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                 <!-- Client Information Section -->
                 <div class="oo-form-section">
                     <h3 class="oo-section-title"><?php esc_html_e( 'Client Information', 'operations-organizer' ); ?></h3>
+                    <p class="description" style="margin-bottom: 15px; color: #646970;"><?php esc_html_e( 'The contractor, adjuster, or company assigning this work to you.', 'operations-organizer' ); ?></p>
                     <div class="oo-form-grid">
                         <div class="oo-form-field">
                             <label for="client_name"><?php esc_html_e( 'Client Name', 'operations-organizer' ); ?></label>
@@ -87,8 +88,20 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                             <label for="client_email"><?php esc_html_e( 'Client Email(s)', 'operations-organizer' ); ?></label>
                             <input type="email" id="client_email" name="client_email" class="regular-text" />
                         </div>
+                        <div class="oo-form-field oo-form-field-full">
+                            <label for="client_contact"><?php esc_html_e( 'Additional Client Contact Info', 'operations-organizer' ); ?></label>
+                            <textarea id="client_contact" name="client_contact" rows="2" placeholder="<?php esc_attr_e( 'Any additional contact information or notes about the client', 'operations-organizer' ); ?>" class="regular-text"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Information Section -->
+                <div class="oo-form-section">
+                    <h3 class="oo-section-title"><?php esc_html_e( 'Customer Information', 'operations-organizer' ); ?></h3>
+                    <p class="description" style="margin-bottom: 15px; color: #646970;"><?php esc_html_e( 'The homeowner or policy holder whose belongings need to be cleaned.', 'operations-organizer' ); ?></p>
+                    <div class="oo-form-grid">
                         <div class="oo-form-field">
-                            <label for="customer_name"><?php esc_html_e( 'Customer', 'operations-organizer' ); ?></label>
+                            <label for="customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?></label>
                             <div class="oo-customer-autocomplete-container">
                                 <input type="text" id="customer_name" name="customer_name" placeholder="<?php esc_attr_e( 'Type customer name...', 'operations-organizer' ); ?>" autocomplete="off" class="regular-text" />
                                 <input type="hidden" id="customer_id" name="customer_id" value="" />
@@ -96,10 +109,6 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                                 <button type="button" id="add_new_customer_btn" class="button button-secondary" style="margin-top: 5px;"><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></button>
                             </div>
                             <p class="description"><?php esc_html_e( 'Start typing to search existing customers or click "Add New Customer" to create one.', 'operations-organizer' ); ?></p>
-                        </div>
-                        <div class="oo-form-field oo-form-field-full">
-                            <label for="client_contact"><?php esc_html_e( 'Additional Client Contact Info', 'operations-organizer' ); ?></label>
-                            <textarea id="client_contact" name="client_contact" rows="2" placeholder="<?php esc_attr_e( 'Any additional contact information or notes about the client', 'operations-organizer' ); ?>" class="regular-text"></textarea>
                         </div>
                     </div>
                 </div>
