@@ -256,15 +256,80 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
 </div>
 
 <script type="text/javascript">
+console.log('🚀 [CUSTOMER AUTOCOMPLETE DEBUG] Script starting to load...');
+
 jQuery(document).ready(function($) {
-    // Debug: Check if oo_data is available
-    console.log('oo_data object:', typeof oo_data !== 'undefined' ? oo_data : 'NOT AVAILABLE');
+    console.log('🎯 [CUSTOMER AUTOCOMPLETE DEBUG] jQuery ready fired!');
+    
+    // === AGGRESSIVE BOTTOM-UP DEBUGGING ===
+    
+    // 1. Check basic jQuery and DOM readiness
+    console.log('✅ [DEBUG] jQuery version:', $.fn.jquery);
+    console.log('✅ [DEBUG] Document ready state:', document.readyState);
+    
+    // 2. Check if customer input field exists
+    const $customerInput = $('#customer_name');
+    console.log('🔍 [DEBUG] Customer input field found:', $customerInput.length > 0);
+    console.log('🔍 [DEBUG] Customer input element:', $customerInput[0]);
+    
+    // 3. Check if suggestions container exists
+    const $suggestionsContainer = $('#customer_suggestions');
+    console.log('🔍 [DEBUG] Suggestions container found:', $suggestionsContainer.length > 0);
+    console.log('🔍 [DEBUG] Suggestions element:', $suggestionsContainer[0]);
+    
+    // 4. Check oo_data object availability
+    console.log('🔍 [DEBUG] oo_data available:', typeof oo_data !== 'undefined');
     if (typeof oo_data !== 'undefined') {
-        console.log('oo_data.ajax_url:', oo_data.ajax_url);
-        console.log('oo_data.nonce_search_customers:', oo_data.nonce_search_customers);
+        console.log('✅ [DEBUG] oo_data.ajax_url:', oo_data.ajax_url);
+        console.log('✅ [DEBUG] oo_data.nonce_search_customers:', oo_data.nonce_search_customers);
+        console.log('✅ [DEBUG] oo_data.nonce_add_customer:', oo_data.nonce_add_customer);
     } else {
-        console.error('oo_data object is not available for customer autocomplete!');
+        console.error('❌ [DEBUG] oo_data object is NOT AVAILABLE!');
     }
+    
+    // 5. Test basic input event binding
+    console.log('🔧 [DEBUG] Attempting to bind input event to customer field...');
+    
+    $customerInput.on('focus', function() {
+        console.log('🎯 [DEBUG] Customer input FOCUSED!');
+    });
+    
+    $customerInput.on('blur', function() {
+        console.log('🎯 [DEBUG] Customer input BLURRED!');
+    });
+    
+    $customerInput.on('keyup', function() {
+        console.log('🎯 [DEBUG] Customer input KEYUP event fired! Value:', $(this).val());
+    });
+    
+    $customerInput.on('input', function() {
+        console.log('🎯 [DEBUG] Customer input INPUT event fired! Value:', $(this).val());
+        const searchTerm = $(this).val();
+        
+        if (searchTerm.length < 2) {
+            console.log('🔍 [DEBUG] Search term too short, clearing suggestions');
+            return;
+        }
+        
+        console.log('🔍 [DEBUG] Search term valid, proceeding with search...');
+        
+        // Test if we can show the suggestions container
+        $suggestionsContainer.html('<div style="padding: 10px; background: yellow; color: black;">🧪 TEST: This proves the suggestions container works!</div>').show();
+        console.log('🧪 [DEBUG] Test message displayed in suggestions container');
+    });
+    
+    console.log('✅ [DEBUG] Event binding completed!');
+    
+    // 6. Add a visual test button to verify everything works
+    $customerInput.after('<button type="button" id="test-customer-input" style="margin-left: 10px; background: red; color: white; padding: 5px;">🧪 TEST INPUT</button>');
+    
+    $('#test-customer-input').on('click', function() {
+        console.log('🧪 [DEBUG] Test button clicked!');
+        $customerInput.val('test customer').trigger('input');
+        console.log('🧪 [DEBUG] Triggered input event with test value');
+    });
+    
+    console.log('🧪 [DEBUG] Test button added next to customer input');
 
     // Edit job button functionality
     $('.oo-edit-job-button').on('click', function() {
