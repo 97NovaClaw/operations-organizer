@@ -81,8 +81,8 @@ LESSON: During refactoring, verify that all method calls point to classes where 
 FILES AFFECTED:
 - features/stream-dashboard/ajax.php (multiple method call corrections)
 
-3. NONCE MISMATCH BETWEEN FRONTEND AND BACKEND
------------------------------------------------
+3. NONCE MISMATCH BETWEEN FRONTEND AND BACKEND (STREAM DASHBOARD SPECIFIC)
+-----------------------------------------------------------------------
 PROBLEM: JavaScript sending nonces with different keys than backend expected
 SYMPTOM: 400 Bad Request errors with "Nonce verification failed"
 ROOT CAUSE:
@@ -96,6 +96,10 @@ SOLUTION:
 - Removed duplicate/conflicting nonce structures
 
 LESSON: Maintain consistent naming conventions between frontend and backend data structures
+
+NOTE: This issue was specific to the stream dashboard modular architecture. Simple embedded 
+JavaScript (like customer autocomplete in job-management-page.php) works fine with the 
+standard nonce localization pattern and doesn't require this level of complexity.
 
 FILES AFFECTED:
 - operations-organizer.php (nonce structure cleanup)
