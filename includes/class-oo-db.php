@@ -3152,10 +3152,11 @@ class OO_DB { // Renamed class
             $sql .= " WHERE " . implode(' AND ', $where_clauses);
         }
 
-        $orderby_clause = sanitize_sql_orderby('c.' . $args['orderby'] . ' ' . $args['order']);
-        if (!$orderby_clause) {
-            $orderby_clause = 'c.name ASC'; // Default fallback
-        }
+        // Build orderby clause safely
+        $valid_orderby_columns = array('name', 'email', 'created_at', 'updated_at');
+        $orderby_column = in_array($args['orderby'], $valid_orderby_columns) ? $args['orderby'] : 'name';
+        $order_direction = strtoupper($args['order']) === 'DESC' ? 'DESC' : 'ASC';
+        $orderby_clause = 'c.' . $orderby_column . ' ' . $order_direction;
         $sql .= " ORDER BY " . $orderby_clause;
         
         if ( $args['number'] > 0 ) {
@@ -3163,6 +3164,56 @@ class OO_DB { // Renamed class
         }
 
         return $wpdb->get_results( $sql );
+    }
+
+    /**
+     * Update a customer record.
+     *
+     * @param int $customer_id Customer ID to update.
+     * @param array $args Customer data to update.
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function update_customer( $customer_id, $args ) {
+        self::init();
+        global $wpdb;
+
+        $data = array();
+
+        if ( isset( $args['name'] ) ) {
+            $data['name'] = sanitize_text_field( $args['name'] );
+        }
+
+        if ( isset( $args['email'] ) ) {
+            $data['email'] = sanitize_email( $args['email'] );
+        }
+
+        if ( isset( $args['phone'] ) ) {
+            $data['phone'] = sanitize_text_field( $args['phone'] );
+        }
+
+        if ( isset( $args['company_id'] ) ) {
+            $data['company_id'] = intval( $args['company_id'] );
+        }
+
+        if ( empty( $data ) ) {
+            return new WP_Error( 'no_data', 'No data provided for update.' );
+        }
+
+        $data['updated_at'] = current_time( 'mysql', 1 );
+
+        $result = $wpdb->update(
+            self::$customers_table,
+            $data,
+            array( 'customer_id' => intval( $customer_id ) ),
+            null,
+            array( '%d' )
+        );
+
+        if ( $result === false ) {
+            return new WP_Error( 'db_error', 'Could not update customer: ' . $wpdb->last_error );
+        }
+
+        return true;
     }
 
     // --- Stream-Specific Data CRUD Methods ---
