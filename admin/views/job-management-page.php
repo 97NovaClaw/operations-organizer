@@ -394,7 +394,6 @@ jQuery(document).ready(function($) {
         clearTimeout(searchTimeout);
         
         // Show loading state
-        const $suggestions = $('#customer_suggestions');
         $suggestions.empty()
             .addClass('loading')
             .html('<div class="oo-autocomplete-suggestion" style="text-align: center; padding: 20px;">🔍 Searching customers...</div>')
