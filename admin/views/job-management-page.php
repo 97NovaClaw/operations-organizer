@@ -257,6 +257,15 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
+    // Debug: Check if oo_data is available
+    console.log('oo_data object:', typeof oo_data !== 'undefined' ? oo_data : 'NOT AVAILABLE');
+    if (typeof oo_data !== 'undefined') {
+        console.log('oo_data.ajax_url:', oo_data.ajax_url);
+        console.log('oo_data.nonce_search_customers:', oo_data.nonce_search_customers);
+    } else {
+        console.error('oo_data object is not available for customer autocomplete!');
+    }
+
     // Edit job button functionality
     $('.oo-edit-job-button').on('click', function() {
         var jobId = $(this).data('job-id');
@@ -326,6 +335,16 @@ jQuery(document).ready(function($) {
             .show();
         
         searchTimeout = setTimeout(function() {
+            // Check if oo_data is available
+            if (typeof oo_data === 'undefined') {
+                console.error('oo_data not available for customer search');
+                $suggestions.removeClass('loading')
+                    .empty()
+                    .html('<div class="oo-autocomplete-suggestion no-results">Configuration error. Please refresh the page.</div>')
+                    .show();
+                return;
+            }
+
             $.post(oo_data.ajax_url, {
                 action: 'oo_search_customers',
                 nonce: oo_data.nonce_search_customers,
@@ -491,6 +510,13 @@ jQuery(document).ready(function($) {
     // Add customer form submission
     $('#addCustomerForm').on('submit', function(e) {
         e.preventDefault();
+        
+        // Check if oo_data is available
+        if (typeof oo_data === 'undefined') {
+            console.error('oo_data not available for add customer');
+            alert('Configuration error. Please refresh the page and try again.');
+            return;
+        }
         
         const formData = {
             action: 'oo_add_customer',
