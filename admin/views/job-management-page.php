@@ -33,16 +33,65 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term, $status_filte
                     <td><input type="text" id="job_number" name="job_number" required /></td>
                 </tr>
                 <tr>
+                    <th scope="row"><label for="claim_number"><?php esc_html_e( 'Claim Number', 'operations-organizer' ); ?></label></th>
+                    <td><input type="text" id="claim_number" name="claim_number" /></td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="start_date"><?php esc_html_e( 'Start Date', 'operations-organizer' ); ?></label></th>
+                    <td><input type="date" id="start_date" name="start_date" value="<?php echo esc_attr(current_time('Y-m-d')); ?>" /></td>
+                </tr>
+                <tr>
+                    <th scope="row" colspan="2"><h3><?php esc_html_e( 'Job Address', 'operations-organizer' ); ?></h3></th>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="address"><?php esc_html_e( 'Address', 'operations-organizer' ); ?></label></th>
+                    <td><input type="text" id="address" name="address" /></td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="city"><?php esc_html_e( 'City', 'operations-organizer' ); ?></label></th>
+                    <td><input type="text" id="city" name="city" /></td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="province"><?php esc_html_e( 'Province', 'operations-organizer' ); ?></label></th>
+                    <td><input type="text" id="province" name="province" /></td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="postal_code"><?php esc_html_e( 'Postal Code', 'operations-organizer' ); ?></label></th>
+                    <td><input type="text" id="postal_code" name="postal_code" /></td>
+                </tr>
+                <tr>
+                    <th scope="row" colspan="2"><h3><?php esc_html_e( 'Client Information', 'operations-organizer' ); ?></h3></th>
+                </tr>
+                <tr>
                     <th scope="row"><label for="client_name"><?php esc_html_e( 'Client Name', 'operations-organizer' ); ?></label></th>
                     <td><input type="text" id="client_name" name="client_name" /></td>
                 </tr>
                 <tr>
-                    <th scope="row"><label for="client_contact"><?php esc_html_e( 'Client Contact', 'operations-organizer' ); ?></label></th>
-                    <td><textarea id="client_contact" name="client_contact" rows="2"></textarea></td>
+                    <th scope="row"><label for="client_phone"><?php esc_html_e( 'Client Phone Number(s)', 'operations-organizer' ); ?></label></th>
+                    <td><input type="text" id="client_phone" name="client_phone" /></td>
                 </tr>
                 <tr>
-                    <th scope="row"><label for="start_date"><?php esc_html_e( 'Start Date', 'operations-organizer' ); ?></label></th>
-                    <td><input type="date" id="start_date" name="start_date" /></td>
+                    <th scope="row"><label for="client_email"><?php esc_html_e( 'Client Email(s)', 'operations-organizer' ); ?></label></th>
+                    <td><input type="email" id="client_email" name="client_email" /></td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="customer_id"><?php esc_html_e( 'Customer', 'operations-organizer' ); ?></label></th>
+                    <td>
+                        <select id="customer_id" name="customer_id">
+                            <option value=""><?php esc_html_e( 'Select Customer', 'operations-organizer' ); ?></option>
+                            <?php
+                            $customers = OO_DB::get_customers(array('orderby' => 'name', 'order' => 'ASC'));
+                            foreach ($customers as $customer) {
+                                echo '<option value="' . esc_attr($customer->customer_id) . '">' . esc_html($customer->name) . '</option>';
+                            }
+                            ?>
+                        </select>
+                        <p class="description"><?php esc_html_e( 'Select an existing customer or leave blank if this is a new customer.', 'operations-organizer' ); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="client_contact"><?php esc_html_e( 'Additional Client Contact Info', 'operations-organizer' ); ?></label></th>
+                    <td><textarea id="client_contact" name="client_contact" rows="2" placeholder="<?php esc_attr_e( 'Any additional contact information or notes about the client', 'operations-organizer' ); ?>"></textarea></td>
                 </tr>
                 <tr>
                     <th scope="row"><label for="due_date"><?php esc_html_e( 'Due Date', 'operations-organizer' ); ?></label></th>

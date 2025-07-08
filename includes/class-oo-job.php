@@ -33,6 +33,46 @@ class OO_Job {
     public $client_contact;
 
     /**
+     * @var string|null Claim Number.
+     */
+    public $claim_number;
+
+    /**
+     * @var int|null Customer ID.
+     */
+    public $customer_id;
+
+    /**
+     * @var string|null Client Phone Number.
+     */
+    public $client_phone;
+
+    /**
+     * @var string|null Client Email.
+     */
+    public $client_email;
+
+    /**
+     * @var string|null Job Address.
+     */
+    public $address;
+
+    /**
+     * @var string|null Job City.
+     */
+    public $city;
+
+    /**
+     * @var string|null Job Province.
+     */
+    public $province;
+
+    /**
+     * @var string|null Job Postal Code.
+     */
+    public $postal_code;
+
+    /**
      * @var string|null Start Date of the job (YYYY-MM-DD).
      */
     public $start_date;
@@ -106,8 +146,16 @@ class OO_Job {
         $this->data = $data; // Store raw data
         $this->job_id = isset( $data->job_id ) ? intval( $data->job_id ) : null;
         $this->job_number = isset( $data->job_number ) ? $data->job_number : null;
+        $this->claim_number = isset( $data->claim_number ) ? $data->claim_number : null;
+        $this->customer_id = isset( $data->customer_id ) ? intval( $data->customer_id ) : null;
         $this->client_name = isset( $data->client_name ) ? $data->client_name : null;
+        $this->client_phone = isset( $data->client_phone ) ? $data->client_phone : null;
+        $this->client_email = isset( $data->client_email ) ? $data->client_email : null;
         $this->client_contact = isset( $data->client_contact ) ? $data->client_contact : null;
+        $this->address = isset( $data->address ) ? $data->address : null;
+        $this->city = isset( $data->city ) ? $data->city : null;
+        $this->province = isset( $data->province ) ? $data->province : null;
+        $this->postal_code = isset( $data->postal_code ) ? $data->postal_code : null;
         $this->start_date = isset( $data->start_date ) ? oo_sanitize_date( $data->start_date ) : null;
         $this->due_date = isset( $data->due_date ) ? oo_sanitize_date( $data->due_date ) : null;
         $this->overall_status = isset( $data->overall_status ) ? $data->overall_status : 'Pending';
@@ -269,8 +317,16 @@ class OO_Job {
     public function save() {
         $data = array(
             'job_number' => $this->job_number,
+            'claim_number' => $this->claim_number,
+            'customer_id' => $this->customer_id,
             'client_name' => $this->client_name,
+            'client_phone' => $this->client_phone,
+            'client_email' => $this->client_email,
             'client_contact' => $this->client_contact,
+            'address' => $this->address,
+            'city' => $this->city,
+            'province' => $this->province,
+            'postal_code' => $this->postal_code,
             'start_date' => $this->start_date,
             'due_date' => $this->due_date,
             'overall_status' => $this->overall_status,
@@ -416,9 +472,17 @@ class OO_Job {
         if (isset($_POST['submit_add_job']) && isset($_POST['oo_add_job_nonce']) && wp_verify_nonce($_POST['oo_add_job_nonce'], 'oo_add_job_nonce')) {
             $job_data = array(
                 'job_number' => isset($_POST['job_number']) ? sanitize_text_field($_POST['job_number']) : '',
+                'claim_number' => isset($_POST['claim_number']) ? sanitize_text_field($_POST['claim_number']) : '',
+                'customer_id' => isset($_POST['customer_id']) ? intval($_POST['customer_id']) : null,
                 'client_name' => isset($_POST['client_name']) ? sanitize_text_field($_POST['client_name']) : '',
+                'client_phone' => isset($_POST['client_phone']) ? sanitize_text_field($_POST['client_phone']) : '',
+                'client_email' => isset($_POST['client_email']) ? sanitize_email($_POST['client_email']) : '',
                 'client_contact' => isset($_POST['client_contact']) ? sanitize_textarea_field($_POST['client_contact']) : '',
-                'start_date' => isset($_POST['start_date']) ? oo_sanitize_date($_POST['start_date']) : null,
+                'address' => isset($_POST['address']) ? sanitize_text_field($_POST['address']) : '',
+                'city' => isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '',
+                'province' => isset($_POST['province']) ? sanitize_text_field($_POST['province']) : '',
+                'postal_code' => isset($_POST['postal_code']) ? sanitize_text_field($_POST['postal_code']) : '',
+                'start_date' => isset($_POST['start_date']) ? oo_sanitize_date($_POST['start_date']) : current_time('Y-m-d'),
                 'due_date' => isset($_POST['due_date']) ? oo_sanitize_date($_POST['due_date']) : null,
                 'overall_status' => isset($_POST['overall_status']) ? sanitize_text_field($_POST['overall_status']) : 'Pending',
                 'notes' => isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : '',
@@ -426,8 +490,16 @@ class OO_Job {
 
             $job = new self();
             $job->set_job_number($job_data['job_number']);
+            $job->claim_number = $job_data['claim_number'];
+            $job->customer_id = $job_data['customer_id'];
             $job->set_client_name($job_data['client_name']);
+            $job->client_phone = $job_data['client_phone'];
+            $job->client_email = $job_data['client_email'];
             $job->set_client_contact($job_data['client_contact']);
+            $job->address = $job_data['address'];
+            $job->city = $job_data['city'];
+            $job->province = $job_data['province'];
+            $job->postal_code = $job_data['postal_code'];
             $job->set_start_date($job_data['start_date']);
             $job->set_due_date($job_data['due_date']);
             $job->set_overall_status($job_data['overall_status']);

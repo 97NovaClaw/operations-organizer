@@ -905,10 +905,10 @@ jQuery(document).ready(function($) {
             contentDashboardTable = $table.DataTable({
                 processing: true,
                 serverSide: true,
-                ajax: {
+        ajax: {
                     url: oo_data.ajax_url,
                     type: 'POST',
-                    data: function(d) { 
+            data: function(d) {
                         d.action = 'oo_get_dashboard_data';
                         d.nonce = oo_data.nonce_dashboard; 
                         d.filter_employee_id = $('#content_filter_employee_id').val();

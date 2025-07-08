@@ -14,6 +14,8 @@ class OO_DB { // Renamed class
     private static $job_logs_table;
     private static $employees_table;
     private static $buildings_table;
+    private static $companies_table;
+    private static $customers_table;
     private static $expenses_table;
     private static $expense_types_table;
     private static $kpi_measures_table; // New table for KPI measures
@@ -37,6 +39,8 @@ class OO_DB { // Renamed class
         self::$job_logs_table = $wpdb->prefix . 'oo_job_logs';
         self::$employees_table = $wpdb->prefix . 'oo_employees';
         self::$buildings_table = $wpdb->prefix . 'oo_buildings';
+        self::$companies_table = $wpdb->prefix . 'oo_companies';
+        self::$customers_table = $wpdb->prefix . 'oo_customers';
         self::$expenses_table = $wpdb->prefix . 'oo_expenses';
         self::$expense_types_table = $wpdb->prefix . 'oo_expense_types';
         self::$kpi_measures_table = $wpdb->prefix . 'oo_kpi_measures'; // Initialize new table name
@@ -178,8 +182,15 @@ class OO_DB { // Renamed class
         $sql_jobs = "CREATE TABLE " . self::$jobs_table . " (
             job_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             job_number VARCHAR(50) NOT NULL,
+            claim_number VARCHAR(255) NULL,
+            customer_id BIGINT UNSIGNED NULL,
             client_name VARCHAR(255) NULL,
-            client_contact TEXT NULL,
+            client_phone VARCHAR(255) NULL,
+            client_email VARCHAR(255) NULL,
+            address VARCHAR(255) NULL,
+            city VARCHAR(100) NULL,
+            province VARCHAR(100) NULL,
+            postal_code VARCHAR(20) NULL,
             start_date DATE NULL,
             due_date DATE NULL,
             overall_status VARCHAR(50) NOT NULL DEFAULT 'Pending',
@@ -188,6 +199,7 @@ class OO_DB { // Renamed class
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (job_id),
             UNIQUE KEY uq_job_number (job_number),
+            KEY idx_customer_id (customer_id),
             INDEX idx_overall_status (overall_status),
             INDEX idx_due_date (due_date)
         ) $charset_collate;";
@@ -263,6 +275,35 @@ class OO_DB { // Renamed class
             UNIQUE KEY uq_building_name (building_name)
         ) $charset_collate;";
         
+        // SQL for oo_companies table
+        $sql_companies = "CREATE TABLE " . self::$companies_table . " (
+            company_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            name VARCHAR(255) NOT NULL,
+            address TEXT NULL,
+            city VARCHAR(100) NULL,
+            province VARCHAR(100) NULL,
+            postal_code VARCHAR(20) NULL,
+            phone_numbers TEXT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (company_id),
+            KEY idx_name (name)
+        ) $charset_collate;";
+
+        // SQL for oo_customers table
+        $sql_customers = "CREATE TABLE " . self::$customers_table . " (
+            customer_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            name VARCHAR(255) NOT NULL,
+            email VARCHAR(255) NULL,
+            phone VARCHAR(100) NULL,
+            company_id BIGINT UNSIGNED NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (customer_id),
+            KEY idx_name (name),
+            KEY idx_company_id (company_id)
+        ) $charset_collate;";
+
         // SQL for oo_expense_types table
         $sql_expense_types = "CREATE TABLE " . self::$expense_types_table . " (
             expense_type_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -435,6 +476,12 @@ class OO_DB { // Renamed class
         
         oo_log('Running dbDelta for buildings table (' . self::$buildings_table . ').', __METHOD__);
         dbDelta( $sql_buildings );
+
+        oo_log('Running dbDelta for companies table (' . self::$companies_table . ').', __METHOD__);
+        dbDelta( $sql_companies );
+
+        oo_log('Running dbDelta for customers table (' . self::$customers_table . ').', __METHOD__);
+        dbDelta( $sql_customers );
 
         oo_log('Running dbDelta for expense_types table (' . self::$expense_types_table . ').', __METHOD__);
         dbDelta( $sql_expense_types );
@@ -2565,273 +2612,6 @@ class OO_DB { // Renamed class
         return true;
     }
 
-
-    /**
-     * Delete a building.
-     * Note: job_streams.building_id is ON DELETE SET NULL.
-     * @param int $building_id
-     * @return bool|WP_Error True on success, WP_Error on failure.
-     */
-    public static function delete_building( $building_id ) {
-        self::init(); global $wpdb;
-        $building_id = intval($building_id);
-        if ( $building_id <= 0 ) {
-            return new WP_Error('invalid_building_id', 'Invalid Building ID for deletion.');
-        }
-
-        $result = $wpdb->delete( self::$buildings_table, array( 'building_id' => $building_id ), array('%d') );
-
-        if ( $result === false ) {
-            oo_log('Error deleting building ID ' . $building_id . ': ' . $wpdb->last_error, __METHOD__);
-            return new WP_Error('db_delete_error', 'Could not delete building: ' . $wpdb->last_error);
-        }
-        if ( $result === 0 ) {
-            oo_log('Building not found for deletion or no rows affected. ID: ' . $building_id, __METHOD__);
-            return true; // Not necessarily an error
-        }
-        oo_log('Building deleted successfully. ID: ' . $building_id, __METHOD__);
-        return true;
-    }
-
-    /**
-     * Get multiple buildings with filtering, sorting, and pagination.
-     * @param array $params Parameters: is_active, search (name, address), orderby, order, number, offset.
-     * @return array Array of building objects.
-     */
-    public static function get_buildings( $params = array() ) {
-        self::init(); global $wpdb;
-
-        $defaults = array(
-            'is_active' => null,
-            'search' => null,
-            'orderby' => 'building_name',
-            'order' => 'ASC',
-            'number' => 20,
-            'offset' => 0,
-        );
-        $args = wp_parse_args( $params, $defaults );
-
-        $sql = "SELECT * FROM " . self::$buildings_table;
-        $where_clauses = array();
-        $query_params = array();
-
-        if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
-        
-        if ( !empty($args['search']) ) {
-            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search'])) . '%';
-            $search_fields = array("building_name LIKE %s", "address LIKE %s", "storage_capacity_notes LIKE %s");
-            $where_clauses[] = "(" . implode(" OR ", $search_fields) . ")";
-            $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;
-        }
-
-        if ( !empty($where_clauses) ) {
-            $sql .= " WHERE " . implode(" AND ", $where_clauses);
-        }
-
-        if ( !empty($query_params) ) {
-            $sql = $wpdb->prepare($sql, $query_params);
-        }
-
-        $allowed_orderby = ['building_id', 'building_name', 'is_active', 'created_at', 'updated_at'];
-        $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'building_name';
-        $order = strtoupper($args['order']) === 'DESC' ? 'DESC' : 'ASC';
-        $sql .= " ORDER BY $orderby $order";
-
-        if ( $args['number'] > 0 ) {
-            $sql .= $wpdb->prepare(" LIMIT %d OFFSET %d", intval($args['number']), intval($args['offset']));
-        }
-        
-        oo_log('Executing get_buildings query: ' . $sql, __METHOD__);
-        return $wpdb->get_results( $sql );
-    }
-
-    /**
-     * Get the count of buildings based on filters.
-     * @param array $params Parameters: is_active, search.
-     * @return int Count of buildings.
-     */
-    public static function get_buildings_count( $params = array() ) {
-        self::init(); global $wpdb;
-
-        $defaults = array(
-            'is_active' => null,
-            'search' => null,
-        );
-        $args = wp_parse_args( $params, $defaults );
-
-        $sql = "SELECT COUNT(*) FROM " . self::$buildings_table;
-        $where_clauses = array();
-        $query_params = array();
-
-        if ( !is_null($args['is_active']) ) { $where_clauses[] = "is_active = %d"; $query_params[] = intval($args['is_active']); }
-
-        if ( !empty($args['search']) ) {
-            $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search'])) . '%';
-            $search_fields = array("building_name LIKE %s", "address LIKE %s", "storage_capacity_notes LIKE %s");
-            $where_clauses[] = "(" . implode(" OR ", $search_fields) . ")";
-            $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;
-        }
-
-        if ( !empty($where_clauses) ) {
-            $sql .= " WHERE " . implode(" AND ", $where_clauses);
-        }
-
-        if ( !empty($query_params) ) {
-            $sql = $wpdb->prepare($sql, $query_params);
-        }
-        oo_log('Executing get_buildings_count query: ' . $sql, __METHOD__);
-        return (int) $wpdb->get_var( $sql );
-    }
-
-    // --- ExpenseType CRUD Methods (NEW) ---
-    // Placeholder for add_expense_type, get_expense_type, update_expense_type, etc.
-
-    /**
-     * Add a new expense type.
-     *
-     * @param array $args Associative array of expense type data.
-     *                    Required: type_name.
-     *                    Optional: default_unit, is_active.
-     * @return int|WP_Error The new expense_type_id on success, or WP_Error on failure.
-     */
-    public static function add_expense_type( $args ) {
-        self::init(); global $wpdb;
-        oo_log('Attempting to add expense type with args:', $args);
-
-        if ( empty( $args['type_name'] ) ) {
-            return new WP_Error('missing_type_name', 'Expense Type Name is required.');
-        }
-
-        $existing_type = $wpdb->get_var( $wpdb->prepare(
-            "SELECT expense_type_id FROM " . self::$expense_types_table . " WHERE type_name = %s",
-            sanitize_text_field( $args['type_name'] )
-        ) );
-        if ( $existing_type ) {
-            return new WP_Error('expense_type_name_exists', 'This Expense Type Name already exists.');
-        }
-
-        $data = array(
-            'type_name' => sanitize_text_field( $args['type_name'] ),
-            'default_unit' => isset($args['default_unit']) ? sanitize_text_field( $args['default_unit'] ) : null,
-            'is_active' => isset($args['is_active']) ? intval( $args['is_active'] ) : 1,
-            'created_at' => current_time('mysql', 1),
-            'updated_at' => current_time('mysql', 1)
-        );
-
-        $formats = array(
-            '%s', // type_name
-            '%s', // default_unit
-            '%d', // is_active
-            '%s', // created_at
-            '%s'  // updated_at
-        );
-
-        $result = $wpdb->insert( self::$expense_types_table, $data, $formats );
-
-        if ( $result === false ) {
-            oo_log('Error adding expense type: ' . $wpdb->last_error, array('data' => $data));
-            return new WP_Error('db_insert_error', 'Could not add expense type: ' . $wpdb->last_error);
-        }
-        oo_log('Expense type added successfully. ID: ' . $wpdb->insert_id, __METHOD__);
-        return $wpdb->insert_id;
-    }
-
-    /**
-     * Get a specific expense type by its ID.
-     * @param int $expense_type_id
-     * @return object|null Expense type object or null if not found.
-     */
-    public static function get_expense_type( $expense_type_id ) {
-        self::init(); global $wpdb;
-        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$expense_types_table . " WHERE expense_type_id = %d", intval($expense_type_id) ) );
-    }
-
-    /**
-     * Get a specific expense type by its name.
-     * @param string $type_name
-     * @return object|null Expense type object or null if not found.
-     */
-    public static function get_expense_type_by_name( $type_name ) {
-        self::init(); global $wpdb;
-        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$expense_types_table . " WHERE type_name = %s", sanitize_text_field($type_name) ) );
-    }
-
-    /**
-     * Update an existing expense type.
-     * @param int $expense_type_id
-     * @param array $args Associative array of data to update.
-     * @return bool|WP_Error True on success, WP_Error on failure.
-     */
-    public static function update_expense_type( $expense_type_id, $args ) {
-        self::init(); global $wpdb;
-        oo_log('Attempting to update expense type ID: ' . $expense_type_id . ' with args:', $args);
-
-        $expense_type_id = intval($expense_type_id);
-        if ( $expense_type_id <= 0 ) {
-            return new WP_Error('invalid_expense_type_id', 'Invalid Expense Type ID provided for update.');
-        }
-
-        $data = array();
-        $formats = array();
-
-        if ( isset( $args['type_name'] ) ) {
-            $new_type_name = sanitize_text_field($args['type_name']);
-            $existing_type = $wpdb->get_var( $wpdb->prepare(
-                "SELECT expense_type_id FROM " . self::$expense_types_table . " WHERE type_name = %s AND expense_type_id != %d",
-                $new_type_name, $expense_type_id
-            ) );
-            if ( $existing_type ) {
-                return new WP_Error('expense_type_name_exists', 'This Expense Type Name is already assigned to another type.');
-            }
-            $data['type_name'] = $new_type_name;
-            $formats[] = '%s';
-        }
-        if ( array_key_exists('default_unit', $args) ) { $data['default_unit'] = sanitize_text_field( $args['default_unit'] ); $formats[] = '%s'; }
-        if ( isset( $args['is_active'] ) ) { $data['is_active'] = intval( $args['is_active'] ); $formats[] = '%d'; }
-
-        if ( empty($data) ) {
-            oo_log('No data provided to update for expense type ID: ' . $expense_type_id, __METHOD__);
-            return new WP_Error('no_data_to_update', 'No data provided to update expense type.');
-        }
-
-        $data['updated_at'] = current_time('mysql', 1);
-        $formats[] = '%s';
-
-        $result = $wpdb->update( self::$expense_types_table, $data, array( 'expense_type_id' => $expense_type_id ), $formats, array('%d') );
-
-        if ( $result === false ) {
-            oo_log('Error updating expense type ID ' . $expense_type_id . ': ' . $wpdb->last_error, array('data' => $data));
-            return new WP_Error('db_update_error', 'Could not update expense type: ' . $wpdb->last_error);
-        }
-        oo_log('Expense type updated successfully. ID: ' . $expense_type_id, __METHOD__);
-        return true;
-    }
-
-    /**
-     * Toggle the active status of an expense type.
-     * @param int $expense_type_id
-     * @param bool $is_active
-     * @return bool|WP_Error True on success, WP_Error on failure.
-     */
-    public static function toggle_expense_type_status( $expense_type_id, $is_active ) {
-        oo_log('Toggling expense type status for ID: ' . $expense_type_id . ' to ' . $is_active, __METHOD__);
-        self::init(); global $wpdb;
-        $result = $wpdb->update(
-            self::$expense_types_table, 
-            array( 'is_active' => intval($is_active), 'updated_at' => current_time('mysql', 1) ), 
-            array( 'expense_type_id' => intval($expense_type_id) ), 
-            array( '%d', '%s' ), 
-            array( '%d' )
-        );
-        if ($result === false) {
-            $error = new WP_Error('db_error', 'Could not update expense type status. Error: ' . $wpdb->last_error);
-            oo_log('Error toggling expense type status: DB update failed. ' . $wpdb->last_error, $error);
-            return $error;
-        }
-        oo_log('Expense type status toggled successfully for ID: ' . $expense_type_id, __METHOD__);
-        return true;
-    }
-
     /**
      * Delete an expense type.
      * Note: Foreign key to oo_expenses is ON DELETE RESTRICT.
@@ -3259,6 +3039,126 @@ class OO_DB { // Renamed class
             ) 
         );
         return self::get_expenses( $args );
+    }
+
+    // --- Company CRUD Methods ---
+
+    public static function add_company( $args ) {
+        self::init();
+        global $wpdb;
+
+        if ( empty( $args['name'] ) ) {
+            return new WP_Error('missing_name', 'Company Name is required.');
+        }
+
+        $data = array(
+            'name' => sanitize_text_field( $args['name'] ),
+            'address' => isset($args['address']) ? sanitize_text_field( $args['address'] ) : null,
+            'city' => isset($args['city']) ? sanitize_text_field( $args['city'] ) : null,
+            'province' => isset($args['province']) ? sanitize_text_field( $args['province'] ) : null,
+            'postal_code' => isset($args['postal_code']) ? sanitize_text_field( $args['postal_code'] ) : null,
+            'phone_numbers' => isset($args['phone_numbers']) ? sanitize_text_field( $args['phone_numbers'] ) : null,
+            'created_at' => current_time('mysql', 1),
+            'updated_at' => current_time('mysql', 1)
+        );
+
+        $result = $wpdb->insert(self::$companies_table, $data);
+
+        if ($result === false) {
+            return new WP_Error('db_error', 'Could not add company. Error: ' . $wpdb->last_error);
+        }
+        return $wpdb->insert_id;
+    }
+
+    public static function get_company( $company_id ) {
+        self::init();
+        global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$companies_table . " WHERE company_id = %d", $company_id ) );
+    }
+
+    public static function get_companies( $args = array() ) {
+        self::init();
+        global $wpdb;
+        $defaults = array('orderby' => 'name', 'order' => 'ASC', 'search' => '', 'number' => -1, 'offset' => 0);
+        $args = wp_parse_args($args, $defaults);
+        $sql = "SELECT * FROM " . self::$companies_table;
+        
+        $where_clauses = array();
+        if (!empty($args['search'])) {
+            $search_term = '%' . $wpdb->esc_like($args['search']) . '%';
+            $where_clauses[] = $wpdb->prepare("name LIKE %s", $search_term);
+        }
+
+        if (!empty($where_clauses)) {
+            $sql .= " WHERE " . implode(' AND ', $where_clauses);
+        }
+
+        $sql .= " ORDER BY " . sanitize_sql_orderby($args['orderby'] . ' ' . $args['order']);
+
+        if ( $args['number'] > 0 ) {
+            $sql .= $wpdb->prepare( " LIMIT %d OFFSET %d", $args['number'], $args['offset'] );
+        }
+
+        return $wpdb->get_results( $sql );
+    }
+
+    // --- Customer CRUD Methods ---
+
+    public static function add_customer( $args ) {
+        self::init();
+        global $wpdb;
+
+        if ( empty( $args['name'] ) ) {
+            return new WP_Error('missing_name', 'Customer Name is required.');
+        }
+
+        $data = array(
+            'name' => sanitize_text_field( $args['name'] ),
+            'email' => isset($args['email']) ? sanitize_email( $args['email'] ) : null,
+            'phone' => isset($args['phone']) ? sanitize_text_field( $args['phone'] ) : null,
+            'company_id' => isset($args['company_id']) ? intval( $args['company_id'] ) : null,
+            'created_at' => current_time('mysql', 1),
+            'updated_at' => current_time('mysql', 1)
+        );
+
+        $result = $wpdb->insert(self::$customers_table, $data);
+
+        if ($result === false) {
+            return new WP_Error('db_error', 'Could not add customer. Error: ' . $wpdb->last_error);
+        }
+        return $wpdb->insert_id;
+    }
+
+    public static function get_customer( $customer_id ) {
+        self::init();
+        global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$customers_table . " WHERE customer_id = %d", $customer_id ) );
+    }
+
+    public static function get_customers( $args = array() ) {
+        self::init();
+        global $wpdb;
+        $defaults = array('orderby' => 'name', 'order' => 'ASC', 'search' => '', 'number' => -1, 'offset' => 0);
+        $args = wp_parse_args($args, $defaults);
+        $sql = "SELECT * FROM " . self::$customers_table;
+
+        $where_clauses = array();
+        if (!empty($args['search'])) {
+            $search_term = '%' . $wpdb->esc_like($args['search']) . '%';
+            $where_clauses[] = $wpdb->prepare("name LIKE %s OR email LIKE %s", $search_term, $search_term);
+        }
+
+        if (!empty($where_clauses)) {
+            $sql .= " WHERE " . implode(' AND ', $where_clauses);
+        }
+
+        $sql .= " ORDER BY " . sanitize_sql_orderby($args['orderby'] . ' ' . $args['order']);
+        
+        if ( $args['number'] > 0 ) {
+            $sql .= $wpdb->prepare( " LIMIT %d OFFSET %d", $args['number'], $args['offset'] );
+        }
+
+        return $wpdb->get_results( $sql );
     }
 
     // --- Stream-Specific Data CRUD Methods ---
