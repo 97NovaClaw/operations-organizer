@@ -757,4 +757,190 @@
     .oo-notification-content {
         min-width: auto;
     }
+}
+
+/* Modern Form Layout - Inspired by Phase Dashboard */
+.oo-form-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.oo-section-title {
+    margin: 0 0 20px 0;
+    padding: 0 0 10px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.oo-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+.oo-form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.oo-form-field-full {
+    grid-column: 1 / -1;
+}
+
+.oo-form-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #1d2327;
+    font-size: 14px;
+}
+
+.oo-form-field .regular-text {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.5;
+    transition: border-color 0.15s ease;
+}
+
+.oo-form-field .regular-text:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+    outline: none;
+}
+
+.oo-form-field textarea.regular-text {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.oo-form-field .description {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #646970;
+    font-style: italic;
+}
+
+.oo-form-field .required {
+    color: #d63638;
+    font-weight: bold;
+}
+
+/* Checkbox Group Styling */
+.oo-checkbox-group {
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+.oo-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.oo-checkbox-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border: 1px solid #e1e4e7;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.oo-checkbox-item:hover {
+    background: #e7f3ff;
+    border-color: #2271b1;
+}
+
+.oo-checkbox-item input[type="checkbox"] {
+    margin: 0 8px 0 0;
+}
+
+.oo-checkbox-item input[type="checkbox"]:checked + .oo-checkbox-label {
+    font-weight: 600;
+    color: #2271b1;
+}
+
+.oo-checkbox-label {
+    font-size: 14px;
+    color: #1d2327;
+    user-select: none;
+}
+
+/* Form Actions */
+.oo-form-actions {
+    background: #f8f9fa;
+    border: 1px solid #e1e4e7;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.oo-form-actions .button-large {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    min-width: 180px;
+}
+
+/* Customer Autocomplete Integration */
+.oo-customer-autocomplete-container {
+    position: relative;
+}
+
+.oo-customer-autocomplete-container .regular-text {
+    margin-bottom: 5px;
+}
+
+/* Responsive Form Layout */
+@media (max-width: 1200px) {
+    .oo-form-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+    }
+}
+
+@media (max-width: 782px) {
+    .oo-form-section {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .oo-form-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .oo-section-title {
+        font-size: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .oo-checkbox-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .oo-form-actions {
+        padding: 15px;
+    }
+    
+    .oo-form-actions .button-large {
+        width: 100%;
+        padding: 12px 20px;
+    }
 } 

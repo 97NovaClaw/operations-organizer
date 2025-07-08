@@ -24,92 +24,109 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
     <?php endif; ?>
 
     <div class="oo-add-job-form-container">
-        <h2><?php esc_html_e( 'Add New Job', 'operations-organizer' ); ?></h2>
-        <form method="post" class="oo-add-job-form">
-            <?php wp_nonce_field( 'oo_add_job_nonce', 'oo_add_job_nonce' ); ?>
-            <table class="form-table">
-                <tr>
-                    <th scope="row"><label for="job_number"><?php esc_html_e( 'Job Number', 'operations-organizer' ); ?> <span class="required">*</span></label></th>
-                    <td><input type="text" id="job_number" name="job_number" required /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="claim_number"><?php esc_html_e( 'Claim Number', 'operations-organizer' ); ?></label></th>
-                    <td><input type="text" id="claim_number" name="claim_number" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="start_date"><?php esc_html_e( 'Start Date', 'operations-organizer' ); ?></label></th>
-                    <td><input type="date" id="start_date" name="start_date" value="<?php echo esc_attr(current_time('Y-m-d')); ?>" /></td>
-                </tr>
-                <tr>
-                    <th scope="row" colspan="2"><h3><?php esc_html_e( 'Job Address', 'operations-organizer' ); ?></h3></th>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="address"><?php esc_html_e( 'Address', 'operations-organizer' ); ?></label></th>
-                    <td><input type="text" id="address" name="address" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="city"><?php esc_html_e( 'City', 'operations-organizer' ); ?></label></th>
-                    <td><input type="text" id="city" name="city" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="province"><?php esc_html_e( 'Province', 'operations-organizer' ); ?></label></th>
-                    <td><input type="text" id="province" name="province" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="postal_code"><?php esc_html_e( 'Postal Code', 'operations-organizer' ); ?></label></th>
-                    <td><input type="text" id="postal_code" name="postal_code" /></td>
-                </tr>
-                <tr>
-                    <th scope="row" colspan="2"><h3><?php esc_html_e( 'Client Information', 'operations-organizer' ); ?></h3></th>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="client_name"><?php esc_html_e( 'Client Name', 'operations-organizer' ); ?></label></th>
-                    <td><input type="text" id="client_name" name="client_name" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="client_phone"><?php esc_html_e( 'Client Phone Number(s)', 'operations-organizer' ); ?></label></th>
-                    <td><input type="text" id="client_phone" name="client_phone" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="client_email"><?php esc_html_e( 'Client Email(s)', 'operations-organizer' ); ?></label></th>
-                    <td><input type="email" id="client_email" name="client_email" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="customer_name"><?php esc_html_e( 'Customer', 'operations-organizer' ); ?></label></th>
-                    <td>
-                        <div class="oo-customer-autocomplete-container">
-                            <input type="text" id="customer_name" name="customer_name" placeholder="<?php esc_attr_e( 'Type customer name...', 'operations-organizer' ); ?>" autocomplete="off" />
-                            <input type="hidden" id="customer_id" name="customer_id" value="" />
-                            <div id="customer_suggestions" class="oo-autocomplete-suggestions" style="display: none;"></div>
-                            <button type="button" id="add_new_customer_btn" class="button button-secondary" style="margin-top: 5px;"><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></button>
+        <div class="oo-dashboard-section">
+            <h2><?php esc_html_e( 'Add New Job', 'operations-organizer' ); ?></h2>
+            <form method="post" class="oo-add-job-form">
+                <?php wp_nonce_field( 'oo_add_job_nonce', 'oo_add_job_nonce' ); ?>
+                
+                <!-- Job Details Section -->
+                <div class="oo-form-section">
+                    <h3 class="oo-section-title"><?php esc_html_e( 'Job Details', 'operations-organizer' ); ?></h3>
+                    <div class="oo-form-grid">
+                        <div class="oo-form-field">
+                            <label for="job_number"><?php esc_html_e( 'Job Number', 'operations-organizer' ); ?> <span class="required">*</span></label>
+                            <input type="text" id="job_number" name="job_number" required class="regular-text" />
                         </div>
-                        <p class="description"><?php esc_html_e( 'Start typing to search existing customers or click "Add New Customer" to create one.', 'operations-organizer' ); ?></p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="client_contact"><?php esc_html_e( 'Additional Client Contact Info', 'operations-organizer' ); ?></label></th>
-                    <td><textarea id="client_contact" name="client_contact" rows="2" placeholder="<?php esc_attr_e( 'Any additional contact information or notes about the client', 'operations-organizer' ); ?>"></textarea></td>
-                </tr>
+                        <div class="oo-form-field">
+                            <label for="claim_number"><?php esc_html_e( 'Claim Number', 'operations-organizer' ); ?></label>
+                            <input type="text" id="claim_number" name="claim_number" class="regular-text" />
+                        </div>
+                        <div class="oo-form-field">
+                            <label for="start_date"><?php esc_html_e( 'Start Date', 'operations-organizer' ); ?></label>
+                            <input type="date" id="start_date" name="start_date" value="<?php echo esc_attr(current_time('Y-m-d')); ?>" class="regular-text" />
+                        </div>
+                    </div>
+                </div>
 
-                <tr>
-                    <th scope="row"><?php esc_html_e( 'Job Streams', 'operations-organizer' ); ?></th>
-                    <td>
-                        <fieldset>
+                <!-- Job Address Section -->
+                <div class="oo-form-section">
+                    <h3 class="oo-section-title"><?php esc_html_e( 'Job Address', 'operations-organizer' ); ?></h3>
+                    <div class="oo-form-grid">
+                        <div class="oo-form-field oo-form-field-full">
+                            <label for="address"><?php esc_html_e( 'Address', 'operations-organizer' ); ?></label>
+                            <input type="text" id="address" name="address" class="regular-text" />
+                        </div>
+                        <div class="oo-form-field">
+                            <label for="city"><?php esc_html_e( 'City', 'operations-organizer' ); ?></label>
+                            <input type="text" id="city" name="city" class="regular-text" />
+                        </div>
+                        <div class="oo-form-field">
+                            <label for="province"><?php esc_html_e( 'Province', 'operations-organizer' ); ?></label>
+                            <input type="text" id="province" name="province" class="regular-text" />
+                        </div>
+                        <div class="oo-form-field">
+                            <label for="postal_code"><?php esc_html_e( 'Postal Code', 'operations-organizer' ); ?></label>
+                            <input type="text" id="postal_code" name="postal_code" class="regular-text" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Client Information Section -->
+                <div class="oo-form-section">
+                    <h3 class="oo-section-title"><?php esc_html_e( 'Client Information', 'operations-organizer' ); ?></h3>
+                    <div class="oo-form-grid">
+                        <div class="oo-form-field">
+                            <label for="client_name"><?php esc_html_e( 'Client Name', 'operations-organizer' ); ?></label>
+                            <input type="text" id="client_name" name="client_name" class="regular-text" />
+                        </div>
+                        <div class="oo-form-field">
+                            <label for="client_phone"><?php esc_html_e( 'Client Phone Number(s)', 'operations-organizer' ); ?></label>
+                            <input type="text" id="client_phone" name="client_phone" class="regular-text" />
+                        </div>
+                        <div class="oo-form-field">
+                            <label for="client_email"><?php esc_html_e( 'Client Email(s)', 'operations-organizer' ); ?></label>
+                            <input type="email" id="client_email" name="client_email" class="regular-text" />
+                        </div>
+                        <div class="oo-form-field">
+                            <label for="customer_name"><?php esc_html_e( 'Customer', 'operations-organizer' ); ?></label>
+                            <div class="oo-customer-autocomplete-container">
+                                <input type="text" id="customer_name" name="customer_name" placeholder="<?php esc_attr_e( 'Type customer name...', 'operations-organizer' ); ?>" autocomplete="off" class="regular-text" />
+                                <input type="hidden" id="customer_id" name="customer_id" value="" />
+                                <div id="customer_suggestions" class="oo-autocomplete-suggestions" style="display: none;"></div>
+                                <button type="button" id="add_new_customer_btn" class="button button-secondary" style="margin-top: 5px;"><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></button>
+                            </div>
+                            <p class="description"><?php esc_html_e( 'Start typing to search existing customers or click "Add New Customer" to create one.', 'operations-organizer' ); ?></p>
+                        </div>
+                        <div class="oo-form-field oo-form-field-full">
+                            <label for="client_contact"><?php esc_html_e( 'Additional Client Contact Info', 'operations-organizer' ); ?></label>
+                            <textarea id="client_contact" name="client_contact" rows="2" placeholder="<?php esc_attr_e( 'Any additional contact information or notes about the client', 'operations-organizer' ); ?>" class="regular-text"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Job Streams Section -->
+                <div class="oo-form-section">
+                    <h3 class="oo-section-title"><?php esc_html_e( 'Job Streams', 'operations-organizer' ); ?></h3>
+                    <div class="oo-form-field">
+                        <fieldset class="oo-checkbox-group">
                             <legend class="screen-reader-text"><?php esc_html_e( 'Select streams for this job', 'operations-organizer' ); ?></legend>
-                            <?php foreach ($GLOBALS['streams'] as $stream): ?>
-                            <label for="stream_<?php echo esc_attr($stream->stream_id); ?>">
-                                <input type="checkbox" id="stream_<?php echo esc_attr($stream->stream_id); ?>" name="stream_<?php echo esc_attr($stream->stream_id); ?>" value="1" />
-                                <?php echo esc_html($stream->stream_name); ?>
-                            </label><br />
-                            <?php endforeach; ?>
+                            <div class="oo-checkbox-grid">
+                                <?php foreach ($GLOBALS['streams'] as $stream): ?>
+                                <label class="oo-checkbox-item">
+                                    <input type="checkbox" id="stream_<?php echo esc_attr($stream->stream_id); ?>" name="stream_<?php echo esc_attr($stream->stream_id); ?>" value="1" />
+                                    <span class="oo-checkbox-label"><?php echo esc_html($stream->stream_name); ?></span>
+                                </label>
+                                <?php endforeach; ?>
+                            </div>
                         </fieldset>
-                    </td>
-                </tr>
-            </table>
-            <p class="submit">
-                <input type="submit" name="submit_add_job" id="submit_add_job" class="button button-primary" value="<?php esc_attr_e( 'Add Job', 'operations-organizer' ); ?>" />
-            </p>
-        </form>
+                    </div>
+                </div>
+
+                <div class="oo-form-actions">
+                    <input type="submit" name="submit_add_job" id="submit_add_job" class="button button-primary button-large" value="<?php esc_attr_e( 'Add Job', 'operations-organizer' ); ?>" />
+                </div>
+            </form>
+        </div>
     </div>
 
     <h2><?php esc_html_e( 'Jobs List', 'operations-organizer' ); ?></h2>
