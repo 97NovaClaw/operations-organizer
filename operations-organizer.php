@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.1.03
+ * Version:           1.5.1.04
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.1.03' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.1.04' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -99,6 +99,9 @@ if ( is_admin() ) {
         }
 
         if ( $is_oo_page ) {
+            // Debug logging for script loading
+            error_log('[OO_DEBUG] Script loading for page: ' . $hook_suffix . ' | Query param: ' . (isset($_GET['page']) ? $_GET['page'] : 'none'));
+            
             wp_enqueue_style( 'oo-admin-styles', OO_PLUGIN_URL . 'admin/css/admin-styles.css', array(), OO_PLUGIN_VERSION );
             wp_enqueue_script( 'oo-admin-scripts', OO_PLUGIN_URL . 'admin/js/admin-scripts.js', array( 'jquery', 'jquery-ui-datepicker' ), OO_PLUGIN_VERSION, true );
             
@@ -224,7 +227,8 @@ if ( is_admin() ) {
                 wp_localize_script( 'oo-stream-dashboard-script', 'oo_data', $localized_data );
             } else {
                  // Localize the main admin scripts if not on a stream page
-            wp_localize_script( 'oo-admin-scripts', 'oo_data', $localized_data );
+                error_log('[OO_DEBUG] Localizing oo_data to oo-admin-scripts for non-stream page');
+                wp_localize_script( 'oo-admin-scripts', 'oo_data', $localized_data );
             }
 
             wp_enqueue_script('datatables', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', array('jquery'), '1.13.6', true);

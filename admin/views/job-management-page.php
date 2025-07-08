@@ -257,6 +257,7 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
 
 <script type="text/javascript">
 console.log('🚀 [CUSTOMER AUTOCOMPLETE DEBUG] Script starting to load...');
+console.log('🚀 [CUSTOMER AUTOCOMPLETE DEBUG] Current URL:', window.location.href);
 
 jQuery(document).ready(function($) {
     console.log('🎯 [CUSTOMER AUTOCOMPLETE DEBUG] jQuery ready fired!');
