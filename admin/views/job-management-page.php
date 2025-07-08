@@ -121,11 +121,22 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                     <div class="oo-form-grid">
                         <div class="oo-form-field">
                             <label for="customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?></label>
-                            <div class="oo-customer-autocomplete-container">
-                                <input type="text" id="customer_name" name="customer_name" placeholder="<?php esc_attr_e( 'Type customer name...', 'operations-organizer' ); ?>" autocomplete="off" class="regular-text" />
-                                <input type="hidden" id="customer_id" name="customer_id" value="" />
-                                <div id="customer_suggestions" class="oo-autocomplete-suggestions" style="display: none;"></div>
-                            </div>
+                            <?php
+                            // Use our new autocomplete component for customer selection
+                            echo oo_get_autocomplete_html(array(
+                                'input_id'              => 'customer_name',
+                                'input_name'            => 'customer_name',
+                                'placeholder'           => 'Type customer name...',
+                                'ajax_action'           => 'oo_search_customers',
+                                'render_item_callback'  => 'renderCustomerItem',
+                                'on_select_callback'    => 'onCustomerSelect',
+                                'on_add_new_callback'   => 'onAddNewCustomer',
+                                'nonce'                 => wp_create_nonce('oo_search_customers_nonce'),
+                                'add_new_text'          => 'Add New Customer',
+                                'hidden_field_id'       => 'customer_id',
+                                'hidden_field_name'     => 'customer_id'
+                            ));
+                            ?>
                             <p class="description"><?php esc_html_e( 'Start typing to search existing customers or select "Add New Customer" from the dropdown.', 'operations-organizer' ); ?></p>
                         </div>
                     </div>
@@ -291,10 +302,27 @@ jQuery(document).ready(function($) {
         // For now, just alert - this would open a company creation modal
         alert('Add New Company functionality will be implemented next. Search term: ' + searchTerm);
     };
-    // Initialize customer autocomplete functionality
-    const $customerInput = $('#customer_name');
-    const $suggestionsContainer = $('#customer_suggestions');
-
+    
+    /**
+     * Handle customer selection in the main form
+     */
+    window.OO_Autocomplete_Callbacks.onCustomerSelect = function(customer, $input) {
+        // Set the hidden field value
+        $('#customer_id').val(customer.id);
+        // Set the display name in the input
+        $input.val(customer.name);
+        console.log('Customer selected:', customer);
+    };
+    
+    /**
+     * Handle "Add New Customer" action
+     */
+    window.OO_Autocomplete_Callbacks.onAddNewCustomer = function(searchTerm, $input) {
+        // Open the customer modal with the search term pre-filled
+        $('#modal_customer_name').val(searchTerm);
+        $('#customerModal').show();
+        $('#modal_customer_name').focus();
+    };
     // Edit job button functionality
     $('.oo-edit-job-button').on('click', function() {
         var jobId = $(this).data('job-id');
@@ -340,186 +368,14 @@ jQuery(document).ready(function($) {
         });
     }
 
-    // Customer autocomplete functionality
-    let searchTimeout;
-    let selectedCustomerIndex = -1;
-    
-    $('#customer_name').on('input', function() {
-        const searchTerm = $(this).val();
-        const $suggestions = $('#customer_suggestions');
-        
-        if (searchTerm.length < 2) {
-            $suggestions.hide().empty();
-            $('#customer_id').val('');
-            return;
-        }
-        
-        clearTimeout(searchTimeout);
-        
-        // Show loading state
-        $suggestions.empty()
-            .addClass('loading')
-            .html('<div class="oo-autocomplete-suggestion" style="text-align: center; padding: 20px;">🔍 Searching customers...</div>')
-            .show();
-        
-        searchTimeout = setTimeout(function() {
-            // Check if oo_data is available
-            if (typeof oo_data === 'undefined') {
-                $suggestions.removeClass('loading')
-                    .empty()
-                    .html('<div class="oo-autocomplete-suggestion no-results">Configuration error. Please refresh the page.</div>')
-                    .show();
-                return;
-            }
-
-            $.post(oo_data.ajax_url, {
-                action: 'oo_search_customers',
-                nonce: oo_data.nonce_search_customers,
-                search: searchTerm
-            })
-            .done(function(response) {
-                $suggestions.removeClass('loading');
-                if (response.success) {
-                    displayCustomerSuggestions(response.data.customers);
-                } else {
-                    $suggestions.empty()
-                        .html('<div class="oo-autocomplete-suggestion no-results">Search failed. Please try again.</div>')
-                        .show();
-                }
-            })
-            .fail(function() {
-                $suggestions.removeClass('loading')
-                    .empty()
-                    .html('<div class="oo-autocomplete-suggestion no-results">Search failed. Please try again.</div>')
-                    .show();
-            });
-        }, 300);
-    });
-
-    function displayCustomerSuggestions(customers) {
-        const $suggestions = $('#customer_suggestions');
-        $suggestions.empty();
-        selectedCustomerIndex = -1;
-        
-        if (customers.length === 0) {
-            // Show no results message
-            const $noResults = $('<div>')
-                .addClass('oo-autocomplete-suggestion no-results')
-                .html('No customers found.');
-            $suggestions.append($noResults);
-        } else {
-            // Show existing customers
-            customers.forEach(function(customer, index) {
-                // Generate customer initials for icon
-                const initials = customer.name.split(' ')
-                    .map(word => word.charAt(0).toUpperCase())
-                    .slice(0, 2)
-                    .join('');
-                
-                // Build customer info string
-                let customerInfo = [];
-                if (customer.email) customerInfo.push(customer.email);
-                if (customer.phone) customerInfo.push(customer.phone);
-                if (customer.company_name) customerInfo.push(customer.company_name);
-                
-                const $suggestion = $('<div>')
-                    .addClass('oo-autocomplete-suggestion')
-                    .attr('data-index', index)
-                    .attr('data-customer-id', customer.id)
-                    .html(
-                        '<div class="customer-icon">' + initials + '</div>' +
-                        '<div class="customer-details">' +
-                            '<div class="customer-name">' + customer.name + '</div>' +
-                            (customerInfo.length > 0 ? '<div class="oo-customer-info">' + customerInfo.join(' • ') + '</div>' : '') +
-                        '</div>'
-                    );
-                
-                $suggestion.on('click', function() {
-                    selectCustomer(customer);
-                });
-                
-                $suggestions.append($suggestion);
-            });
-        }
-        
-        // ALWAYS add "Add New Customer" option at the bottom when search term is 2+ characters
-        const currentSearch = $('#customer_name').val();
-        if (currentSearch.length >= 2) {
-            const $addNew = $('<div>')
-                .addClass('oo-autocomplete-suggestion add-new-customer')
-                .html(
-                    '<div class="customer-icon">+</div>' +
-                    '<div class="customer-details">' +
-                        '<div class="customer-name">Add New Customer</div>' +
-                        '<div class="oo-customer-info">Create "' + currentSearch + '" as a new customer</div>' +
-                    '</div>'
-                );
-            
-            $addNew.on('click', function() {
-                $('#customer_suggestions').hide();
-                $('#modal_customer_name').val(currentSearch);
-                $('#customerModal').show();
-                $('#modal_customer_name').focus();
-            });
-            
-            $suggestions.append($addNew);
-        }
-        
-        $suggestions.show();
-    }
-    
-    function selectCustomer(customer) {
-        $('#customer_name').val(customer.name);
-        $('#customer_id').val(customer.id);
-        $('#customer_suggestions').hide();
-        selectedCustomerIndex = -1;
-    }
-    
-    // Keyboard navigation for suggestions
-    $('#customer_name').on('keydown', function(e) {
-        const $suggestions = $('#customer_suggestions .oo-autocomplete-suggestion');
-        
-        if ($suggestions.length === 0) return;
-        
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            selectedCustomerIndex = Math.min(selectedCustomerIndex + 1, $suggestions.length - 1);
-            updateSelectedSuggestion();
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            selectedCustomerIndex = Math.max(selectedCustomerIndex - 1, -1);
-            updateSelectedSuggestion();
-        } else if (e.key === 'Enter' && selectedCustomerIndex >= 0) {
-            e.preventDefault();
-            const customerId = $suggestions.eq(selectedCustomerIndex).attr('data-customer-id');
-            const customerName = $suggestions.eq(selectedCustomerIndex).find('strong').text();
-            selectCustomer({id: customerId, name: customerName});
-        } else if (e.key === 'Escape') {
-            $('#customer_suggestions').hide();
-            selectedCustomerIndex = -1;
-        }
-    });
-    
-    function updateSelectedSuggestion() {
-        const $suggestions = $('#customer_suggestions .oo-autocomplete-suggestion');
-        $suggestions.removeClass('selected');
-        if (selectedCustomerIndex >= 0) {
-            $suggestions.eq(selectedCustomerIndex).addClass('selected');
-        }
-    }
-    
-    // Hide suggestions when clicking outside
-    $(document).on('click', function(e) {
-        if (!$(e.target).closest('.oo-customer-autocomplete-container').length) {
-            $('#customer_suggestions').hide();
-        }
-    });
-    
-    // Modal functionality is now handled through the dropdown "Add New Customer" option
+    // Modal functionality
     
     $('.oo-modal-close, .oo-modal-cancel').on('click', function() {
         $('#customerModal').hide();
         $('#addCustomerForm')[0].reset();
+        // Clear company autocomplete fields
+        $('#modal_customer_company').val('');
+        $('#selected_company_id').val('');
     });
     
     // Close modal when clicking outside
@@ -527,6 +383,9 @@ jQuery(document).ready(function($) {
         if (e.target === this) {
             $(this).hide();
             $('#addCustomerForm')[0].reset();
+            // Clear company autocomplete fields
+            $('#modal_customer_company').val('');
+            $('#selected_company_id').val('');
         }
     });
     
@@ -546,16 +405,19 @@ jQuery(document).ready(function($) {
             name: $('#modal_customer_name').val(),
             email: $('#modal_customer_email').val(),
             phone: $('#modal_customer_phone').val(),
-            company_id: $('#modal_customer_company').val()
+            company_id: $('#selected_company_id').val()
         };
         
         $.post(oo_data.ajax_url, formData)
         .done(function(response) {
             if (response.success) {
-                // Select the newly created customer
-                selectCustomer(response.data.customer);
+                // Select the newly created customer using our callback
+                window.OO_Autocomplete_Callbacks.onCustomerSelect(response.data.customer, $('#customer_name'));
                 $('#customerModal').hide();
                 $('#addCustomerForm')[0].reset();
+                // Also clear the company autocomplete fields
+                $('#modal_customer_company').val('');
+                $('#selected_company_id').val('');
                 
                 // Show success notification with better styling
                 showSuccessNotification(response.data.message);
