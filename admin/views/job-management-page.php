@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
-global $jobs, $total_jobs, $current_page, $per_page, $search_term, $status_filter;
+global $jobs, $total_jobs, $current_page, $per_page, $search_term;
 
 ?>
 <div class="wrap oo-job-management-page">
@@ -75,43 +75,22 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term, $status_filte
                     <td><input type="email" id="client_email" name="client_email" /></td>
                 </tr>
                 <tr>
-                    <th scope="row"><label for="customer_id"><?php esc_html_e( 'Customer', 'operations-organizer' ); ?></label></th>
+                    <th scope="row"><label for="customer_name"><?php esc_html_e( 'Customer', 'operations-organizer' ); ?></label></th>
                     <td>
-                        <select id="customer_id" name="customer_id">
-                            <option value=""><?php esc_html_e( 'Select Customer', 'operations-organizer' ); ?></option>
-                            <?php
-                            $customers = OO_DB::get_customers(array('orderby' => 'name', 'order' => 'ASC'));
-                            foreach ($customers as $customer) {
-                                echo '<option value="' . esc_attr($customer->customer_id) . '">' . esc_html($customer->name) . '</option>';
-                            }
-                            ?>
-                        </select>
-                        <p class="description"><?php esc_html_e( 'Select an existing customer or leave blank if this is a new customer.', 'operations-organizer' ); ?></p>
+                        <div class="oo-customer-autocomplete-container">
+                            <input type="text" id="customer_name" name="customer_name" placeholder="<?php esc_attr_e( 'Type customer name...', 'operations-organizer' ); ?>" autocomplete="off" />
+                            <input type="hidden" id="customer_id" name="customer_id" value="" />
+                            <div id="customer_suggestions" class="oo-autocomplete-suggestions" style="display: none;"></div>
+                            <button type="button" id="add_new_customer_btn" class="button button-secondary" style="margin-top: 5px;"><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></button>
+                        </div>
+                        <p class="description"><?php esc_html_e( 'Start typing to search existing customers or click "Add New Customer" to create one.', 'operations-organizer' ); ?></p>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row"><label for="client_contact"><?php esc_html_e( 'Additional Client Contact Info', 'operations-organizer' ); ?></label></th>
                     <td><textarea id="client_contact" name="client_contact" rows="2" placeholder="<?php esc_attr_e( 'Any additional contact information or notes about the client', 'operations-organizer' ); ?>"></textarea></td>
                 </tr>
-                <tr>
-                    <th scope="row"><label for="due_date"><?php esc_html_e( 'Due Date', 'operations-organizer' ); ?></label></th>
-                    <td><input type="date" id="due_date" name="due_date" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="overall_status"><?php esc_html_e( 'Status', 'operations-organizer' ); ?></label></th>
-                    <td>
-                        <select id="overall_status" name="overall_status">
-                            <option value="Pending"><?php esc_html_e( 'Pending', 'operations-organizer' ); ?></option>
-                            <option value="In Progress"><?php esc_html_e( 'In Progress', 'operations-organizer' ); ?></option>
-                            <option value="Completed"><?php esc_html_e( 'Completed', 'operations-organizer' ); ?></option>
-                            <option value="Cancelled"><?php esc_html_e( 'Cancelled', 'operations-organizer' ); ?></option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="notes"><?php esc_html_e( 'Notes', 'operations-organizer' ); ?></label></th>
-                    <td><textarea id="notes" name="notes" rows="3"></textarea></td>
-                </tr>
+
                 <tr>
                     <th scope="row"><?php esc_html_e( 'Job Streams', 'operations-organizer' ); ?></th>
                     <td>
@@ -138,17 +117,6 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term, $status_filte
     <form method="get" class="oo-filters-form">
         <input type="hidden" name="page" value="oo_jobs" />
         <div class="wp-filter">
-            <div class="filter-items">
-                <label for="status_filter" class="screen-reader-text"><?php esc_html_e('Filter by status', 'operations-organizer');?></label>
-                <select name="status_filter" id="status_filter">
-                    <option value=""><?php esc_html_e('All Statuses', 'operations-organizer');?></option>
-                    <option value="Pending" <?php selected($status_filter, 'Pending'); ?>><?php esc_html_e('Pending', 'operations-organizer');?></option>
-                    <option value="In Progress" <?php selected($status_filter, 'In Progress'); ?>><?php esc_html_e('In Progress', 'operations-organizer');?></option>
-                    <option value="Completed" <?php selected($status_filter, 'Completed'); ?>><?php esc_html_e('Completed', 'operations-organizer');?></option>
-                    <option value="Cancelled" <?php selected($status_filter, 'Cancelled'); ?>><?php esc_html_e('Cancelled', 'operations-organizer');?></option>
-                </select>
-                <input type="submit" name="filter_action" class="button" value="<?php esc_attr_e('Filter', 'operations-organizer');?>">
-            </div>
             <p class="search-box">
                 <label class="screen-reader-text" for="job-search-input"><?php esc_html_e( 'Search Jobs:', 'operations-organizer' ); ?></label>
                 <input type="search" id="job-search-input" name="s" value="<?php echo esc_attr( $search_term ); ?>" placeholder="<?php esc_attr_e( 'Search jobs...', 'operations-organizer' ); ?>" />
@@ -164,8 +132,6 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term, $status_filte
                 <th scope="col"><?php esc_html_e( 'Job Number', 'operations-organizer' ); ?></th>
                 <th scope="col"><?php esc_html_e( 'Client', 'operations-organizer' ); ?></th>
                 <th scope="col"><?php esc_html_e( 'Start Date', 'operations-organizer' ); ?></th>
-                <th scope="col"><?php esc_html_e( 'Due Date', 'operations-organizer' ); ?></th>
-                <th scope="col"><?php esc_html_e( 'Status', 'operations-organizer' ); ?></th>
                 <th scope="col"><?php esc_html_e( 'Streams', 'operations-organizer' ); ?></th>
                 <th scope="col"><?php esc_html_e( 'Actions', 'operations-organizer' ); ?></th>
             </tr>
@@ -189,8 +155,6 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term, $status_filte
                         <td><?php echo esc_html( $job->job_number ); ?></td>
                         <td><?php echo esc_html( $job->client_name ); ?></td>
                         <td><?php echo $job->start_date ? esc_html( $job->start_date ) : '—'; ?></td>
-                        <td><?php echo $job->due_date ? esc_html( $job->due_date ) : '—'; ?></td>
-                        <td><?php echo esc_html( $job->overall_status ); ?></td>
                         <td><?php echo !empty($stream_names) ? implode(', ', $stream_names) : '—'; ?></td>
                         <td>
                             <a href="<?php echo esc_url( admin_url( 'admin.php?page=oo_dashboard&filter_job_number=' . urlencode( $job->job_number ) ) ); ?>" class="button button-secondary"><?php esc_html_e( 'View Logs', 'operations-organizer' ); ?></a>
@@ -200,7 +164,7 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term, $status_filte
                 <?php endforeach; ?>
             <?php else : ?>
                 <tr>
-                    <td colspan="7"><?php esc_html_e( 'No jobs found.', 'operations-organizer' ); ?></td>
+                    <td colspan="5"><?php esc_html_e( 'No jobs found.', 'operations-organizer' ); ?></td>
                 </tr>
             <?php endif; ?>
         </tbody>
@@ -227,12 +191,216 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term, $status_filte
     ?>
 </div>
 
+<!-- Customer Modal -->
+<div id="customerModal" class="oo-customer-modal">
+    <div class="oo-customer-modal-content">
+        <div class="oo-customer-modal-header">
+            <h2><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></h2>
+            <span class="oo-customer-modal-close">&times;</span>
+        </div>
+        <form id="addCustomerForm">
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><label for="modal_customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?> <span class="required">*</span></label></th>
+                    <td><input type="text" id="modal_customer_name" name="name" required /></td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="modal_customer_email"><?php esc_html_e( 'Email', 'operations-organizer' ); ?></label></th>
+                    <td><input type="email" id="modal_customer_email" name="email" /></td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="modal_customer_phone"><?php esc_html_e( 'Phone', 'operations-organizer' ); ?></label></th>
+                    <td><input type="text" id="modal_customer_phone" name="phone" /></td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="modal_customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label></th>
+                    <td>
+                        <select id="modal_customer_company" name="company_id">
+                            <option value=""><?php esc_html_e( 'Select Company', 'operations-organizer' ); ?></option>
+                            <?php
+                            $companies = OO_DB::get_companies(array('orderby' => 'name', 'order' => 'ASC'));
+                            foreach ($companies as $company) {
+                                echo '<option value="' . esc_attr($company->company_id) . '">' . esc_html($company->name) . '</option>';
+                            }
+                            ?>
+                        </select>
+                    </td>
+                </tr>
+            </table>
+            <p class="submit">
+                <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Customer', 'operations-organizer' ); ?></button>
+                <button type="button" class="button oo-customer-modal-close"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
+            </p>
+        </form>
+    </div>
+</div>
+
 <script type="text/javascript">
 jQuery(document).ready(function($) {
     // Edit job button functionality
     $('.oo-edit-job-button').on('click', function() {
         var jobId = $(this).data('job-id');
         alert('Job editing will open a detailed form with stream-specific fields for Soft Content, Electronics, Art, and Content data. This functionality will be implemented in the next update. Job ID: ' + jobId);
+    });
+
+    // Customer autocomplete functionality
+    let searchTimeout;
+    let selectedCustomerIndex = -1;
+    
+    $('#customer_name').on('input', function() {
+        const searchTerm = $(this).val();
+        const $suggestions = $('#customer_suggestions');
+        
+        if (searchTerm.length < 2) {
+            $suggestions.hide().empty();
+            $('#customer_id').val('');
+            return;
+        }
+        
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            $.post(oo_data.ajax_url, {
+                action: 'oo_search_customers',
+                nonce: oo_data.nonce_search_customers,
+                search: searchTerm
+            })
+            .done(function(response) {
+                if (response.success) {
+                    displayCustomerSuggestions(response.data.customers);
+                }
+            })
+            .fail(function() {
+                console.error('Customer search failed');
+            });
+        }, 300);
+    });
+
+    function displayCustomerSuggestions(customers) {
+        const $suggestions = $('#customer_suggestions');
+        $suggestions.empty();
+        selectedCustomerIndex = -1;
+        
+        if (customers.length === 0) {
+            $suggestions.hide();
+            return;
+        }
+        
+        customers.forEach(function(customer, index) {
+            const $suggestion = $('<div>')
+                .addClass('oo-autocomplete-suggestion')
+                .attr('data-index', index)
+                .attr('data-customer-id', customer.id)
+                .html('<strong>' + customer.display_name + '</strong><br><span class="oo-customer-info">' + 
+                      (customer.email ? customer.email : '') + 
+                      (customer.phone ? ' • ' + customer.phone : '') + '</span>');
+            
+            $suggestion.on('click', function() {
+                selectCustomer(customer);
+            });
+            
+            $suggestions.append($suggestion);
+        });
+        
+        $suggestions.show();
+    }
+    
+    function selectCustomer(customer) {
+        $('#customer_name').val(customer.name);
+        $('#customer_id').val(customer.id);
+        $('#customer_suggestions').hide();
+        selectedCustomerIndex = -1;
+    }
+    
+    // Keyboard navigation for suggestions
+    $('#customer_name').on('keydown', function(e) {
+        const $suggestions = $('#customer_suggestions .oo-autocomplete-suggestion');
+        
+        if ($suggestions.length === 0) return;
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedCustomerIndex = Math.min(selectedCustomerIndex + 1, $suggestions.length - 1);
+            updateSelectedSuggestion();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedCustomerIndex = Math.max(selectedCustomerIndex - 1, -1);
+            updateSelectedSuggestion();
+        } else if (e.key === 'Enter' && selectedCustomerIndex >= 0) {
+            e.preventDefault();
+            const customerId = $suggestions.eq(selectedCustomerIndex).attr('data-customer-id');
+            const customerName = $suggestions.eq(selectedCustomerIndex).find('strong').text();
+            selectCustomer({id: customerId, name: customerName});
+        } else if (e.key === 'Escape') {
+            $('#customer_suggestions').hide();
+            selectedCustomerIndex = -1;
+        }
+    });
+    
+    function updateSelectedSuggestion() {
+        const $suggestions = $('#customer_suggestions .oo-autocomplete-suggestion');
+        $suggestions.removeClass('selected');
+        if (selectedCustomerIndex >= 0) {
+            $suggestions.eq(selectedCustomerIndex).addClass('selected');
+        }
+    }
+    
+    // Hide suggestions when clicking outside
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.oo-customer-autocomplete-container').length) {
+            $('#customer_suggestions').hide();
+        }
+    });
+    
+    // Add new customer modal functionality
+    $('#add_new_customer_btn').on('click', function() {
+        $('#customerModal').show();
+        $('#modal_customer_name').focus();
+    });
+    
+    $('.oo-customer-modal-close').on('click', function() {
+        $('#customerModal').hide();
+        $('#addCustomerForm')[0].reset();
+    });
+    
+    // Close modal when clicking outside
+    $('#customerModal').on('click', function(e) {
+        if (e.target === this) {
+            $(this).hide();
+            $('#addCustomerForm')[0].reset();
+        }
+    });
+    
+    // Add customer form submission
+    $('#addCustomerForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            action: 'oo_add_customer',
+            nonce: oo_data.nonce_add_customer,
+            name: $('#modal_customer_name').val(),
+            email: $('#modal_customer_email').val(),
+            phone: $('#modal_customer_phone').val(),
+            company_id: $('#modal_customer_company').val()
+        };
+        
+        $.post(oo_data.ajax_url, formData)
+        .done(function(response) {
+            if (response.success) {
+                // Select the newly created customer
+                selectCustomer(response.data.customer);
+                $('#customerModal').hide();
+                $('#addCustomerForm')[0].reset();
+                
+                // Show success message
+                $('<div class="notice notice-success is-dismissible"><p>' + response.data.message + '</p></div>')
+                    .prependTo('.wrap').delay(3000).fadeOut();
+            } else {
+                alert('Error: ' + response.data.message);
+            }
+        })
+        .fail(function() {
+            alert('Error adding customer. Please try again.');
+        });
     });
 });
 </script> 

@@ -192,16 +192,11 @@ class OO_DB { // Renamed class
             province VARCHAR(100) NULL,
             postal_code VARCHAR(20) NULL,
             start_date DATE NULL,
-            due_date DATE NULL,
-            overall_status VARCHAR(50) NOT NULL DEFAULT 'Pending',
-            notes TEXT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (job_id),
             UNIQUE KEY uq_job_number (job_number),
-            KEY idx_customer_id (customer_id),
-            INDEX idx_overall_status (overall_status),
-            INDEX idx_due_date (due_date)
+            KEY idx_customer_id (customer_id)
         ) $charset_collate;";
 
         // SQL for oo_job_streams_link table (linking jobs to streams)
@@ -2026,15 +2021,14 @@ class OO_DB { // Renamed class
         $defaults = array(
             'job_number' => null,
             'client_name_like' => null,
-            'overall_status' => null,
-            'date_field' => null, // e.g., 'start_date', 'due_date', 'created_at'
+            'date_field' => null, // e.g., 'start_date', 'created_at'
             'date_from' => null,
             'date_to' => null,
             'orderby' => 'created_at',
             'order' => 'DESC',
             'number' => 20,
             'offset' => 0,
-            'search_general' => null // General search across job_number, client_name, notes
+            'search_general' => null // General search across job_number, client_name
         );
         $args = wp_parse_args( $params, $defaults );
 
@@ -2044,16 +2038,15 @@ class OO_DB { // Renamed class
 
         if ( !empty($args['job_number']) ) { $where_clauses[] = "job_number = %s"; $query_params[] = sanitize_text_field($args['job_number']); }
         if ( !empty($args['client_name_like']) ) { $where_clauses[] = "client_name LIKE %s"; $query_params[] = '%' . $wpdb->esc_like($args['client_name_like']) . '%'; }
-        if ( !empty($args['overall_status']) ) { $where_clauses[] = "overall_status = %s"; $query_params[] = sanitize_text_field($args['overall_status']); }
         
-        if ( !empty($args['date_field']) && in_array($args['date_field'], ['start_date', 'due_date', 'created_at', 'updated_at'])) {
+        if ( !empty($args['date_field']) && in_array($args['date_field'], ['start_date', 'created_at', 'updated_at'])) {
             if ( !empty($args['date_from']) ) { $where_clauses[] = $args['date_field'] . " >= %s"; $query_params[] = oo_sanitize_date($args['date_from']); }
             if ( !empty($args['date_to']) ) { $where_clauses[] = $args['date_field'] . " <= %s"; $query_params[] = oo_sanitize_date($args['date_to']); }
         }
 
         if ( !empty($args['search_general']) ) {
             $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search_general'])) . '%';
-            $search_fields = array("job_number LIKE %s", "client_name LIKE %s", "notes LIKE %s");
+            $search_fields = array("job_number LIKE %s", "client_name LIKE %s", "claim_number LIKE %s");
             $where_clauses[] = "(" . implode(" OR ", $search_fields) . ")";
             $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;
         }
@@ -2066,7 +2059,7 @@ class OO_DB { // Renamed class
             $sql = $wpdb->prepare($sql, $query_params);
         }
 
-        $allowed_orderby = ['job_id', 'job_number', 'client_name', 'start_date', 'due_date', 'overall_status', 'created_at', 'updated_at'];
+        $allowed_orderby = ['job_id', 'job_number', 'client_name', 'start_date', 'created_at', 'updated_at'];
         $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'created_at';
         $order = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
         $sql .= " ORDER BY $orderby $order";
@@ -2089,7 +2082,6 @@ class OO_DB { // Renamed class
         $defaults = array(
             'job_number' => null,
             'client_name_like' => null,
-            'overall_status' => null,
             'date_field' => null,
             'date_from' => null,
             'date_to' => null,
@@ -2104,14 +2096,13 @@ class OO_DB { // Renamed class
         // Build WHERE clauses and query_params identical to get_jobs()
         if ( !empty($args['job_number']) ) { $where_clauses[] = "job_number = %s"; $query_params[] = sanitize_text_field($args['job_number']); }
         if ( !empty($args['client_name_like']) ) { $where_clauses[] = "client_name LIKE %s"; $query_params[] = '%' . $wpdb->esc_like($args['client_name_like']) . '%'; }
-        if ( !empty($args['overall_status']) ) { $where_clauses[] = "overall_status = %s"; $query_params[] = sanitize_text_field($args['overall_status']); }
-        if ( !empty($args['date_field']) && in_array($args['date_field'], ['start_date', 'due_date', 'created_at', 'updated_at'])) {
+        if ( !empty($args['date_field']) && in_array($args['date_field'], ['start_date', 'created_at', 'updated_at'])) {
             if ( !empty($args['date_from']) ) { $where_clauses[] = $args['date_field'] . " >= %s"; $query_params[] = oo_sanitize_date($args['date_from']); }
             if ( !empty($args['date_to']) ) { $where_clauses[] = $args['date_field'] . " <= %s"; $query_params[] = oo_sanitize_date($args['date_to']); }
         }
         if ( !empty($args['search_general']) ) {
             $search_term = '%' . $wpdb->esc_like(sanitize_text_field($args['search_general'])) . '%';
-            $search_fields = array("job_number LIKE %s", "client_name LIKE %s", "notes LIKE %s");
+            $search_fields = array("job_number LIKE %s", "client_name LIKE %s", "claim_number LIKE %s");
             $where_clauses[] = "(" . implode(" OR ", $search_fields) . ")";
             $query_params[] = $search_term; $query_params[] = $search_term; $query_params[] = $search_term;
         }
@@ -3140,19 +3131,19 @@ class OO_DB { // Renamed class
         global $wpdb;
         $defaults = array('orderby' => 'name', 'order' => 'ASC', 'search' => '', 'number' => -1, 'offset' => 0);
         $args = wp_parse_args($args, $defaults);
-        $sql = "SELECT * FROM " . self::$customers_table;
+        $sql = "SELECT c.*, comp.name as company_name FROM " . self::$customers_table . " c LEFT JOIN " . self::$companies_table . " comp ON c.company_id = comp.company_id";
 
         $where_clauses = array();
         if (!empty($args['search'])) {
             $search_term = '%' . $wpdb->esc_like($args['search']) . '%';
-            $where_clauses[] = $wpdb->prepare("name LIKE %s OR email LIKE %s", $search_term, $search_term);
+            $where_clauses[] = $wpdb->prepare("c.name LIKE %s OR c.email LIKE %s OR comp.name LIKE %s", $search_term, $search_term, $search_term);
         }
 
         if (!empty($where_clauses)) {
             $sql .= " WHERE " . implode(' AND ', $where_clauses);
         }
 
-        $sql .= " ORDER BY " . sanitize_sql_orderby($args['orderby'] . ' ' . $args['order']);
+        $sql .= " ORDER BY " . sanitize_sql_orderby('c.' . $args['orderby'] . ' ' . $args['order']);
         
         if ( $args['number'] > 0 ) {
             $sql .= $wpdb->prepare( " LIMIT %d OFFSET %d", $args['number'], $args['offset'] );

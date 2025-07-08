@@ -128,6 +128,10 @@ if ( is_admin() ) {
                 'nonce_get_stream_jobs' => wp_create_nonce('oo_get_stream_jobs_nonce'),
                 'nonce_update_phase_order' => wp_create_nonce('oo_update_phase_order_nonce'),
                 
+                // Customer management nonces
+                'nonce_search_customers' => wp_create_nonce('oo_search_customers_nonce'),
+                'nonce_add_customer' => wp_create_nonce('oo_add_customer_nonce'),
+                
                 // Nonces for Stream Page KPI Management
                 'nonce_add_kpi_measure' => wp_create_nonce('oo_add_kpi_measure_nonce'),
                 'nonce_edit_kpi_measure' => wp_create_nonce('oo_edit_kpi_measure_nonce'),
@@ -236,6 +240,10 @@ function oo_load_textdomain() {
 // Register AJAX handlers with new OO_ prefixes
 add_action('wp_ajax_oo_start_job_action', array('OO_Admin_Pages', 'handle_start_job_form'));
 add_action('wp_ajax_oo_stop_job_action', array('OO_Admin_Pages', 'handle_stop_job_form'));
+
+// Customer search and management AJAX handlers
+add_action('wp_ajax_oo_search_customers', array('OO_Job', 'ajax_search_customers'));
+add_action('wp_ajax_oo_add_customer', array('OO_Job', 'ajax_add_customer'));
 
 add_action('wp_ajax_oo_add_employee', array('OO_Employee', 'ajax_add_employee'));
 add_action('wp_ajax_oo_get_employee', array('OO_Employee', 'ajax_get_employee'));

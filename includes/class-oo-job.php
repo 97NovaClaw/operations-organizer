@@ -78,21 +78,6 @@ class OO_Job {
     public $start_date;
 
     /**
-     * @var string|null Due Date of the job (YYYY-MM-DD).
-     */
-    public $due_date;
-
-    /**
-     * @var string Overall status of the job.
-     */
-    public $overall_status;
-
-    /**
-     * @var string|null Notes for the job.
-     */
-    public $notes;
-
-    /**
      * @var string Creation timestamp (YYYY-MM-DD HH:MM:SS).
      */
     public $created_at;
@@ -157,9 +142,6 @@ class OO_Job {
         $this->province = isset( $data->province ) ? $data->province : null;
         $this->postal_code = isset( $data->postal_code ) ? $data->postal_code : null;
         $this->start_date = isset( $data->start_date ) ? oo_sanitize_date( $data->start_date ) : null;
-        $this->due_date = isset( $data->due_date ) ? oo_sanitize_date( $data->due_date ) : null;
-        $this->overall_status = isset( $data->overall_status ) ? $data->overall_status : 'Pending';
-        $this->notes = isset( $data->notes ) ? $data->notes : null;
         $this->created_at = isset( $data->created_at ) ? $data->created_at : null;
         $this->updated_at = isset( $data->updated_at ) ? $data->updated_at : null;
     }
@@ -236,53 +218,7 @@ class OO_Job {
         $this->start_date = oo_sanitize_date( $start_date );
     }
 
-    /**
-     * Get Due Date.
-     * @return string|null
-     */
-    public function get_due_date() {
-        return $this->due_date;
-    }
 
-    /**
-     * Set Due Date.
-     * @param string|null $due_date
-     */
-    public function set_due_date( $due_date ) {
-        $this->due_date = oo_sanitize_date( $due_date );
-    }
-
-    /**
-     * Get Overall Status.
-     * @return string
-     */
-    public function get_overall_status() {
-        return $this->overall_status;
-    }
-
-    /**
-     * Set Overall Status.
-     * @param string $overall_status
-     */
-    public function set_overall_status( $overall_status ) {
-        $this->overall_status = sanitize_text_field( $overall_status );
-    }
-
-    /**
-     * Get Notes.
-     * @return string|null
-     */
-    public function get_notes() {
-        return $this->notes;
-    }
-
-    /**
-     * Set Notes.
-     * @param string|null $notes
-     */
-    public function set_notes( $notes ) {
-        $this->notes = $notes ? sanitize_textarea_field( $notes ) : null;
-    }
 
     /**
      * Get Created At timestamp.
@@ -328,9 +264,6 @@ class OO_Job {
             'province' => $this->province,
             'postal_code' => $this->postal_code,
             'start_date' => $this->start_date,
-            'due_date' => $this->due_date,
-            'overall_status' => $this->overall_status,
-            'notes' => $this->notes,
         );
 
         if ( $this->exists() ) {
@@ -483,9 +416,6 @@ class OO_Job {
                 'province' => isset($_POST['province']) ? sanitize_text_field($_POST['province']) : '',
                 'postal_code' => isset($_POST['postal_code']) ? sanitize_text_field($_POST['postal_code']) : '',
                 'start_date' => isset($_POST['start_date']) ? oo_sanitize_date($_POST['start_date']) : current_time('Y-m-d'),
-                'due_date' => isset($_POST['due_date']) ? oo_sanitize_date($_POST['due_date']) : null,
-                'overall_status' => isset($_POST['overall_status']) ? sanitize_text_field($_POST['overall_status']) : 'Pending',
-                'notes' => isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : '',
             );
 
             $job = new self();
@@ -501,9 +431,6 @@ class OO_Job {
             $job->province = $job_data['province'];
             $job->postal_code = $job_data['postal_code'];
             $job->set_start_date($job_data['start_date']);
-            $job->set_due_date($job_data['due_date']);
-            $job->set_overall_status($job_data['overall_status']);
-            $job->set_notes($job_data['notes']);
 
             $result = $job->save();
 
@@ -550,7 +477,6 @@ class OO_Job {
         $per_page = 20;
         $offset = ($current_page - 1) * $per_page;
         $search_term = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
-        $status_filter = isset($_GET['status_filter']) ? sanitize_text_field($_GET['status_filter']) : '';
 
         $args = array(
             'number' => $per_page,
@@ -560,11 +486,7 @@ class OO_Job {
         );
 
         if ($search_term) {
-            $args['search'] = $search_term;
-        }
-
-        if ($status_filter) {
-            $args['overall_status'] = $status_filter;
+            $args['search_general'] = $search_term;
         }
 
         $jobs = OO_DB::get_jobs($args);
@@ -579,11 +501,117 @@ class OO_Job {
         $GLOBALS['current_page'] = $current_page;
         $GLOBALS['per_page'] = $per_page;
         $GLOBALS['search_term'] = $search_term;
-        $GLOBALS['status_filter'] = $status_filter;
         $GLOBALS['streams'] = $streams;
 
         // Include the view
         include_once OO_PLUGIN_DIR . 'admin/views/job-management-page.php';
+    }
+
+    /**
+     * AJAX handler for customer search autocomplete
+     */
+    public static function ajax_search_customers() {
+        check_ajax_referer('oo_search_customers_nonce', 'nonce');
+        
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        $search_term = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+        
+        if (strlen($search_term) < 2) {
+            wp_send_json_success(['customers' => []]);
+            return;
+        }
+
+        $customers = OO_DB::get_customers(array(
+            'search' => $search_term,
+            'number' => 10,
+            'orderby' => 'name',
+            'order' => 'ASC'
+        ));
+
+        $customer_data = array();
+        foreach ($customers as $customer) {
+            $display_name = $customer->name;
+            if (!empty($customer->company_name)) {
+                $display_name .= ' (' . $customer->company_name . ')';
+            }
+            
+            $customer_data[] = array(
+                'id' => $customer->customer_id,
+                'name' => $customer->name,
+                'email' => $customer->email,
+                'phone' => $customer->phone,
+                'company_name' => $customer->company_name,
+                'display_name' => $display_name
+            );
+        }
+
+        wp_send_json_success(['customers' => $customer_data]);
+    }
+
+    /**
+     * AJAX handler for adding a new customer
+     */
+    public static function ajax_add_customer() {
+        check_ajax_referer('oo_add_customer_nonce', 'nonce');
+        
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        $customer_data = array(
+            'name' => isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '',
+            'email' => isset($_POST['email']) ? sanitize_email($_POST['email']) : '',
+            'phone' => isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '',
+            'company_id' => isset($_POST['company_id']) ? intval($_POST['company_id']) : null,
+        );
+
+        if (empty($customer_data['name'])) {
+            wp_send_json_error(['message' => 'Customer name is required.']);
+            return;
+        }
+
+        $result = OO_DB::add_customer($customer_data);
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error(['message' => $result->get_error_message()]);
+            return;
+        }
+
+        // Get the newly created customer with company info
+        $new_customer = OO_DB::get_customers(array('search' => '', 'number' => 1, 'offset' => 0));
+        $customer = null;
+        foreach ($new_customer as $c) {
+            if ($c->customer_id == $result) {
+                $customer = $c;
+                break;
+            }
+        }
+
+        if ($customer) {
+            $display_name = $customer->name;
+            if (!empty($customer->company_name)) {
+                $display_name .= ' (' . $customer->company_name . ')';
+            }
+            
+            wp_send_json_success([
+                'message' => 'Customer added successfully.',
+                'customer' => array(
+                    'id' => $customer->customer_id,
+                    'name' => $customer->name,
+                    'email' => $customer->email,
+                    'phone' => $customer->phone,
+                    'company_name' => $customer->company_name,
+                    'display_name' => $display_name
+                )
+            ]);
+        } else {
+            wp_send_json_error(['message' => 'Customer was created but could not be retrieved.']);
+        }
     }
 
     // TODO: Add more methods as needed, e.g., for validation, specific data retrieval.
