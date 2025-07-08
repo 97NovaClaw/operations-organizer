@@ -29,6 +29,25 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
             <form method="post" class="oo-add-job-form">
                 <?php wp_nonce_field( 'oo_add_job_nonce', 'oo_add_job_nonce' ); ?>
                 
+                <!-- Job Streams Section -->
+                <div class="oo-form-section">
+                    <h3 class="oo-section-title"><?php esc_html_e( 'Job Streams', 'operations-organizer' ); ?></h3>
+                    <p class="description" style="margin-bottom: 15px; color: #646970;"><?php esc_html_e( 'Select which types of work this job will include.', 'operations-organizer' ); ?></p>
+                    <div class="oo-form-field">
+                        <fieldset class="oo-checkbox-group">
+                            <legend class="screen-reader-text"><?php esc_html_e( 'Select streams for this job', 'operations-organizer' ); ?></legend>
+                            <div class="oo-checkbox-grid">
+                                <?php foreach ($GLOBALS['streams'] as $stream): ?>
+                                <label class="oo-checkbox-item">
+                                    <input type="checkbox" id="stream_<?php echo esc_attr($stream->stream_id); ?>" name="stream_<?php echo esc_attr($stream->stream_id); ?>" value="1" />
+                                    <span class="oo-checkbox-label"><?php echo esc_html($stream->stream_name); ?></span>
+                                </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+                
                 <!-- Job Details Section -->
                 <div class="oo-form-section">
                     <h3 class="oo-section-title"><?php esc_html_e( 'Job Details', 'operations-organizer' ); ?></h3>
@@ -109,24 +128,6 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                             </div>
                             <p class="description"><?php esc_html_e( 'Start typing to search existing customers or select "Add New Customer" from the dropdown.', 'operations-organizer' ); ?></p>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Job Streams Section -->
-                <div class="oo-form-section">
-                    <h3 class="oo-section-title"><?php esc_html_e( 'Job Streams', 'operations-organizer' ); ?></h3>
-                    <div class="oo-form-field">
-                        <fieldset class="oo-checkbox-group">
-                            <legend class="screen-reader-text"><?php esc_html_e( 'Select streams for this job', 'operations-organizer' ); ?></legend>
-                            <div class="oo-checkbox-grid">
-                                <?php foreach ($GLOBALS['streams'] as $stream): ?>
-                                <label class="oo-checkbox-item">
-                                    <input type="checkbox" id="stream_<?php echo esc_attr($stream->stream_id); ?>" name="stream_<?php echo esc_attr($stream->stream_id); ?>" value="1" />
-                                    <span class="oo-checkbox-label"><?php echo esc_html($stream->stream_name); ?></span>
-                                </label>
-                                <?php endforeach; ?>
-                            </div>
-                        </fieldset>
                     </div>
                 </div>
 
@@ -255,72 +256,10 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
 </div>
 
 <script type="text/javascript">
-console.log('🚀 [CUSTOMER AUTOCOMPLETE DEBUG] Script starting to load...');
-console.log('🚀 [CUSTOMER AUTOCOMPLETE DEBUG] Current URL:', window.location.href);
-
 jQuery(document).ready(function($) {
-    console.log('🎯 [CUSTOMER AUTOCOMPLETE DEBUG] jQuery ready fired!');
-    
-    // === AGGRESSIVE BOTTOM-UP DEBUGGING ===
-    
-    // 1. Check basic jQuery and DOM readiness
-    console.log('✅ [DEBUG] jQuery version:', $.fn.jquery);
-    console.log('✅ [DEBUG] Document ready state:', document.readyState);
-    
-    // 2. Check if customer input field exists
+    // Initialize customer autocomplete functionality
     const $customerInput = $('#customer_name');
-    console.log('🔍 [DEBUG] Customer input field found:', $customerInput.length > 0);
-    console.log('🔍 [DEBUG] Customer input element:', $customerInput[0]);
-    
-    // 3. Check if suggestions container exists
     const $suggestionsContainer = $('#customer_suggestions');
-    console.log('🔍 [DEBUG] Suggestions container found:', $suggestionsContainer.length > 0);
-    console.log('🔍 [DEBUG] Suggestions element:', $suggestionsContainer[0]);
-    
-    // 4. Check oo_data object availability
-    console.log('🔍 [DEBUG] oo_data available:', typeof oo_data !== 'undefined');
-    if (typeof oo_data !== 'undefined') {
-        console.log('✅ [DEBUG] oo_data.ajax_url:', oo_data.ajax_url);
-        console.log('✅ [DEBUG] oo_data.nonce_search_customers:', oo_data.nonce_search_customers);
-        console.log('✅ [DEBUG] oo_data.nonce_add_customer:', oo_data.nonce_add_customer);
-    } else {
-        console.error('❌ [DEBUG] oo_data object is NOT AVAILABLE!');
-    }
-    
-    // 5. Test basic input event binding
-    console.log('🔧 [DEBUG] Attempting to bind input event to customer field...');
-    
-    $customerInput.on('focus', function() {
-        console.log('🎯 [DEBUG] Customer input FOCUSED!');
-    });
-    
-    $customerInput.on('blur', function() {
-        console.log('🎯 [DEBUG] Customer input BLURRED!');
-    });
-    
-    $customerInput.on('keyup', function() {
-        console.log('🎯 [DEBUG] Customer input KEYUP event fired! Value:', $(this).val());
-    });
-    
-    $customerInput.on('input', function() {
-        console.log('🎯 [DEBUG] Customer input INPUT event fired! Value:', $(this).val());
-        const searchTerm = $(this).val();
-        
-        if (searchTerm.length < 2) {
-            console.log('🔍 [DEBUG] Search term too short, clearing suggestions');
-            return;
-        }
-        
-        console.log('🔍 [DEBUG] Search term valid, proceeding with search...');
-        
-        // Test if we can show the suggestions container
-        $suggestionsContainer.html('<div style="padding: 10px; background: yellow; color: black;">🧪 TEST: This proves the suggestions container works!</div>').show();
-        console.log('🧪 [DEBUG] Test message displayed in suggestions container');
-    });
-    
-    console.log('✅ [DEBUG] Event binding completed!');
-    
-    console.log('✅ [DEBUG] Customer autocomplete initialization completed!');
 
     // Edit job button functionality
     $('.oo-edit-job-button').on('click', function() {
@@ -392,7 +331,6 @@ jQuery(document).ready(function($) {
         searchTimeout = setTimeout(function() {
             // Check if oo_data is available
             if (typeof oo_data === 'undefined') {
-                console.error('oo_data not available for customer search');
                 $suggestions.removeClass('loading')
                     .empty()
                     .html('<div class="oo-autocomplete-suggestion no-results">Configuration error. Please refresh the page.</div>')
@@ -564,7 +502,6 @@ jQuery(document).ready(function($) {
         
         // Check if oo_data is available
         if (typeof oo_data === 'undefined') {
-            console.error('oo_data not available for add customer');
             alert('Configuration error. Please refresh the page and try again.');
             return;
         }
