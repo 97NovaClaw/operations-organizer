@@ -204,10 +204,19 @@ class OO_DB { // Renamed class
             job_stream_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             job_id BIGINT UNSIGNED NOT NULL,
             stream_id INT UNSIGNED NOT NULL,
+            status_in_stream VARCHAR(50) NOT NULL DEFAULT 'Not Started',
+            assigned_manager_id BIGINT UNSIGNED NULL,
+            start_date_stream DATE NULL,
+            due_date_stream DATE NULL,
+            building_id BIGINT UNSIGNED NULL,
+            notes TEXT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (job_stream_id),
-            UNIQUE KEY uq_job_stream (job_id, stream_id)
+            UNIQUE KEY uq_job_stream (job_id, stream_id),
+            KEY idx_status_in_stream (status_in_stream),
+            KEY idx_assigned_manager_id (assigned_manager_id),
+            KEY idx_building_id (building_id)
         ) $charset_collate;";
 
         // SQL for oo_phases table
@@ -3143,7 +3152,11 @@ class OO_DB { // Renamed class
             $sql .= " WHERE " . implode(' AND ', $where_clauses);
         }
 
-        $sql .= " ORDER BY " . sanitize_sql_orderby('c.' . $args['orderby'] . ' ' . $args['order']);
+        $orderby_clause = sanitize_sql_orderby('c.' . $args['orderby'] . ' ' . $args['order']);
+        if (!$orderby_clause) {
+            $orderby_clause = 'c.name ASC'; // Default fallback
+        }
+        $sql .= " ORDER BY " . $orderby_clause;
         
         if ( $args['number'] > 0 ) {
             $sql .= $wpdb->prepare( " LIMIT %d OFFSET %d", $args['number'], $args['offset'] );
