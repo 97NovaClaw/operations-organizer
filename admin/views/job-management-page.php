@@ -106,9 +106,8 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                                 <input type="text" id="customer_name" name="customer_name" placeholder="<?php esc_attr_e( 'Type customer name...', 'operations-organizer' ); ?>" autocomplete="off" class="regular-text" />
                                 <input type="hidden" id="customer_id" name="customer_id" value="" />
                                 <div id="customer_suggestions" class="oo-autocomplete-suggestions" style="display: none;"></div>
-                                <button type="button" id="add_new_customer_btn" class="button button-secondary" style="margin-top: 5px;"><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></button>
                             </div>
-                            <p class="description"><?php esc_html_e( 'Start typing to search existing customers or click "Add New Customer" to create one.', 'operations-organizer' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'Start typing to search existing customers or select "Add New Customer" from the dropdown.', 'operations-organizer' ); ?></p>
                         </div>
                     </div>
                 </div>
@@ -321,16 +320,7 @@ jQuery(document).ready(function($) {
     
     console.log('✅ [DEBUG] Event binding completed!');
     
-    // 6. Add a visual test button to verify everything works
-    $customerInput.after('<button type="button" id="test-customer-input" style="margin-left: 10px; background: red; color: white; padding: 5px;">🧪 TEST INPUT</button>');
-    
-    $('#test-customer-input').on('click', function() {
-        console.log('🧪 [DEBUG] Test button clicked!');
-        $customerInput.val('test customer').trigger('input');
-        console.log('🧪 [DEBUG] Triggered input event with test value');
-    });
-    
-    console.log('🧪 [DEBUG] Test button added next to customer input');
+    console.log('✅ [DEBUG] Customer autocomplete initialization completed!');
 
     // Edit job button functionality
     $('.oo-edit-job-button').on('click', function() {
@@ -553,11 +543,7 @@ jQuery(document).ready(function($) {
         }
     });
     
-    // Add new customer modal functionality
-    $('#add_new_customer_btn').on('click', function() {
-        $('#customerModal').show();
-        $('#modal_customer_name').focus();
-    });
+    // Modal functionality is now handled through the dropdown "Add New Customer" option
     
     $('.oo-modal-close, .oo-modal-cancel').on('click', function() {
         $('#customerModal').hide();
