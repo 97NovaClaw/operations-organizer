@@ -371,44 +371,44 @@ jQuery(document).ready(function($) {
             // Show no results message
             const $noResults = $('<div>')
                 .addClass('oo-autocomplete-suggestion no-results')
-                .html('No customers found. Click "Add New Customer" to create one.');
-            $suggestions.append($noResults).show();
-            return;
+                .html('No customers found.');
+            $suggestions.append($noResults);
+        } else {
+            // Show existing customers
+            customers.forEach(function(customer, index) {
+                // Generate customer initials for icon
+                const initials = customer.name.split(' ')
+                    .map(word => word.charAt(0).toUpperCase())
+                    .slice(0, 2)
+                    .join('');
+                
+                // Build customer info string
+                let customerInfo = [];
+                if (customer.email) customerInfo.push(customer.email);
+                if (customer.phone) customerInfo.push(customer.phone);
+                if (customer.company_name) customerInfo.push(customer.company_name);
+                
+                const $suggestion = $('<div>')
+                    .addClass('oo-autocomplete-suggestion')
+                    .attr('data-index', index)
+                    .attr('data-customer-id', customer.id)
+                    .html(
+                        '<div class="customer-icon">' + initials + '</div>' +
+                        '<div class="customer-details">' +
+                            '<div class="customer-name">' + customer.name + '</div>' +
+                            (customerInfo.length > 0 ? '<div class="oo-customer-info">' + customerInfo.join(' • ') + '</div>' : '') +
+                        '</div>'
+                    );
+                
+                $suggestion.on('click', function() {
+                    selectCustomer(customer);
+                });
+                
+                $suggestions.append($suggestion);
+            });
         }
         
-        customers.forEach(function(customer, index) {
-            // Generate customer initials for icon
-            const initials = customer.name.split(' ')
-                .map(word => word.charAt(0).toUpperCase())
-                .slice(0, 2)
-                .join('');
-            
-            // Build customer info string
-            let customerInfo = [];
-            if (customer.email) customerInfo.push(customer.email);
-            if (customer.phone) customerInfo.push(customer.phone);
-            if (customer.company_name) customerInfo.push(customer.company_name);
-            
-            const $suggestion = $('<div>')
-                .addClass('oo-autocomplete-suggestion')
-                .attr('data-index', index)
-                .attr('data-customer-id', customer.id)
-                .html(
-                    '<div class="customer-icon">' + initials + '</div>' +
-                    '<div class="customer-details">' +
-                        '<div class="customer-name">' + customer.name + '</div>' +
-                        (customerInfo.length > 0 ? '<div class="oo-customer-info">' + customerInfo.join(' • ') + '</div>' : '') +
-                    '</div>'
-                );
-            
-            $suggestion.on('click', function() {
-                selectCustomer(customer);
-            });
-            
-            $suggestions.append($suggestion);
-        });
-        
-        // Add "Add New Customer" option at the bottom
+        // ALWAYS add "Add New Customer" option at the bottom when search term is 2+ characters
         const currentSearch = $('#customer_name').val();
         if (currentSearch.length >= 2) {
             const $addNew = $('<div>')
