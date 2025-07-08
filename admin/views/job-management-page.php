@@ -192,45 +192,39 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
 </div>
 
 <!-- Customer Modal -->
-<div id="customerModal" class="oo-customer-modal">
-    <div class="oo-customer-modal-content">
-        <div class="oo-customer-modal-header">
-            <h2><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></h2>
-            <span class="oo-customer-modal-close">&times;</span>
-        </div>
+<div id="customerModal" class="oo-modal">
+    <div class="oo-modal-content">
+        <span class="oo-modal-close">&times;</span>
+        <h2><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></h2>
         <form id="addCustomerForm">
-            <table class="form-table">
-                <tr>
-                    <th scope="row"><label for="modal_customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?> <span class="required">*</span></label></th>
-                    <td><input type="text" id="modal_customer_name" name="name" required /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="modal_customer_email"><?php esc_html_e( 'Email', 'operations-organizer' ); ?></label></th>
-                    <td><input type="email" id="modal_customer_email" name="email" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="modal_customer_phone"><?php esc_html_e( 'Phone', 'operations-organizer' ); ?></label></th>
-                    <td><input type="text" id="modal_customer_phone" name="phone" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="modal_customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label></th>
-                    <td>
-                        <select id="modal_customer_company" name="company_id">
-                            <option value=""><?php esc_html_e( 'Select Company', 'operations-organizer' ); ?></option>
-                            <?php
-                            $companies = OO_DB::get_companies(array('orderby' => 'name', 'order' => 'ASC'));
-                            foreach ($companies as $company) {
-                                echo '<option value="' . esc_attr($company->company_id) . '">' . esc_html($company->name) . '</option>';
-                            }
-                            ?>
-                        </select>
-                    </td>
-                </tr>
-            </table>
-            <p class="submit">
+            <div class="form-field">
+                <label for="modal_customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
+                <input type="text" id="modal_customer_name" name="name" required class="regular-text" />
+            </div>
+            <div class="form-field">
+                <label for="modal_customer_email"><?php esc_html_e( 'Email', 'operations-organizer' ); ?></label>
+                <input type="email" id="modal_customer_email" name="email" class="regular-text" />
+            </div>
+            <div class="form-field">
+                <label for="modal_customer_phone"><?php esc_html_e( 'Phone', 'operations-organizer' ); ?></label>
+                <input type="text" id="modal_customer_phone" name="phone" class="regular-text" />
+            </div>
+            <div class="form-field">
+                <label for="modal_customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label>
+                <select id="modal_customer_company" name="company_id" class="regular-text">
+                    <option value=""><?php esc_html_e( 'Select Company', 'operations-organizer' ); ?></option>
+                    <?php
+                    $companies = OO_DB::get_companies(array('orderby' => 'name', 'order' => 'ASC'));
+                    foreach ($companies as $company) {
+                        echo '<option value="' . esc_attr($company->company_id) . '">' . esc_html($company->name) . '</option>';
+                    }
+                    ?>
+                </select>
+            </div>
+            <div class="form-field">
                 <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Customer', 'operations-organizer' ); ?></button>
-                <button type="button" class="button oo-customer-modal-close"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
-            </p>
+                <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
+            </div>
         </form>
     </div>
 </div>
@@ -242,6 +236,45 @@ jQuery(document).ready(function($) {
         var jobId = $(this).data('job-id');
         alert('Job editing will open a detailed form with stream-specific fields for Soft Content, Electronics, Art, and Content data. This functionality will be implemented in the next update. Job ID: ' + jobId);
     });
+
+    // Success notification function
+    function showSuccessNotification(message) {
+        // Remove any existing notifications
+        $('.oo-success-notification').remove();
+        
+        // Create notification element
+        const $notification = $('<div class="oo-success-notification">' +
+            '<div class="oo-notification-content">' +
+                '<span class="oo-notification-icon">✓</span>' +
+                '<span class="oo-notification-message">' + message + '</span>' +
+                '<span class="oo-notification-close">&times;</span>' +
+            '</div>' +
+        '</div>');
+        
+        // Add to page
+        $('body').append($notification);
+        
+        // Show with animation
+        setTimeout(function() {
+            $notification.addClass('show');
+        }, 100);
+        
+        // Auto-hide after 4 seconds
+        setTimeout(function() {
+            $notification.removeClass('show');
+            setTimeout(function() {
+                $notification.remove();
+            }, 300);
+        }, 4000);
+        
+        // Manual close
+        $notification.find('.oo-notification-close').on('click', function() {
+            $notification.removeClass('show');
+            setTimeout(function() {
+                $notification.remove();
+            }, 300);
+        });
+    }
 
     // Customer autocomplete functionality
     let searchTimeout;
@@ -357,7 +390,7 @@ jQuery(document).ready(function($) {
         $('#modal_customer_name').focus();
     });
     
-    $('.oo-customer-modal-close').on('click', function() {
+    $('.oo-modal-close, .oo-modal-cancel').on('click', function() {
         $('#customerModal').hide();
         $('#addCustomerForm')[0].reset();
     });
@@ -391,9 +424,8 @@ jQuery(document).ready(function($) {
                 $('#customerModal').hide();
                 $('#addCustomerForm')[0].reset();
                 
-                // Show success message
-                $('<div class="notice notice-success is-dismissible"><p>' + response.data.message + '</p></div>')
-                    .prependTo('.wrap').delay(3000).fadeOut();
+                // Show success notification with better styling
+                showSuccessNotification(response.data.message);
             } else {
                 alert('Error: ' + response.data.message);
             }

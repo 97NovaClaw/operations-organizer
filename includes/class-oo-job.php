@@ -403,10 +403,25 @@ class OO_Job {
 
         // Process form submission for adding new job
         if (isset($_POST['submit_add_job']) && isset($_POST['oo_add_job_nonce']) && wp_verify_nonce($_POST['oo_add_job_nonce'], 'oo_add_job_nonce')) {
+            $customer_id = isset($_POST['customer_id']) ? intval($_POST['customer_id']) : null;
+            $customer_name = isset($_POST['customer_name']) ? sanitize_text_field($_POST['customer_name']) : '';
+            
+            // Handle customer auto-creation if needed
+            if ( empty( $customer_id ) && !empty( $customer_name ) ) {
+                $customer = OO_Customer::find_or_create_by_name( $customer_name );
+                if ( is_wp_error( $customer ) ) {
+                    $GLOBALS['oo_job_error'] = 'Error with customer: ' . $customer->get_error_message();
+                    return; // Early return to prevent job creation
+                } else {
+                    $customer_id = $customer->customer_id;
+                    $GLOBALS['oo_customer_auto_created'] = $customer_name; // For success message
+                }
+            }
+
             $job_data = array(
                 'job_number' => isset($_POST['job_number']) ? sanitize_text_field($_POST['job_number']) : '',
                 'claim_number' => isset($_POST['claim_number']) ? sanitize_text_field($_POST['claim_number']) : '',
-                'customer_id' => isset($_POST['customer_id']) ? intval($_POST['customer_id']) : null,
+                'customer_id' => $customer_id,
                 'client_name' => isset($_POST['client_name']) ? sanitize_text_field($_POST['client_name']) : '',
                 'client_phone' => isset($_POST['client_phone']) ? sanitize_text_field($_POST['client_phone']) : '',
                 'client_email' => isset($_POST['client_email']) ? sanitize_email($_POST['client_email']) : '',
@@ -468,7 +483,11 @@ class OO_Job {
                     }
                 }
                 
-                $GLOBALS['oo_job_success'] = __('Job added successfully.', 'operations-organizer');
+                $success_message = __('Job added successfully.', 'operations-organizer');
+                if ( isset( $GLOBALS['oo_customer_auto_created'] ) ) {
+                    $success_message .= ' ' . sprintf( __('Customer "%s" was automatically created.', 'operations-organizer'), $GLOBALS['oo_customer_auto_created'] );
+                }
+                $GLOBALS['oo_job_success'] = $success_message;
             }
         }
 

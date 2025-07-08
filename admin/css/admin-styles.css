@@ -505,44 +505,100 @@
     color: #666;
 }
 
-/* Customer Modal Styles */
-.oo-customer-modal {
-    display: none;
-    position: fixed;
-    z-index: 10000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
+/* Form field styles for modals */
+.form-field {
+    margin-bottom: 15px;
 }
 
-.oo-customer-modal-content {
-    background-color: #fff;
-    margin: 10% auto;
-    padding: 20px;
+.form-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-field .regular-text {
+    width: 100%;
+    padding: 8px;
     border: 1px solid #ddd;
-    width: 500px;
-    max-width: 90%;
     border-radius: 4px;
 }
 
-.oo-customer-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
+.form-field .required {
+    color: #d63638;
 }
 
-.oo-customer-modal-close {
-    font-size: 24px;
+/* Success notification popup */
+.oo-success-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10001;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+}
+
+.oo-success-notification.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.oo-notification-content {
+    background: #46b450;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    min-width: 300px;
+    max-width: 500px;
+}
+
+.oo-notification-icon {
+    font-size: 18px;
+    font-weight: bold;
+    margin-right: 10px;
+    background: rgba(255,255,255,0.2);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.oo-notification-message {
+    flex: 1;
+    margin-right: 15px;
+}
+
+.oo-notification-close {
+    font-size: 18px;
     font-weight: bold;
     cursor: pointer;
-    color: #999;
+    opacity: 0.7;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
-.oo-customer-modal-close:hover {
-    color: #000;
+.oo-notification-close:hover {
+    opacity: 1;
+}
+
+@media (max-width: 782px) {
+    .oo-success-notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+    }
+    
+    .oo-notification-content {
+        min-width: auto;
+    }
 } 
