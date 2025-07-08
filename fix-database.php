@@ -31,7 +31,7 @@ function oo_debug_toggle_page() {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Debug logging has been enabled.', 'operations-organizer') . '</p></div>';
         } elseif ($_POST['oo_debug_action'] === 'disable') {
             update_option('oo_enable_debugging', 'no');
-            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Debug logging has been disabled.', 'operations-organizer') . '</p></div>';
+             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Debug logging has been disabled.', 'operations-organizer') . '</p></div>';
         }
     }
     

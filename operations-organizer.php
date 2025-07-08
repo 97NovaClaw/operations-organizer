@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.1.10
+ * Version:           1.5.1.11
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.1.10' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.1.11' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -36,6 +36,9 @@ require_once OO_PLUGIN_DIR . 'includes/class-oo-admin-pages.php';
 require_once OO_PLUGIN_DIR . 'includes/class-oo-dashboard.php';
 require_once OO_PLUGIN_DIR . 'includes/functions.php'; // Functions will also be prefixed
 require_once OO_PLUGIN_DIR . 'fix-database.php'; // Load database fix utilities
+
+// Include feature files
+require_once OO_PLUGIN_DIR . 'features/autocomplete/loader.php'; // Reusable autocomplete component
 
 // Include Stream Dashboard feature files
 require_once OO_PLUGIN_DIR . 'features/stream-dashboard/database.php';
