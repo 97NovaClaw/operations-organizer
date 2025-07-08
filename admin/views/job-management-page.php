@@ -291,6 +291,14 @@ jQuery(document).ready(function($) {
         }
         
         clearTimeout(searchTimeout);
+        
+        // Show loading state
+        const $suggestions = $('#customer_suggestions');
+        $suggestions.empty()
+            .addClass('loading')
+            .html('<div class="oo-autocomplete-suggestion" style="text-align: center; padding: 20px;">🔍 Searching customers...</div>')
+            .show();
+        
         searchTimeout = setTimeout(function() {
             $.post(oo_data.ajax_url, {
                 action: 'oo_search_customers',
@@ -298,12 +306,20 @@ jQuery(document).ready(function($) {
                 search: searchTerm
             })
             .done(function(response) {
+                $suggestions.removeClass('loading');
                 if (response.success) {
                     displayCustomerSuggestions(response.data.customers);
+                } else {
+                    $suggestions.empty()
+                        .html('<div class="oo-autocomplete-suggestion no-results">Search failed. Please try again.</div>')
+                        .show();
                 }
             })
             .fail(function() {
-                console.error('Customer search failed');
+                $suggestions.removeClass('loading')
+                    .empty()
+                    .html('<div class="oo-autocomplete-suggestion no-results">Search failed. Please try again.</div>')
+                    .show();
             });
         }, 300);
     });
@@ -314,18 +330,38 @@ jQuery(document).ready(function($) {
         selectedCustomerIndex = -1;
         
         if (customers.length === 0) {
-            $suggestions.hide();
+            // Show no results message
+            const $noResults = $('<div>')
+                .addClass('oo-autocomplete-suggestion no-results')
+                .html('No customers found. Click "Add New Customer" to create one.');
+            $suggestions.append($noResults).show();
             return;
         }
         
         customers.forEach(function(customer, index) {
+            // Generate customer initials for icon
+            const initials = customer.name.split(' ')
+                .map(word => word.charAt(0).toUpperCase())
+                .slice(0, 2)
+                .join('');
+            
+            // Build customer info string
+            let customerInfo = [];
+            if (customer.email) customerInfo.push(customer.email);
+            if (customer.phone) customerInfo.push(customer.phone);
+            if (customer.company_name) customerInfo.push(customer.company_name);
+            
             const $suggestion = $('<div>')
                 .addClass('oo-autocomplete-suggestion')
                 .attr('data-index', index)
                 .attr('data-customer-id', customer.id)
-                .html('<strong>' + customer.display_name + '</strong><br><span class="oo-customer-info">' + 
-                      (customer.email ? customer.email : '') + 
-                      (customer.phone ? ' • ' + customer.phone : '') + '</span>');
+                .html(
+                    '<div class="customer-icon">' + initials + '</div>' +
+                    '<div class="customer-details">' +
+                        '<div class="customer-name">' + customer.name + '</div>' +
+                        (customerInfo.length > 0 ? '<div class="oo-customer-info">' + customerInfo.join(' • ') + '</div>' : '') +
+                    '</div>'
+                );
             
             $suggestion.on('click', function() {
                 selectCustomer(customer);
@@ -333,6 +369,29 @@ jQuery(document).ready(function($) {
             
             $suggestions.append($suggestion);
         });
+        
+        // Add "Add New Customer" option at the bottom
+        const currentSearch = $('#customer_name').val();
+        if (currentSearch.length >= 2) {
+            const $addNew = $('<div>')
+                .addClass('oo-autocomplete-suggestion add-new-customer')
+                .html(
+                    '<div class="customer-icon">+</div>' +
+                    '<div class="customer-details">' +
+                        '<div class="customer-name">Add New Customer</div>' +
+                        '<div class="oo-customer-info">Create "' + currentSearch + '" as a new customer</div>' +
+                    '</div>'
+                );
+            
+            $addNew.on('click', function() {
+                $('#customer_suggestions').hide();
+                $('#modal_customer_name').val(currentSearch);
+                $('#customerModal').show();
+                $('#modal_customer_name').focus();
+            });
+            
+            $suggestions.append($addNew);
+        }
         
         $suggestions.show();
     }
