@@ -41,4 +41,52 @@ class OO_Company {
             }
         }
     }
+
+    /**
+     * AJAX handler for company search
+     * 
+     * Searches companies by name and returns results for autocomplete
+     */
+    public static function ajax_search_companies() {
+        // Verify nonce
+        if ( ! check_ajax_referer( 'oo_search_companies_nonce', 'nonce', false ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed.' ) );
+            return;
+        }
+
+        // Check user permissions
+        if ( ! current_user_can( oo_get_capability() ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied.' ) );
+            return;
+        }
+
+        // Get search query
+        $query = isset( $_POST['query'] ) ? sanitize_text_field( $_POST['query'] ) : '';
+        
+        if ( empty( $query ) || strlen( $query ) < 2 ) {
+            wp_send_json_error( array( 'message' => 'Query too short.' ) );
+            return;
+        }
+
+        // Search companies using the database method
+        $companies = OO_DB::get_companies( array( 'search' => $query, 'number' => 10 ) );
+        
+        // Format results for autocomplete
+        $formatted_companies = array();
+        
+        if ( ! empty( $companies ) ) {
+            foreach ( $companies as $company ) {
+                $formatted_companies[] = array(
+                    'id'       => intval( $company->company_id ),
+                    'name'     => $company->name,
+                    'address'  => $company->address,
+                    'city'     => $company->city,
+                    'province' => $company->province,
+                    'phone'    => $company->phone_numbers,
+                );
+            }
+        }
+
+        wp_send_json_success( $formatted_companies );
+    }
 } 

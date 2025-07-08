@@ -237,15 +237,22 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
             </div>
             <div class="form-field">
                 <label for="modal_customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label>
-                <select id="modal_customer_company" name="company_id" class="regular-text">
-                    <option value=""><?php esc_html_e( 'Select Company', 'operations-organizer' ); ?></option>
-                    <?php
-                    $companies = OO_DB::get_companies(array('orderby' => 'name', 'order' => 'ASC'));
-                    foreach ($companies as $company) {
-                        echo '<option value="' . esc_attr($company->company_id) . '">' . esc_html($company->name) . '</option>';
-                    }
-                    ?>
-                </select>
+                <?php
+                // Use our new autocomplete component for company selection
+                echo oo_get_autocomplete_html(array(
+                    'input_id'              => 'modal_customer_company',
+                    'input_name'            => 'company_search',
+                    'placeholder'           => 'Search for a company...',
+                    'ajax_action'           => 'oo_search_companies',
+                    'render_item_callback'  => 'renderCompanyItem',
+                    'on_select_callback'    => 'onCompanySelect',
+                    'on_add_new_callback'   => 'onAddNewCompany',
+                    'nonce'                 => wp_create_nonce('oo_search_companies_nonce'),
+                    'add_new_text'          => 'Create New Company',
+                    'hidden_field_id'       => 'selected_company_id',
+                    'hidden_field_name'     => 'company_id'
+                ));
+                ?>
             </div>
             <div class="form-field">
                 <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Customer', 'operations-organizer' ); ?></button>
@@ -255,8 +262,35 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
     </div>
 </div>
 
+<?php
+// Register default autocomplete callbacks
+oo_register_default_autocomplete_callbacks();
+?>
+
 <script type="text/javascript">
 jQuery(document).ready(function($) {
+    
+    // Company autocomplete callback functions
+    window.OO_Autocomplete_Callbacks = window.OO_Autocomplete_Callbacks || {};
+    
+    /**
+     * Handle company selection in the modal
+     */
+    window.OO_Autocomplete_Callbacks.onCompanySelect = function(company, $input) {
+        // Set the hidden field value
+        $('#selected_company_id').val(company.id);
+        // Set the display name in the input
+        $input.val(company.name);
+        console.log('Company selected:', company);
+    };
+    
+    /**
+     * Handle "Add New Company" action
+     */
+    window.OO_Autocomplete_Callbacks.onAddNewCompany = function(searchTerm, $input) {
+        // For now, just alert - this would open a company creation modal
+        alert('Add New Company functionality will be implemented next. Search term: ' + searchTerm);
+    };
     // Initialize customer autocomplete functionality
     const $customerInput = $('#customer_name');
     const $suggestionsContainer = $('#customer_suggestions');
