@@ -30,7 +30,7 @@
 
 .oo-phone-row-grid {
     display: grid;
-    grid-template-columns: 1fr 2fr 100px 80px 40px;
+    grid-template-columns: 2fr 100px 1fr 80px 40px;
     gap: 15px;
     align-items: end;
 }
@@ -182,7 +182,7 @@
 /* Responsive adjustments */
 @media (max-width: 1200px) {
     .oo-phone-row-grid {
-        grid-template-columns: 1fr 2fr 80px 60px 40px;
+        grid-template-columns: 2fr 80px 1fr 60px 40px;
         gap: 12px;
     }
 }

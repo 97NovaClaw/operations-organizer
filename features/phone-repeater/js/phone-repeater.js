@@ -148,16 +148,6 @@
         var html = '<div class="oo-phone-row" data-row-id="' + rowId + '">';
         html += '<div class="oo-phone-row-grid">';
         
-        // Phone Type field
-        html += '<div class="oo-phone-field-group">';
-        if (this.config.show_labels) {
-            html += '<label>Type</label>';
-        }
-        html += '<input type="text" name="' + fieldBaseName + '[type]" ' +
-                'value="' + this.escapeHtml(phoneData.type || '') + '" ' +
-                'placeholder="e.g., Office, Mobile, Fax" />';
-        html += '</div>';
-
         // Phone Number field
         html += '<div class="oo-phone-field-group">';
         if (this.config.show_labels) {
@@ -176,6 +166,16 @@
         html += '<input type="text" name="' + fieldBaseName + '[extension]" ' +
                 'value="' + this.escapeHtml(phoneData.extension || '') + '" ' +
                 'placeholder="Ext." />';
+        html += '</div>';
+
+        // Phone Type field
+        html += '<div class="oo-phone-field-group">';
+        if (this.config.show_labels) {
+            html += '<label>Type</label>';
+        }
+        html += '<input type="text" name="' + fieldBaseName + '[type]" ' +
+                'value="' + this.escapeHtml(phoneData.type || '') + '" ' +
+                'placeholder="e.g., Office, Mobile, Fax" />';
         html += '</div>';
 
         // Primary phone checkbox (if enabled)
