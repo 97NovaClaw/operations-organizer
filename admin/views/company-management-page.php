@@ -166,12 +166,12 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
             <?php wp_nonce_field( 'oo_add_company_nonce', 'oo_add_company_nonce' ); ?>
             <input type="hidden" name="oo_action" value="add_company" />
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="modal_company_name"><?php esc_html_e( 'Company Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
                 <input type="text" id="modal_company_name" name="name" class="regular-text" required />
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="modal_company_address"><?php esc_html_e( 'Address', 'operations-organizer' ); ?></label>
                 <input type="text" id="modal_company_address" name="address" class="regular-text" />
             </div>
@@ -191,7 +191,7 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
                 </div>
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="modal_company_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
                 <?php
                 echo oo_get_phone_repeater_html(array(
@@ -203,7 +203,7 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
                 ?>
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Company', 'operations-organizer' ); ?></button>
                 <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
             </div>
@@ -223,12 +223,12 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
             <input type="hidden" name="oo_action" value="edit_company" />
             <input type="hidden" id="edit_company_id" name="company_id" />
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="edit_company_name"><?php esc_html_e( 'Company Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
                 <input type="text" id="edit_company_name" name="name" class="regular-text" required />
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="edit_company_address"><?php esc_html_e( 'Address', 'operations-organizer' ); ?></label>
                 <input type="text" id="edit_company_address" name="address" class="regular-text" />
             </div>
@@ -248,7 +248,7 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
                 </div>
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="edit_company_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
                 <?php
                 echo oo_get_phone_repeater_html(array(
@@ -260,7 +260,7 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
                 ?>
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <button type="submit" class="button button-primary"><?php esc_html_e( 'Update Company', 'operations-organizer' ); ?></button>
                 <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
             </div>

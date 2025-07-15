@@ -164,17 +164,17 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
             <?php wp_nonce_field( 'oo_add_customer_nonce', 'oo_add_customer_nonce' ); ?>
             <input type="hidden" name="oo_action" value="add_customer" />
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="modal_customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
                 <input type="text" id="modal_customer_name" name="name" class="regular-text" required />
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="modal_customer_email"><?php esc_html_e( 'Email', 'operations-organizer' ); ?></label>
                 <input type="email" id="modal_customer_email" name="email" class="regular-text" />
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="modal_customer_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
                 <?php
                 echo oo_get_phone_repeater_html(array(
@@ -186,7 +186,7 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
                 ?>
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="modal_customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label>
                 <?php
                 echo oo_get_autocomplete_html(array(
@@ -205,7 +205,7 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
                 ?>
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Customer', 'operations-organizer' ); ?></button>
                 <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
             </div>
@@ -225,17 +225,17 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
             <input type="hidden" name="oo_action" value="edit_customer" />
             <input type="hidden" id="edit_customer_id" name="customer_id" />
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="edit_customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
                 <input type="text" id="edit_customer_name" name="name" class="regular-text" required />
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="edit_customer_email"><?php esc_html_e( 'Email', 'operations-organizer' ); ?></label>
                 <input type="email" id="edit_customer_email" name="email" class="regular-text" />
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="edit_customer_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
                 <?php
                 echo oo_get_phone_repeater_html(array(
@@ -247,7 +247,7 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
                 ?>
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <label for="edit_customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label>
                 <?php
                 echo oo_get_autocomplete_html(array(
@@ -266,7 +266,7 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
                 ?>
             </div>
             
-            <div class="form-field">
+            <div class="oo-form-field">
                 <button type="submit" class="button button-primary"><?php esc_html_e( 'Update Customer', 'operations-organizer' ); ?></button>
                 <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
             </div>
