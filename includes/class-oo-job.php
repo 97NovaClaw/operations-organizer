@@ -676,5 +676,84 @@ class OO_Job {
         }
     }
 
+    /**
+     * AJAX handler for adding a new company
+     */
+    public static function ajax_add_company() {
+        check_ajax_referer('oo_add_company_nonce', 'nonce');
+        
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        // Process phone numbers
+        $phone_json = '';
+        if ( ! empty( $_POST['phone_numbers_json'] ) ) {
+            $phone_data = json_decode( stripslashes( $_POST['phone_numbers_json'] ), true );
+            if ( json_last_error() === JSON_ERROR_NONE ) {
+                $validated_phone_data = oo_validate_phone_data( $phone_data );
+                if ( ! is_wp_error( $validated_phone_data ) ) {
+                    $phone_json = wp_json_encode( $validated_phone_data );
+                }
+            }
+        }
+
+        // Process email addresses
+        $email_json = '';
+        if ( ! empty( $_POST['email_addresses_json'] ) ) {
+            $email_data = json_decode( stripslashes( $_POST['email_addresses_json'] ), true );
+            if ( json_last_error() === JSON_ERROR_NONE ) {
+                $validated_email_data = oo_validate_email_data( $email_data );
+                if ( ! is_wp_error( $validated_email_data ) ) {
+                    $email_json = wp_json_encode( $validated_email_data );
+                }
+            }
+        }
+
+        $company_data = array(
+            'name' => isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '',
+            'address' => isset($_POST['address']) ? sanitize_text_field($_POST['address']) : '',
+            'city' => isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '',
+            'province' => isset($_POST['province']) ? sanitize_text_field($_POST['province']) : '',
+            'postal_code' => isset($_POST['postal_code']) ? sanitize_text_field($_POST['postal_code']) : '',
+            'phone_numbers' => $phone_json,
+            'email_addresses' => $email_json,
+        );
+
+        if (empty($company_data['name'])) {
+            wp_send_json_error(['message' => 'Company name is required.']);
+            return;
+        }
+
+        $result = OO_DB::add_company($company_data);
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error(['message' => $result->get_error_message()]);
+            return;
+        }
+
+        // Get the newly created company
+        $new_company = OO_DB::get_company($result);
+        
+        if ($new_company) {
+            wp_send_json_success([
+                'message' => 'Company added successfully.',
+                'company' => array(
+                    'id' => $new_company->company_id,
+                    'name' => $new_company->name,
+                    'address' => $new_company->address,
+                    'city' => $new_company->city,
+                    'province' => $new_company->province,
+                    'postal_code' => $new_company->postal_code,
+                    'phone_numbers' => $new_company->phone_numbers,
+                    'email_addresses' => $new_company->email_addresses,
+                )
+            ]);
+        } else {
+            wp_send_json_error(['message' => 'Company was created but could not be retrieved.']);
+        }
+    }
+
     // TODO: Add more methods as needed, e.g., for validation, specific data retrieval.
 } 

@@ -289,6 +289,66 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
     </div>
 </div>
 
+<!-- Company Modal -->
+<div id="companyModal" class="oo-modal">
+    <div class="oo-modal-content">
+        <span class="oo-modal-close">&times;</span>
+        <h2><?php esc_html_e( 'Add New Company', 'operations-organizer' ); ?></h2>
+        <form id="addCompanyForm">
+            <div class="form-field">
+                <label for="modal_company_name"><?php esc_html_e( 'Company Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
+                <input type="text" id="modal_company_name" name="name" required class="regular-text" />
+            </div>
+            <div class="form-field">
+                <label for="modal_company_address"><?php esc_html_e( 'Address', 'operations-organizer' ); ?></label>
+                <input type="text" id="modal_company_address" name="address" class="regular-text" />
+            </div>
+            <div class="oo-form-grid">
+                <div class="form-field">
+                    <label for="modal_company_city"><?php esc_html_e( 'City', 'operations-organizer' ); ?></label>
+                    <input type="text" id="modal_company_city" name="city" class="regular-text" />
+                </div>
+                <div class="form-field">
+                    <label for="modal_company_province"><?php esc_html_e( 'Province', 'operations-organizer' ); ?></label>
+                    <input type="text" id="modal_company_province" name="province" class="regular-text" />
+                </div>
+                <div class="form-field">
+                    <label for="modal_company_postal_code"><?php esc_html_e( 'Postal Code', 'operations-organizer' ); ?></label>
+                    <input type="text" id="modal_company_postal_code" name="postal_code" class="regular-text" />
+                </div>
+            </div>
+            <div class="form-field">
+                <label for="modal_company_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
+                <?php
+                echo oo_get_phone_repeater_html(array(
+                    'container_id'   => 'modal_company_phone_container',
+                    'field_name'     => 'phone_numbers',
+                    'add_button_text' => 'Add Phone',
+                    'max_phones'     => 3,
+                    'container_class' => 'compact'
+                ));
+                ?>
+            </div>
+            <div class="form-field">
+                <label for="modal_company_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
+                <?php
+                echo oo_get_email_repeater_html(array(
+                    'container_id'   => 'modal_company_email_container',
+                    'field_name'     => 'email_addresses',
+                    'add_button_text' => 'Add Email',
+                    'max_emails'     => 3,
+                    'container_class' => 'compact'
+                ));
+                ?>
+            </div>
+            <div class="form-field">
+                <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Company', 'operations-organizer' ); ?></button>
+                <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <?php
 // Register default autocomplete callbacks
 oo_register_default_autocomplete_callbacks();
@@ -315,8 +375,10 @@ jQuery(document).ready(function($) {
      * Handle "Add New Company" action
      */
     window.OO_Autocomplete_Callbacks.onAddNewCompany = function(searchTerm, $input) {
-        // For now, just alert - this would open a company creation modal
-        alert('Add New Company functionality will be implemented next. Search term: ' + searchTerm);
+        // Open the company modal with the search term pre-filled
+        $('#modal_company_name').val(searchTerm);
+        $('#companyModal').show();
+        $('#modal_company_name').focus();
     };
     
     /**
@@ -389,6 +451,8 @@ jQuery(document).ready(function($) {
     $('.oo-modal-close, .oo-modal-cancel').on('click', function() {
         $('#customerModal').hide();
         $('#addCustomerForm')[0].reset();
+        $('#companyModal').hide();
+        $('#addCompanyForm')[0].reset();
         // Clear company autocomplete fields
         $('#modal_customer_company').val('');
         $('#selected_company_id').val('');
@@ -405,6 +469,14 @@ jQuery(document).ready(function($) {
         }
     });
     
+    // Close company modal when clicking outside
+    $('#companyModal').on('click', function(e) {
+        if (e.target === this) {
+            $(this).hide();
+            $('#addCompanyForm')[0].reset();
+        }
+    });
+    
     // Add customer form submission
     $('#addCustomerForm').on('submit', function(e) {
         e.preventDefault();
@@ -415,14 +487,34 @@ jQuery(document).ready(function($) {
             return;
         }
         
+        // Get form and submit button
+        const $form = $(this);
+        const $submitButton = $form.find('button[type="submit"]');
+        const originalButtonText = $submitButton.text();
+        
+        // Disable form and show loading state
+        $submitButton.prop('disabled', true).text('Adding Customer...');
+        $form.find('input, textarea, select').prop('disabled', true);
+        
+        // Collect form data including repeater data
         const formData = {
             action: 'oo_add_customer',
             nonce: oo_data.nonce_add_customer,
             name: $('#modal_customer_name').val(),
-            email: $('#modal_customer_email').val(),
-            phone: $('#modal_customer_phone').val(),
             company_id: $('#selected_company_id').val()
         };
+        
+        // Add phone numbers JSON data
+        const phoneJsonField = $form.find('input[name="phone_numbers_json"]');
+        if (phoneJsonField.length && phoneJsonField.val()) {
+            formData.phone_numbers_json = phoneJsonField.val();
+        }
+        
+        // Add email addresses JSON data
+        const emailJsonField = $form.find('input[name="email_addresses_json"]');
+        if (emailJsonField.length && emailJsonField.val()) {
+            formData.email_addresses_json = emailJsonField.val();
+        }
         
         $.post(oo_data.ajax_url, formData)
         .done(function(response) {
@@ -443,6 +535,77 @@ jQuery(document).ready(function($) {
         })
         .fail(function() {
             alert('Error adding customer. Please try again.');
+        })
+        .always(function() {
+            // Re-enable form and restore button
+            $submitButton.prop('disabled', false).text(originalButtonText);
+            $form.find('input, textarea, select').prop('disabled', false);
+        });
+    });
+    
+    // Add company form submission
+    $('#addCompanyForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        // Check if oo_data is available
+        if (typeof oo_data === 'undefined') {
+            alert('Configuration error. Please refresh the page and try again.');
+            return;
+        }
+        
+        // Get form and submit button
+        const $form = $(this);
+        const $submitButton = $form.find('button[type="submit"]');
+        const originalButtonText = $submitButton.text();
+        
+        // Disable form and show loading state
+        $submitButton.prop('disabled', true).text('Adding Company...');
+        $form.find('input, textarea, select').prop('disabled', true);
+        
+        // Collect form data including repeater data
+        const formData = {
+            action: 'oo_add_company',
+            nonce: oo_data.nonce_add_company,
+            name: $('#modal_company_name').val(),
+            address: $('#modal_company_address').val(),
+            city: $('#modal_company_city').val(),
+            province: $('#modal_company_province').val(),
+            postal_code: $('#modal_company_postal_code').val()
+        };
+        
+        // Add phone numbers JSON data
+        const phoneJsonField = $form.find('input[name="phone_numbers_json"]');
+        if (phoneJsonField.length && phoneJsonField.val()) {
+            formData.phone_numbers_json = phoneJsonField.val();
+        }
+        
+        // Add email addresses JSON data
+        const emailJsonField = $form.find('input[name="email_addresses_json"]');
+        if (emailJsonField.length && emailJsonField.val()) {
+            formData.email_addresses_json = emailJsonField.val();
+        }
+        
+        $.post(oo_data.ajax_url, formData)
+        .done(function(response) {
+            if (response.success) {
+                // Select the newly created company using our callback
+                window.OO_Autocomplete_Callbacks.onCompanySelect(response.data.company, $('#modal_customer_company'));
+                $('#companyModal').hide();
+                $('#addCompanyForm')[0].reset();
+                
+                // Show success notification
+                showSuccessNotification(response.data.message);
+            } else {
+                alert('Error: ' + response.data.message);
+            }
+        })
+        .fail(function() {
+            alert('Error adding company. Please try again.');
+        })
+        .always(function() {
+            // Re-enable form and restore button
+            $submitButton.prop('disabled', false).text(originalButtonText);
+            $form.find('input, textarea, select').prop('disabled', false);
         });
     });
 });

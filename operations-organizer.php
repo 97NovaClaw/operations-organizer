@@ -138,6 +138,7 @@ if ( is_admin() ) {
                 // Customer management nonces
                 'nonce_search_customers' => wp_create_nonce('oo_search_customers_nonce'),
                 'nonce_add_customer' => wp_create_nonce('oo_add_customer_nonce'),
+        'nonce_add_company' => wp_create_nonce('oo_add_company_nonce'),
                 
                 // Company management nonces
                 'nonce_search_companies' => wp_create_nonce('oo_search_companies_nonce'),
@@ -254,6 +255,7 @@ add_action('wp_ajax_oo_stop_job_action', array('OO_Admin_Pages', 'handle_stop_jo
 // Customer search and management AJAX handlers
 add_action('wp_ajax_oo_search_customers', array('OO_Job', 'ajax_search_customers'));
 add_action('wp_ajax_oo_add_customer', array('OO_Job', 'ajax_add_customer'));
+add_action('wp_ajax_oo_add_company', array('OO_Job', 'ajax_add_company'));
 add_action('wp_ajax_oo_get_customer_details', array('OO_Customer', 'ajax_get_customer_details'));
 
 // Company search and management AJAX handlers
