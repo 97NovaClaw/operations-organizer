@@ -73,6 +73,8 @@
      * Set up the DOM structure
      */
     PhoneRepeaterWidget.prototype.setupDOM = function() {
+        console.log('OO Phone Repeater: Full config received:', this.config);
+        
         // Add CSS class to container
         this.$container.addClass('oo-phone-repeater-container');
         
@@ -80,6 +82,9 @@
         if (this.config.container_class) {
             this.$container.addClass(this.config.container_class);
             console.log('OO Phone Repeater: Added container class:', this.config.container_class);
+            console.log('OO Phone Repeater: Container classes now:', this.$container.attr('class'));
+        } else {
+            console.log('OO Phone Repeater: No container_class found in config');
         }
 
         // Create phone list container
