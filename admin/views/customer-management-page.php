@@ -95,11 +95,33 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
                                 </div>
                             </td>
                             <td class="email column-email" data-colname="<?php esc_attr_e('Email', 'operations-organizer'); ?>">
-                                <?php echo $customer->email ? esc_html( $customer->email ) : '—'; ?>
+                                <?php 
+                                if ( !empty($customer->email_addresses) ) {
+                                    // Check if it's JSON data
+                                    $email_data = json_decode( $customer->email_addresses, true );
+                                    if ( json_last_error() === JSON_ERROR_NONE && is_array( $email_data ) ) {
+                                        echo oo_format_email_display_advanced( $email_data, 'first_only' );
+                                    } else {
+                                        echo esc_html( $customer->email_addresses );
+                                    }
+                                } elseif ( $customer->email ) {
+                                    echo esc_html( $customer->email );
+                                } else {
+                                    echo '—';
+                                }
+                                ?>
                             </td>
                             <td class="phone column-phone" data-colname="<?php esc_attr_e('Phone', 'operations-organizer'); ?>">
                                 <?php 
-                                if ( $customer->phone ) {
+                                if ( !empty($customer->phone_numbers) ) {
+                                    // Check if it's JSON data
+                                    $phone_data = json_decode( $customer->phone_numbers, true );
+                                    if ( json_last_error() === JSON_ERROR_NONE && is_array( $phone_data ) ) {
+                                        echo oo_format_phone_display( $phone_data, 'primary_only' );
+                                    } else {
+                                        echo esc_html( $customer->phone_numbers );
+                                    }
+                                } elseif ( $customer->phone ) {
                                     // Check if it's JSON data
                                     $phone_data = json_decode( $customer->phone, true );
                                     if ( json_last_error() === JSON_ERROR_NONE && is_array( $phone_data ) ) {
@@ -175,6 +197,18 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
             </div>
             
             <div class="oo-form-field">
+                <label for="modal_customer_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
+                <?php
+                echo oo_get_email_repeater_html(array(
+                    'container_id'   => 'modal_customer_email_container',
+                    'field_name'     => 'email_addresses',
+                    'add_button_text' => 'Add Email',
+                    'max_emails'     => 5
+                ));
+                ?>
+            </div>
+            
+            <div class="oo-form-field">
                 <label for="modal_customer_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
                 <?php
                 echo oo_get_phone_repeater_html(array(
@@ -233,6 +267,18 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
             <div class="oo-form-field">
                 <label for="edit_customer_email"><?php esc_html_e( 'Email', 'operations-organizer' ); ?></label>
                 <input type="email" id="edit_customer_email" name="email" class="regular-text" />
+            </div>
+            
+            <div class="oo-form-field">
+                <label for="edit_customer_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
+                <?php
+                echo oo_get_email_repeater_html(array(
+                    'container_id'   => 'edit_customer_email_container',
+                    'field_name'     => 'email_addresses',
+                    'add_button_text' => 'Add Email',
+                    'max_emails'     => 5
+                ));
+                ?>
             </div>
             
             <div class="oo-form-field">

@@ -46,6 +46,7 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
                         'name' => __('Company Name', 'operations-organizer'),
                         'address' => __('Address', 'operations-organizer'),
                         'phone_numbers' => __('Phone Numbers', 'operations-organizer'),
+                        'email_addresses' => __('Email Addresses', 'operations-organizer'),
                         'customer_count' => __('Customers', 'operations-organizer'),
                         'created_at' => __('Created', 'operations-organizer'),
                         'actions' => __('Actions', 'operations-organizer'),
@@ -101,6 +102,21 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
                                         echo oo_format_phone_display( $phone_data, 'primary_only' );
                                     } else {
                                         echo esc_html( $company->phone_numbers );
+                                    }
+                                } else {
+                                    echo '—';
+                                }
+                                ?>
+                            </td>
+                            <td class="email_addresses column-email_addresses" data-colname="<?php esc_attr_e('Email Addresses', 'operations-organizer'); ?>">
+                                <?php 
+                                if ( !empty($company->email_addresses) ) {
+                                    // Check if it's JSON data
+                                    $email_data = json_decode( $company->email_addresses, true );
+                                    if ( json_last_error() === JSON_ERROR_NONE && is_array( $email_data ) ) {
+                                        echo oo_format_email_display_advanced( $email_data, 'first_only' );
+                                    } else {
+                                        echo esc_html( $company->email_addresses );
                                     }
                                 } else {
                                     echo '—';
@@ -204,6 +220,18 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
             </div>
             
             <div class="oo-form-field">
+                <label for="modal_company_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
+                <?php
+                echo oo_get_email_repeater_html(array(
+                    'container_id'   => 'modal_company_email_container',
+                    'field_name'     => 'email_addresses',
+                    'add_button_text' => 'Add Email',
+                    'max_emails'     => 10
+                ));
+                ?>
+            </div>
+            
+            <div class="oo-form-field">
                 <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Company', 'operations-organizer' ); ?></button>
                 <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
             </div>
@@ -256,6 +284,18 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
                     'field_name'     => 'phone_numbers',
                     'add_button_text' => 'Add Phone Number',
                     'max_phones'     => 10
+                ));
+                ?>
+            </div>
+            
+            <div class="oo-form-field">
+                <label for="edit_company_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
+                <?php
+                echo oo_get_email_repeater_html(array(
+                    'container_id'   => 'edit_company_email_container',
+                    'field_name'     => 'email_addresses',
+                    'add_button_text' => 'Add Email',
+                    'max_emails'     => 10
                 ));
                 ?>
             </div>

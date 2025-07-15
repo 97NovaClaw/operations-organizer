@@ -96,6 +96,42 @@ function oo_get_email_repeater_html( $args = array() ) {
 }
 
 /**
+ * Process email repeater form submission
+ * 
+ * Handles form data submitted from the email repeater widget
+ * 
+ * @param array $form_data Form data from $_POST
+ * @param string $field_name Field name used in the repeater
+ * @return array Processed email data
+ */
+function oo_process_email_repeater_submission( $form_data, $field_name = 'email_addresses' ) {
+    $email_data = array();
+
+    // Check for JSON data first (preferred method)
+    $json_field_name = $field_name . '_json';
+    if ( ! empty( $form_data[ $json_field_name ] ) ) {
+        $decoded = json_decode( $form_data[ $json_field_name ], true );
+        if ( json_last_error() === JSON_ERROR_NONE && is_array( $decoded ) ) {
+            return $decoded;
+        }
+    }
+
+    // Fall back to individual field processing
+    if ( ! empty( $form_data[ $field_name ] ) && is_array( $form_data[ $field_name ] ) ) {
+        foreach ( $form_data[ $field_name ] as $index => $email_fields ) {
+            if ( ! empty( $email_fields['email'] ) ) {
+                $email_data[] = array(
+                    'email' => sanitize_email( $email_fields['email'] ),
+                    'note'  => ! empty( $email_fields['note'] ) ? sanitize_textarea_field( $email_fields['note'] ) : '',
+                );
+            }
+        }
+    }
+
+    return $email_data;
+}
+
+/**
  * Process email repeater data from form submission
  * 
  * This function takes the raw POST data from the email repeater
@@ -195,4 +231,98 @@ function oo_convert_email_data_to_json( $email_data ) {
     }
 
     return wp_json_encode( $email_data );
+}
+
+/**
+ * Validate email data
+ * 
+ * @param array $email_data Email data to validate
+ * @return array|WP_Error Validated email data or error
+ */
+function oo_validate_email_data( $email_data ) {
+    if ( ! is_array( $email_data ) ) {
+        return new WP_Error( 'invalid_email_data', 'Email data must be an array.' );
+    }
+
+    $validated_data = array();
+
+    foreach ( $email_data as $index => $email ) {
+        if ( ! is_array( $email ) ) {
+            continue;
+        }
+
+        // Validate required email field
+        if ( empty( $email['email'] ) ) {
+            continue; // Skip empty emails
+        }
+
+        $sanitized_email = sanitize_email( $email['email'] );
+        if ( ! is_email( $sanitized_email ) ) {
+            continue; // Skip invalid emails
+        }
+
+        $validated_email = array(
+            'email' => $sanitized_email,
+            'note'  => ! empty( $email['note'] ) ? sanitize_textarea_field( $email['note'] ) : '',
+        );
+
+        $validated_data[] = $validated_email;
+    }
+
+    return $validated_data;
+}
+
+/**
+ * Get formatted email display string
+ * 
+ * Formats email data for display purposes
+ * 
+ * @param array $email_data Structured email data
+ * @param string $format Display format ('list', 'inline', 'first_only')
+ * @return string Formatted email string
+ */
+function oo_format_email_display_advanced( $email_data, $format = 'list' ) {
+    if ( empty( $email_data ) || ! is_array( $email_data ) ) {
+        return '';
+    }
+
+    switch ( $format ) {
+        case 'first_only':
+            // Return only the first email
+            if ( ! empty( $email_data[0]['email'] ) ) {
+                return $email_data[0]['email'];
+            }
+            return '';
+
+        case 'inline':
+            // Return all emails as comma-separated inline string
+            $email_strings = array();
+            foreach ( $email_data as $email ) {
+                if ( ! empty( $email['email'] ) ) {
+                    $display = $email['email'];
+                    if ( ! empty( $email['note'] ) ) {
+                        $display .= ' (' . $email['note'] . ')';
+                    }
+                    $email_strings[] = $display;
+                }
+            }
+            return implode( ', ', $email_strings );
+
+        case 'list':
+        default:
+            // Return as HTML list
+            $html = '<ul class="oo-email-list-display">';
+            foreach ( $email_data as $email ) {
+                if ( ! empty( $email['email'] ) ) {
+                    $html .= '<li>';
+                    $html .= '<a href="mailto:' . esc_attr( $email['email'] ) . '">' . esc_html( $email['email'] ) . '</a>';
+                    if ( ! empty( $email['note'] ) ) {
+                        $html .= ' <span class="oo-email-note">(' . esc_html( $email['note'] ) . ')</span>';
+                    }
+                    $html .= '</li>';
+                }
+            }
+            $html .= '</ul>';
+            return $html;
+    }
 } 

@@ -56,6 +56,9 @@ class OO_DB { // Renamed class
         
         // Check for job_number column in job_logs table
         self::check_job_number_column();
+        
+        // Check for email and phone repeater columns
+        self::check_repeater_columns();
     }
 
     /**
@@ -137,6 +140,49 @@ class OO_DB { // Renamed class
         }
         
         return false;
+    }
+
+    /**
+     * Check for and add email/phone repeater columns if missing
+     */
+    public static function check_repeater_columns() {
+        global $wpdb;
+        
+        // Check companies table for email_addresses column
+        $companies_email_exists = $wpdb->get_results("SHOW COLUMNS FROM " . self::$companies_table . " LIKE 'email_addresses'");
+        if (empty($companies_email_exists)) {
+            oo_log('email_addresses column missing in companies table. Adding it now.', __METHOD__);
+            $result = $wpdb->query("ALTER TABLE " . self::$companies_table . " ADD COLUMN `email_addresses` TEXT NULL AFTER `phone_numbers`");
+            if ($result === false) {
+                oo_log('Failed to add email_addresses column to companies table: ' . $wpdb->last_error, __METHOD__);
+            } else {
+                oo_log('Successfully added email_addresses column to companies table', __METHOD__);
+            }
+        }
+        
+        // Check customers table for phone_numbers column
+        $customers_phone_exists = $wpdb->get_results("SHOW COLUMNS FROM " . self::$customers_table . " LIKE 'phone_numbers'");
+        if (empty($customers_phone_exists)) {
+            oo_log('phone_numbers column missing in customers table. Adding it now.', __METHOD__);
+            $result = $wpdb->query("ALTER TABLE " . self::$customers_table . " ADD COLUMN `phone_numbers` TEXT NULL AFTER `phone`");
+            if ($result === false) {
+                oo_log('Failed to add phone_numbers column to customers table: ' . $wpdb->last_error, __METHOD__);
+            } else {
+                oo_log('Successfully added phone_numbers column to customers table', __METHOD__);
+            }
+        }
+        
+        // Check customers table for email_addresses column
+        $customers_email_exists = $wpdb->get_results("SHOW COLUMNS FROM " . self::$customers_table . " LIKE 'email_addresses'");
+        if (empty($customers_email_exists)) {
+            oo_log('email_addresses column missing in customers table. Adding it now.', __METHOD__);
+            $result = $wpdb->query("ALTER TABLE " . self::$customers_table . " ADD COLUMN `email_addresses` TEXT NULL AFTER `phone_numbers`");
+            if ($result === false) {
+                oo_log('Failed to add email_addresses column to customers table: ' . $wpdb->last_error, __METHOD__);
+            } else {
+                oo_log('Successfully added email_addresses column to customers table', __METHOD__);
+            }
+        }
     }
 
     /**
@@ -288,6 +334,7 @@ class OO_DB { // Renamed class
             province VARCHAR(100) NULL,
             postal_code VARCHAR(20) NULL,
             phone_numbers TEXT NULL,
+            email_addresses TEXT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (company_id),
@@ -300,6 +347,8 @@ class OO_DB { // Renamed class
             name VARCHAR(255) NOT NULL,
             email VARCHAR(255) NULL,
             phone VARCHAR(100) NULL,
+            phone_numbers TEXT NULL,
+            email_addresses TEXT NULL,
             company_id BIGINT UNSIGNED NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -3058,6 +3107,7 @@ class OO_DB { // Renamed class
             'province' => isset($args['province']) ? sanitize_text_field( $args['province'] ) : null,
             'postal_code' => isset($args['postal_code']) ? sanitize_text_field( $args['postal_code'] ) : null,
             'phone_numbers' => isset($args['phone_numbers']) ? sanitize_text_field( $args['phone_numbers'] ) : null,
+            'email_addresses' => isset($args['email_addresses']) ? sanitize_text_field( $args['email_addresses'] ) : null,
             'created_at' => current_time('mysql', 1),
             'updated_at' => current_time('mysql', 1)
         );
@@ -3165,6 +3215,10 @@ class OO_DB { // Renamed class
             $data['phone_numbers'] = sanitize_text_field( $args['phone_numbers'] );
         }
         
+        if ( isset( $args['email_addresses'] ) ) {
+            $data['email_addresses'] = sanitize_text_field( $args['email_addresses'] );
+        }
+        
         if ( empty( $data ) ) {
             return new WP_Error( 'no_data', 'No data provided for update.' );
         }
@@ -3194,6 +3248,8 @@ class OO_DB { // Renamed class
             'name' => sanitize_text_field( $args['name'] ),
             'email' => isset($args['email']) ? sanitize_email( $args['email'] ) : null,
             'phone' => isset($args['phone']) ? sanitize_text_field( $args['phone'] ) : null,
+            'phone_numbers' => isset($args['phone_numbers']) ? sanitize_text_field( $args['phone_numbers'] ) : null,
+            'email_addresses' => isset($args['email_addresses']) ? sanitize_text_field( $args['email_addresses'] ) : null,
             'company_id' => isset($args['company_id']) ? intval( $args['company_id'] ) : null,
             'created_at' => current_time('mysql', 1),
             'updated_at' => current_time('mysql', 1)
@@ -3297,6 +3353,14 @@ class OO_DB { // Renamed class
 
         if ( isset( $args['phone'] ) ) {
             $data['phone'] = sanitize_text_field( $args['phone'] );
+        }
+
+        if ( isset( $args['phone_numbers'] ) ) {
+            $data['phone_numbers'] = sanitize_text_field( $args['phone_numbers'] );
+        }
+
+        if ( isset( $args['email_addresses'] ) ) {
+            $data['email_addresses'] = sanitize_text_field( $args['email_addresses'] );
         }
 
         if ( isset( $args['company_id'] ) ) {

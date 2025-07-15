@@ -194,6 +194,18 @@ class OO_Customer {
             }
         }
 
+        // Process email addresses
+        $email_json = '';
+        if ( ! empty( $_POST['email_addresses_json'] ) ) {
+            $email_data = json_decode( stripslashes( $_POST['email_addresses_json'] ), true );
+            if ( json_last_error() === JSON_ERROR_NONE ) {
+                $validated_email_data = oo_validate_email_data( $email_data );
+                if ( ! is_wp_error( $validated_email_data ) ) {
+                    $email_json = wp_json_encode( $validated_email_data );
+                }
+            }
+        }
+
         if ( empty( $name ) ) {
             $GLOBALS['oo_customer_error'] = __( 'Customer name is required.', 'operations-organizer' );
             return;
@@ -203,6 +215,8 @@ class OO_Customer {
             'name' => $name,
             'email' => $email,
             'phone' => $phone_json,
+            'phone_numbers' => $phone_json,
+            'email_addresses' => $email_json,
             'company_id' => $company_id,
         );
 
@@ -236,6 +250,18 @@ class OO_Customer {
             }
         }
 
+        // Process email addresses
+        $email_json = '';
+        if ( ! empty( $_POST['email_addresses_json'] ) ) {
+            $email_data = json_decode( stripslashes( $_POST['email_addresses_json'] ), true );
+            if ( json_last_error() === JSON_ERROR_NONE ) {
+                $validated_email_data = oo_validate_email_data( $email_data );
+                if ( ! is_wp_error( $validated_email_data ) ) {
+                    $email_json = wp_json_encode( $validated_email_data );
+                }
+            }
+        }
+
         if ( empty( $name ) ) {
             $GLOBALS['oo_customer_error'] = __( 'Customer name is required.', 'operations-organizer' );
             return;
@@ -245,6 +271,8 @@ class OO_Customer {
             'name' => $name,
             'email' => $email,
             'phone' => $phone_json,
+            'phone_numbers' => $phone_json,
+            'email_addresses' => $email_json,
             'company_id' => $company_id,
         );
 
