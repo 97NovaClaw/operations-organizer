@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.1.26
+ * Version:           1.5.1.27
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -42,8 +42,10 @@ require_once OO_PLUGIN_DIR . 'features/autocomplete/loader.php'; // Reusable aut
 require_once OO_PLUGIN_DIR . 'features/phone-repeater/loader.php'; // Reusable phone repeater component
 require_once OO_PLUGIN_DIR . 'features/email-repeater/loader.php'; // Reusable email repeater component
 
-// Include Stream Management feature
-require_once OO_PLUGIN_DIR . 'features/stream-management/index.php'; // Dynamic stream management
+// Include Stream Management feature (conditional for deployment safety)
+if (file_exists(OO_PLUGIN_DIR . 'features/stream-management/index.php')) {
+    require_once OO_PLUGIN_DIR . 'features/stream-management/index.php'; // Dynamic stream management
+}
 
 // Include Stream Dashboard feature files
 require_once OO_PLUGIN_DIR . 'features/stream-dashboard/database.php';
@@ -365,20 +367,39 @@ function initialize_default_streams() {
         $existing_stream = OO_DB::get_stream_by_slug($stream_data['stream_slug']);
         
         if (!$existing_stream) {
-            // Stream doesn't exist, add it using the new dynamic system
-            $result = OO_Stream_Management_Form_Handler::create_new_stream(
-                $stream_data['stream_name'],
-                $stream_data['stream_description']
-            );
-            
-            if (is_wp_error($result)) {
-                // Log the error if logging function exists
-                if (function_exists('oo_log')) {
-                    oo_log('Error creating default stream: ' . $result->get_error_message(), 'initialize_default_streams');
+            // Stream doesn't exist, add it using the new dynamic system (if available)
+            if (class_exists('OO_Stream_Management_Form_Handler')) {
+                $result = OO_Stream_Management_Form_Handler::create_new_stream(
+                    $stream_data['stream_name'],
+                    $stream_data['stream_description']
+                );
+                
+                if (is_wp_error($result)) {
+                    // Log the error if logging function exists
+                    if (function_exists('oo_log')) {
+                        oo_log('Error creating default stream: ' . $result->get_error_message(), 'initialize_default_streams');
+                    }
+                } else {
+                    if (function_exists('oo_log')) {
+                        oo_log('Successfully migrated stream: ' . $stream_data['stream_name'], 'initialize_default_streams');
+                    }
                 }
             } else {
-                if (function_exists('oo_log')) {
-                    oo_log('Successfully migrated stream: ' . $stream_data['stream_name'], 'initialize_default_streams');
+                // Fallback: Use the old method if new system isn't available yet
+                $result = OO_DB::add_stream(
+                    $stream_data['stream_name'],
+                    $stream_data['stream_slug'],
+                    $stream_data['stream_description']
+                );
+                
+                if (is_wp_error($result)) {
+                    if (function_exists('oo_log')) {
+                        oo_log('Error creating default stream (fallback): ' . $result->get_error_message(), 'initialize_default_streams');
+                    }
+                } else {
+                    if (function_exists('oo_log')) {
+                        oo_log('Successfully created stream (fallback): ' . $stream_data['stream_name'], 'initialize_default_streams');
+                    }
                 }
             }
         }
