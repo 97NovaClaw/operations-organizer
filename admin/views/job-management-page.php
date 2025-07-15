@@ -250,8 +250,32 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                 <input type="email" id="modal_customer_email" name="email" class="regular-text" />
             </div>
             <div class="form-field">
+                <label for="modal_customer_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
+                <?php
+                echo oo_get_email_repeater_html(array(
+                    'container_id'   => 'modal_customer_email_container',
+                    'field_name'     => 'email_addresses',
+                    'add_button_text' => 'Add Email',
+                    'max_emails'     => 3,
+                    'container_class' => 'compact'
+                ));
+                ?>
+            </div>
+            <div class="form-field">
                 <label for="modal_customer_phone"><?php esc_html_e( 'Phone', 'operations-organizer' ); ?></label>
                 <input type="text" id="modal_customer_phone" name="phone" class="regular-text" />
+            </div>
+            <div class="form-field">
+                <label for="modal_customer_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
+                <?php
+                echo oo_get_phone_repeater_html(array(
+                    'container_id'   => 'modal_customer_phone_container',
+                    'field_name'     => 'phone_numbers',
+                    'add_button_text' => 'Add Phone',
+                    'max_phones'     => 3,
+                    'container_class' => 'compact'
+                ));
+                ?>
             </div>
             <div class="form-field">
                 <label for="modal_customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label>
