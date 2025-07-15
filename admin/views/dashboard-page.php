@@ -15,34 +15,70 @@ $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'overview';
     <h1><?php esc_html_e( 'Operations Dashboard', 'operations-organizer' ); ?></h1>
 
     <h2 class="nav-tab-wrapper">
+        <!-- Overview Tab (Always Present) -->
         <a href="?page=oo_dashboard&tab=overview" class="nav-tab <?php echo $active_tab == 'overview' ? 'nav-tab-active' : ''; ?>"><?php esc_html_e('Overview', 'operations-organizer'); ?></a>
-        <a href="?page=oo_dashboard&tab=soft-content" class="nav-tab <?php echo $active_tab == 'soft-content' ? 'nav-tab-active' : ''; ?>"><?php esc_html_e('Soft Content', 'operations-organizer'); ?></a>
-        <a href="?page=oo_dashboard&tab=electronics" class="nav-tab <?php echo $active_tab == 'electronics' ? 'nav-tab-active' : ''; ?>"><?php esc_html_e('Electronics', 'operations-organizer'); ?></a>
-        <a href="?page=oo_dashboard&tab=art" class="nav-tab <?php echo $active_tab == 'art' ? 'nav-tab-active' : ''; ?>"><?php esc_html_e('Art', 'operations-organizer'); ?></a>
-        <a href="?page=oo_dashboard&tab=content" class="nav-tab <?php echo $active_tab == 'content' ? 'nav-tab-active' : ''; ?>"><?php esc_html_e('Content', 'operations-organizer'); ?></a>
+        
+        <!-- Dynamic Stream Tabs -->
+        <?php if (!empty($streams)) : ?>
+            <?php foreach ($streams as $stream) : ?>
+                <?php 
+                $stream_tab_slug = sanitize_key(strtolower(str_replace(' ', '-', $stream->stream_name))); 
+                $is_active = ($active_tab == $stream_tab_slug) ? 'nav-tab-active' : '';
+                ?>
+                <a href="?page=oo_dashboard&tab=<?php echo esc_attr($stream_tab_slug); ?>" class="nav-tab <?php echo $is_active; ?>">
+                    <?php echo esc_html($stream->stream_name); ?>
+                </a>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </h2>
 
     <?php
     // Display the appropriate tab content
-    switch ($active_tab) {
-        case 'overview':
+    if ($active_tab == 'overview') {
+        // Overview tab (special case)
+        include_once OO_PLUGIN_DIR . 'admin/views/dashboard-tabs/overview-tab.php';
+    } else {
+        // Check if this is a dynamic stream tab
+        $current_stream = null;
+        if (!empty($streams)) {
+            foreach ($streams as $stream) {
+                $stream_tab_slug = sanitize_key(strtolower(str_replace(' ', '-', $stream->stream_name)));
+                if ($active_tab == $stream_tab_slug) {
+                    $current_stream = $stream;
+                    break;
+                }
+            }
+        }
+        
+        if ($current_stream) {
+            // Set global variables for the generic stream tab
+            $GLOBALS['current_stream'] = $current_stream;
+            $GLOBALS['current_stream_tab_slug'] = $active_tab;
+            
+            // Check if a specific template exists for backward compatibility
+            $legacy_template_map = array(
+                'soft-content' => 'soft-content-tab.php',
+                'electronics' => 'electronics-tab.php', 
+                'art' => 'art-tab.php',
+                'content' => 'content-tab.php'
+            );
+            
+            $legacy_template_path = null;
+            if (isset($legacy_template_map[$active_tab])) {
+                $legacy_template_path = OO_PLUGIN_DIR . 'admin/views/dashboard-tabs/' . $legacy_template_map[$active_tab];
+            }
+            
+            if ($legacy_template_path && file_exists($legacy_template_path)) {
+                // Use legacy template for backward compatibility
+                include_once $legacy_template_path;
+            } else {
+                // Use generic stream template
+                include_once OO_PLUGIN_DIR . 'admin/views/dashboard-tabs/generic-stream-tab.php';
+            }
+        } else {
+            // Unknown tab, default to overview
             include_once OO_PLUGIN_DIR . 'admin/views/dashboard-tabs/overview-tab.php';
-            break;
-        case 'soft-content':
-            include_once OO_PLUGIN_DIR . 'admin/views/dashboard-tabs/soft-content-tab.php';
-            break;
-        case 'electronics':
-            include_once OO_PLUGIN_DIR . 'admin/views/dashboard-tabs/electronics-tab.php';
-            break;
-        case 'art':
-            include_once OO_PLUGIN_DIR . 'admin/views/dashboard-tabs/art-tab.php';
-            break;
-        case 'content':
-            include_once OO_PLUGIN_DIR . 'admin/views/dashboard-tabs/content-tab.php';
-            break;
-        default:
-            include_once OO_PLUGIN_DIR . 'admin/views/dashboard-tabs/overview-tab.php';
-            break;
+        }
     }
     ?>
 </div>

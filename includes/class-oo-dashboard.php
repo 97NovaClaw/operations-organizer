@@ -617,4 +617,43 @@ class OO_Dashboard { // Renamed class
         }
     }
     
+    /**
+     * AJAX handler to get statistics for a specific stream
+     */
+    public static function ajax_get_stream_statistics() {
+        check_ajax_referer('oo_get_stream_stats_nonce', 'nonce');
+        
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+        
+        $stream_id = isset($_POST['stream_id']) ? intval($_POST['stream_id']) : 0;
+        
+        if ($stream_id <= 0) {
+            wp_send_json_error(['message' => 'Invalid stream ID.']);
+            return;
+        }
+        
+        // Get active jobs count for this stream
+        $active_jobs = OO_DB::get_jobs_for_stream_count(array(
+            'stream_id' => $stream_id,
+            'search_general' => null
+        ));
+        
+        // Get recent logs count (today)
+        $today = current_time('Y-m-d');
+        $recent_logs = OO_DB::get_job_logs_count(array(
+            'stream_id' => $stream_id,
+            'date_field' => 'created_at',
+            'date_from' => $today,
+            'date_to' => $today
+        ));
+        
+        wp_send_json_success(array(
+            'active_jobs' => $active_jobs,
+            'recent_logs' => $recent_logs
+        ));
+    }
+    
 } 

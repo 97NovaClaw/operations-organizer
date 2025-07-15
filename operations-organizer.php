@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.1.25
+ * Version:           1.5.1.26
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -327,6 +327,9 @@ add_action('wp_ajax_oo_delete_derived_kpi_definition', array('OO_Stream_Dashboar
 // Register JSON data AJAX handlers for KPI Column Selector
 add_action('wp_ajax_oo_get_json_kpi_measures_for_stream', array('OO_Stream_Dashboard_AJAX', 'ajax_get_json_kpi_measures_for_stream'));
 add_action('wp_ajax_oo_get_json_derived_kpi_definitions', array('OO_Stream_Dashboard_AJAX', 'ajax_get_json_derived_kpi_definitions'));
+
+// Register AJAX handler for stream statistics
+add_action('wp_ajax_oo_get_stream_statistics', array('OO_Dashboard', 'ajax_get_stream_statistics'));
 
 /**
  * Initialize default streams in the database.
