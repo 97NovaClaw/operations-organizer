@@ -132,4 +132,203 @@ class OO_Customer {
         $customer = new self( $customer_id );
         return $customer->customer_id ? $customer : null;
     }
+
+    /**
+     * Display customer management page
+     */
+    public static function display_customer_management_page() {
+        if ( ! current_user_can( oo_get_capability() ) ) {
+            wp_die( __( 'You do not have sufficient permissions to access this page.', 'operations-organizer' ) );
+        }
+
+        // Handle form submissions
+        if ( isset( $_POST['oo_action'] ) ) {
+            self::handle_customer_form_submission();
+        }
+
+        // Prepare data for the page
+        self::prepare_customer_list_data();
+
+        // Include the view
+        include_once OO_PLUGIN_DIR . 'admin/views/customer-management-page.php';
+    }
+
+    /**
+     * Handle customer form submissions
+     */
+    private static function handle_customer_form_submission() {
+        $action = sanitize_text_field( $_POST['oo_action'] );
+        
+        switch ( $action ) {
+            case 'add_customer':
+                if ( check_admin_referer( 'oo_add_customer_nonce', 'oo_add_customer_nonce' ) ) {
+                    self::handle_add_customer();
+                }
+                break;
+            
+            case 'edit_customer':
+                if ( check_admin_referer( 'oo_edit_customer_nonce', 'oo_edit_customer_nonce' ) ) {
+                    self::handle_edit_customer();
+                }
+                break;
+        }
+    }
+
+    /**
+     * Handle add customer form submission
+     */
+    private static function handle_add_customer() {
+        $name = sanitize_text_field( $_POST['name'] );
+        $email = sanitize_email( $_POST['email'] );
+        $company_id = ! empty( $_POST['company_id'] ) ? intval( $_POST['company_id'] ) : null;
+        
+        // Process phone numbers
+        $phone_json = '';
+        if ( ! empty( $_POST['phone_numbers_json'] ) ) {
+            $phone_data = json_decode( stripslashes( $_POST['phone_numbers_json'] ), true );
+            if ( json_last_error() === JSON_ERROR_NONE ) {
+                $validated_phone_data = oo_validate_phone_data( $phone_data );
+                if ( ! is_wp_error( $validated_phone_data ) ) {
+                    $phone_json = wp_json_encode( $validated_phone_data );
+                }
+            }
+        }
+
+        if ( empty( $name ) ) {
+            $GLOBALS['oo_customer_error'] = __( 'Customer name is required.', 'operations-organizer' );
+            return;
+        }
+
+        $customer_data = array(
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone_json,
+            'company_id' => $company_id,
+        );
+
+        $result = OO_DB::add_customer( $customer_data );
+        
+        if ( is_wp_error( $result ) ) {
+            $GLOBALS['oo_customer_error'] = $result->get_error_message();
+        } else {
+            $GLOBALS['oo_customer_success'] = __( 'Customer added successfully.', 'operations-organizer' );
+        }
+    }
+
+    /**
+     * Handle edit customer form submission
+     */
+    private static function handle_edit_customer() {
+        $customer_id = intval( $_POST['customer_id'] );
+        $name = sanitize_text_field( $_POST['name'] );
+        $email = sanitize_email( $_POST['email'] );
+        $company_id = ! empty( $_POST['company_id'] ) ? intval( $_POST['company_id'] ) : null;
+        
+        // Process phone numbers
+        $phone_json = '';
+        if ( ! empty( $_POST['phone_numbers_json'] ) ) {
+            $phone_data = json_decode( stripslashes( $_POST['phone_numbers_json'] ), true );
+            if ( json_last_error() === JSON_ERROR_NONE ) {
+                $validated_phone_data = oo_validate_phone_data( $phone_data );
+                if ( ! is_wp_error( $validated_phone_data ) ) {
+                    $phone_json = wp_json_encode( $validated_phone_data );
+                }
+            }
+        }
+
+        if ( empty( $name ) ) {
+            $GLOBALS['oo_customer_error'] = __( 'Customer name is required.', 'operations-organizer' );
+            return;
+        }
+
+        $customer_data = array(
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone_json,
+            'company_id' => $company_id,
+        );
+
+        $result = OO_DB::update_customer( $customer_id, $customer_data );
+        
+        if ( is_wp_error( $result ) ) {
+            $GLOBALS['oo_customer_error'] = $result->get_error_message();
+        } else {
+            $GLOBALS['oo_customer_success'] = __( 'Customer updated successfully.', 'operations-organizer' );
+        }
+    }
+
+    /**
+     * Prepare customer list data for display
+     */
+    private static function prepare_customer_list_data() {
+        $per_page = 20;
+        $current_page = isset( $_GET['paged'] ) ? max( 1, intval( $_GET['paged'] ) ) : 1;
+        $search_term = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
+        $company_filter = isset( $_GET['company_filter'] ) ? intval( $_GET['company_filter'] ) : '';
+        $orderby = isset( $_GET['orderby'] ) ? sanitize_key( $_GET['orderby'] ) : 'name';
+        $order = isset( $_GET['order'] ) ? sanitize_key( $_GET['order'] ) : 'ASC';
+
+        $args = array(
+            'number' => $per_page,
+            'offset' => ( $current_page - 1 ) * $per_page,
+            'search' => $search_term,
+            'orderby' => $orderby,
+            'order' => $order,
+        );
+
+        // Add company filter if specified
+        if ( $company_filter ) {
+            $args['company_id'] = $company_filter;
+        }
+
+        $customers = OO_DB::get_customers( $args );
+        $total_customers = OO_DB::get_customers_count( $args );
+
+        // Set global variables for the view
+        $GLOBALS['customers'] = $customers;
+        $GLOBALS['total_customers'] = $total_customers;
+        $GLOBALS['current_page'] = $current_page;
+        $GLOBALS['per_page'] = $per_page;
+        $GLOBALS['search_term'] = $search_term;
+        $GLOBALS['orderby'] = $orderby;
+        $GLOBALS['order'] = $order;
+    }
+
+    /**
+     * AJAX handler for getting customer details
+     */
+    public static function ajax_get_customer_details() {
+        check_ajax_referer( 'oo_get_customer_details_nonce', 'nonce' );
+        
+        if ( ! current_user_can( oo_get_capability() ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied.' ) );
+            return;
+        }
+
+        $customer_id = isset( $_POST['customer_id'] ) ? intval( $_POST['customer_id'] ) : 0;
+        
+        if ( $customer_id <= 0 ) {
+            wp_send_json_error( array( 'message' => 'Invalid customer ID.' ) );
+            return;
+        }
+
+        // Get customer with company information
+        $customers = OO_DB::get_customers( array( 'customer_id' => $customer_id, 'number' => 1 ) );
+        
+        if ( empty( $customers ) ) {
+            wp_send_json_error( array( 'message' => 'Customer not found.' ) );
+            return;
+        }
+
+        $customer = $customers[0];
+        
+        wp_send_json_success( array(
+            'customer_id' => $customer->customer_id,
+            'name' => $customer->name,
+            'email' => $customer->email,
+            'phone' => $customer->phone,
+            'company_id' => $customer->company_id,
+            'company_name' => $customer->company_name,
+        ) );
+    }
 } 

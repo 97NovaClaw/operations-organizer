@@ -39,6 +39,28 @@ class OO_Admin_Pages { // Renamed class
             $main_menu_position + 2
         );
         
+        // Top-Level: Customers
+        $this->admin_page_hooks[] = add_menu_page(
+            __( 'Manage Customers', 'operations-organizer' ),
+            __( 'Customers', 'operations-organizer' ),
+            oo_get_capability(), 
+            'oo_customers',
+            array( 'OO_Customer', 'display_customer_management_page' ),
+            'dashicons-businessman',
+            $main_menu_position + 3
+        );
+        
+        // Top-Level: Companies
+        $this->admin_page_hooks[] = add_menu_page(
+            __( 'Manage Companies', 'operations-organizer' ),
+            __( 'Companies', 'operations-organizer' ),
+            oo_get_capability(), 
+            'oo_companies',
+            array( 'OO_Company', 'display_company_management_page' ),
+            'dashicons-building',
+            $main_menu_position + 4
+        );
+        
         // Top-Level: Phases (Global View)
         $this->admin_page_hooks[] = add_menu_page(
             __( 'Manage All Phases', 'operations-organizer' ), // Title clarifies it's global
@@ -47,7 +69,7 @@ class OO_Admin_Pages { // Renamed class
             'oo_phases',
             array( 'OO_Phase', 'display_phase_management_page' ),
             'dashicons-networking',
-            $main_menu_position + 3
+            $main_menu_position + 5
         );
         
         // Top-Level: KPI Definitions (Global View)
@@ -58,11 +80,11 @@ class OO_Admin_Pages { // Renamed class
             'oo_kpi_measures', 
             array($this, 'display_kpi_measure_management_page'),
             'dashicons-performance',
-            $main_menu_position + 4
+            $main_menu_position + 6
         );
 
         // Create Top-Level Menu Pages for each Stream
-        $stream_menu_position = $main_menu_position + 10; // Start streams after main management pages
+        $stream_menu_position = $main_menu_position + 12; // Start streams after main management pages
         if (!empty($streams)) {
             foreach ($streams as $stream) {
                 if (!$stream || !isset($stream->stream_id) || !isset($stream->stream_name)) continue;

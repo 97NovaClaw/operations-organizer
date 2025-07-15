@@ -3102,6 +3102,84 @@ class OO_DB { // Renamed class
         return $wpdb->get_results( $sql );
     }
 
+    /**
+     * Get the count of companies based on filters.
+     * @param array $params Parameters: search.
+     * @return int Count of companies.
+     */
+    public static function get_companies_count( $params = array() ) {
+        self::init();
+        global $wpdb;
+        $defaults = array('search' => '');
+        $args = wp_parse_args($params, $defaults);
+        
+        $sql = "SELECT COUNT(*) FROM " . self::$companies_table;
+        
+        $where_clauses = array();
+        if (!empty($args['search'])) {
+            $search_term = '%' . $wpdb->esc_like($args['search']) . '%';
+            $where_clauses[] = $wpdb->prepare("name LIKE %s", $search_term);
+        }
+
+        if (!empty($where_clauses)) {
+            $sql .= " WHERE " . implode(' AND ', $where_clauses);
+        }
+
+        return (int) $wpdb->get_var( $sql );
+    }
+
+    /**
+     * Update a company record.
+     *
+     * @param int $company_id Company ID to update.
+     * @param array $args Company data to update.
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public static function update_company( $company_id, $args ) {
+        self::init();
+        global $wpdb;
+
+        $data = array();
+        
+        if ( isset( $args['name'] ) ) {
+            $data['name'] = sanitize_text_field( $args['name'] );
+        }
+        
+        if ( isset( $args['address'] ) ) {
+            $data['address'] = sanitize_text_field( $args['address'] );
+        }
+        
+        if ( isset( $args['city'] ) ) {
+            $data['city'] = sanitize_text_field( $args['city'] );
+        }
+        
+        if ( isset( $args['province'] ) ) {
+            $data['province'] = sanitize_text_field( $args['province'] );
+        }
+        
+        if ( isset( $args['postal_code'] ) ) {
+            $data['postal_code'] = sanitize_text_field( $args['postal_code'] );
+        }
+        
+        if ( isset( $args['phone_numbers'] ) ) {
+            $data['phone_numbers'] = sanitize_text_field( $args['phone_numbers'] );
+        }
+        
+        if ( empty( $data ) ) {
+            return new WP_Error( 'no_data', 'No data provided for update.' );
+        }
+        
+        $data['updated_at'] = current_time('mysql', 1);
+        
+        $result = $wpdb->update( self::$companies_table, $data, array( 'company_id' => intval( $company_id ) ) );
+        
+        if ( $result === false ) {
+            return new WP_Error( 'db_error', 'Could not update company. Error: ' . $wpdb->last_error );
+        }
+        
+        return true;
+    }
+
     // --- Customer CRUD Methods ---
 
     public static function add_customer( $args ) {
@@ -3164,6 +3242,36 @@ class OO_DB { // Renamed class
         }
 
         return $wpdb->get_results( $sql );
+    }
+
+    /**
+     * Get the count of customers based on filters.
+     * @param array $params Parameters: search, company_id.
+     * @return int Count of customers.
+     */
+    public static function get_customers_count( $params = array() ) {
+        self::init();
+        global $wpdb;
+        $defaults = array('search' => '', 'company_id' => null);
+        $args = wp_parse_args($params, $defaults);
+        
+        $sql = "SELECT COUNT(*) FROM " . self::$customers_table . " c LEFT JOIN " . self::$companies_table . " comp ON c.company_id = comp.company_id";
+        
+        $where_clauses = array();
+        if (!empty($args['search'])) {
+            $search_term = '%' . $wpdb->esc_like($args['search']) . '%';
+            $where_clauses[] = $wpdb->prepare("c.name LIKE %s OR c.email LIKE %s OR comp.name LIKE %s", $search_term, $search_term, $search_term);
+        }
+        
+        if (!empty($args['company_id'])) {
+            $where_clauses[] = $wpdb->prepare("c.company_id = %d", intval($args['company_id']));
+        }
+
+        if (!empty($where_clauses)) {
+            $sql .= " WHERE " . implode(' AND ', $where_clauses);
+        }
+
+        return (int) $wpdb->get_var( $sql );
     }
 
     /**

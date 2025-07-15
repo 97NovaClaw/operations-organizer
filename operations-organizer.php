@@ -253,9 +253,11 @@ add_action('wp_ajax_oo_stop_job_action', array('OO_Admin_Pages', 'handle_stop_jo
 // Customer search and management AJAX handlers
 add_action('wp_ajax_oo_search_customers', array('OO_Job', 'ajax_search_customers'));
 add_action('wp_ajax_oo_add_customer', array('OO_Job', 'ajax_add_customer'));
+add_action('wp_ajax_oo_get_customer_details', array('OO_Customer', 'ajax_get_customer_details'));
 
-// Company search AJAX handlers
+// Company search and management AJAX handlers
 add_action('wp_ajax_oo_search_companies', array('OO_Company', 'ajax_search_companies'));
+add_action('wp_ajax_oo_get_company_details', array('OO_Company', 'ajax_get_company_details'));
 
 add_action('wp_ajax_oo_add_employee', array('OO_Employee', 'ajax_add_employee'));
 add_action('wp_ajax_oo_get_employee', array('OO_Employee', 'ajax_get_employee'));
