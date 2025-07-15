@@ -23,7 +23,78 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
         </div>
     <?php endif; ?>
 
-    <button id="openAddCompanyModalBtn" class="page-title-action oo-open-modal-button" data-modal-id="addCompanyModal"><?php esc_html_e( 'Add New Company', 'operations-organizer' ); ?></button>
+    <button id="toggleAddCompanyFormBtn" class="page-title-action"><?php esc_html_e( 'Add New Company', 'operations-organizer' ); ?></button>
+
+    <!-- Inline Add Company Form -->
+    <div id="addCompanyFormSection" class="oo-inline-form-section" style="display: none;">
+        <div class="oo-inline-form-container">
+            <h2><?php esc_html_e( 'Add New Company', 'operations-organizer' ); ?></h2>
+            <form id="addCompanyForm" method="post">
+                <?php wp_nonce_field( 'oo_add_company_nonce', 'oo_add_company_nonce' ); ?>
+                <input type="hidden" name="oo_action" value="add_company" />
+                
+                <div class="oo-form-grid">
+                    <div class="oo-form-field">
+                        <label for="company_name"><?php esc_html_e( 'Company Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
+                        <input type="text" id="company_name" name="name" class="regular-text" required />
+                    </div>
+                    
+                    <div class="oo-form-field">
+                        <label for="company_address"><?php esc_html_e( 'Address', 'operations-organizer' ); ?></label>
+                        <input type="text" id="company_address" name="address" class="regular-text" />
+                    </div>
+                </div>
+                
+                <div class="oo-form-grid">
+                    <div class="oo-form-field">
+                        <label for="company_city"><?php esc_html_e( 'City', 'operations-organizer' ); ?></label>
+                        <input type="text" id="company_city" name="city" class="regular-text" />
+                    </div>
+                    
+                    <div class="oo-form-field">
+                        <label for="company_province"><?php esc_html_e( 'Province', 'operations-organizer' ); ?></label>
+                        <input type="text" id="company_province" name="province" class="regular-text" />
+                    </div>
+                    
+                    <div class="oo-form-field">
+                        <label for="company_postal_code"><?php esc_html_e( 'Postal Code', 'operations-organizer' ); ?></label>
+                        <input type="text" id="company_postal_code" name="postal_code" class="regular-text" />
+                    </div>
+                </div>
+                
+                <div class="oo-form-grid">
+                    <div class="oo-form-field">
+                        <label for="company_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
+                        <?php
+                        echo oo_get_phone_repeater_html(array(
+                            'container_id'   => 'company_phone_container',
+                            'field_name'     => 'phone_numbers',
+                            'add_button_text' => 'Add Phone Number',
+                            'max_phones'     => 10
+                        ));
+                        ?>
+                    </div>
+                    
+                    <div class="oo-form-field">
+                        <label for="company_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
+                        <?php
+                        echo oo_get_email_repeater_html(array(
+                            'container_id'   => 'company_email_container',
+                            'field_name'     => 'email_addresses',
+                            'add_button_text' => 'Add Email',
+                            'max_emails'     => 10
+                        ));
+                        ?>
+                    </div>
+                </div>
+                
+                <div class="oo-form-actions">
+                    <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Company', 'operations-organizer' ); ?></button>
+                    <button type="button" id="cancelAddCompanyBtn" class="button"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <form method="get" class="oo-filters-form">
         <input type="hidden" name="page" value="oo_companies" />
@@ -171,73 +242,7 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
     ?>
 </div>
 
-<!-- Add Company Modal -->
-<div id="addCompanyModal" class="oo-modal" style="display: none;">
-    <div class="oo-modal-content">
-        <div class="oo-modal-header">
-            <h2><?php esc_html_e( 'Add New Company', 'operations-organizer' ); ?></h2>
-            <span class="oo-modal-close">&times;</span>
-        </div>
-        <form id="addCompanyForm" method="post">
-            <?php wp_nonce_field( 'oo_add_company_nonce', 'oo_add_company_nonce' ); ?>
-            <input type="hidden" name="oo_action" value="add_company" />
-            
-            <div class="oo-form-field">
-                <label for="modal_company_name"><?php esc_html_e( 'Company Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
-                <input type="text" id="modal_company_name" name="name" class="regular-text" required />
-            </div>
-            
-            <div class="oo-form-field">
-                <label for="modal_company_address"><?php esc_html_e( 'Address', 'operations-organizer' ); ?></label>
-                <input type="text" id="modal_company_address" name="address" class="regular-text" />
-            </div>
-            
-            <div class="oo-form-grid">
-                <div class="oo-form-field">
-                    <label for="modal_company_city"><?php esc_html_e( 'City', 'operations-organizer' ); ?></label>
-                    <input type="text" id="modal_company_city" name="city" class="regular-text" />
-                </div>
-                <div class="oo-form-field">
-                    <label for="modal_company_province"><?php esc_html_e( 'Province', 'operations-organizer' ); ?></label>
-                    <input type="text" id="modal_company_province" name="province" class="regular-text" />
-                </div>
-                <div class="oo-form-field">
-                    <label for="modal_company_postal_code"><?php esc_html_e( 'Postal Code', 'operations-organizer' ); ?></label>
-                    <input type="text" id="modal_company_postal_code" name="postal_code" class="regular-text" />
-                </div>
-            </div>
-            
-            <div class="oo-form-field">
-                <label for="modal_company_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
-                <?php
-                echo oo_get_phone_repeater_html(array(
-                    'container_id'   => 'modal_company_phone_container',
-                    'field_name'     => 'phone_numbers',
-                    'add_button_text' => 'Add Phone Number',
-                    'max_phones'     => 10
-                ));
-                ?>
-            </div>
-            
-            <div class="oo-form-field">
-                <label for="modal_company_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
-                <?php
-                echo oo_get_email_repeater_html(array(
-                    'container_id'   => 'modal_company_email_container',
-                    'field_name'     => 'email_addresses',
-                    'add_button_text' => 'Add Email',
-                    'max_emails'     => 10
-                ));
-                ?>
-            </div>
-            
-            <div class="oo-form-field">
-                <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Company', 'operations-organizer' ); ?></button>
-                <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
-            </div>
-        </form>
-    </div>
-</div>
+
 
 <!-- Edit Company Modal -->
 <div id="editCompanyModal" class="oo-modal" style="display: none;">
@@ -311,10 +316,15 @@ global $companies, $total_companies, $current_page, $per_page, $search_term;
 <script type="text/javascript">
 jQuery(document).ready(function($) {
     
-    // Modal handling
-    $('#openAddCompanyModalBtn').on('click', function() {
-        $('#addCompanyModal').show();
-        $('#modal_company_name').focus();
+    // Inline form handling
+    $('#toggleAddCompanyFormBtn').on('click', function() {
+        $('#addCompanyFormSection').slideToggle();
+        $('#company_name').focus();
+    });
+    
+    $('#cancelAddCompanyBtn').on('click', function() {
+        $('#addCompanyFormSection').slideUp();
+        $('#addCompanyForm')[0].reset();
     });
     
     $('.oo-edit-company-button').on('click', function() {
@@ -325,7 +335,6 @@ jQuery(document).ready(function($) {
     $('.oo-modal-close, .oo-modal-cancel').on('click', function() {
         $(this).closest('.oo-modal').hide();
         // Reset forms
-        $('#addCompanyForm')[0].reset();
         $('#editCompanyForm')[0].reset();
     });
     
@@ -404,6 +413,13 @@ jQuery(document).ready(function($) {
         var $form = $(form);
         var formData = new FormData(form);
         
+        // Show loading state for add form
+        if (action === 'add') {
+            var $submitButton = $form.find('button[type="submit"]');
+            var originalText = $submitButton.text();
+            $submitButton.prop('disabled', true).text('Adding Company...');
+        }
+        
         $.ajax({
             url: window.location.href,
             type: 'POST',
@@ -411,11 +427,22 @@ jQuery(document).ready(function($) {
             processData: false,
             contentType: false,
             success: function(response) {
+                if (action === 'add') {
+                    // Hide the form and reset it
+                    $('#addCompanyFormSection').slideUp();
+                    $('#addCompanyForm')[0].reset();
+                }
                 // Reload the page to show updated data
                 window.location.reload();
             },
             error: function() {
                 alert('Error ' + (action === 'add' ? 'adding' : 'updating') + ' company. Please try again.');
+            },
+            complete: function() {
+                if (action === 'add') {
+                    var $submitButton = $form.find('button[type="submit"]');
+                    $submitButton.prop('disabled', false).text(originalText);
+                }
             }
         });
     }

@@ -23,7 +23,75 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
         </div>
     <?php endif; ?>
 
-    <button id="openAddCustomerModalBtn" class="page-title-action oo-open-modal-button" data-modal-id="addCustomerModal"><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></button>
+    <button id="toggleAddCustomerFormBtn" class="page-title-action"><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></button>
+
+    <!-- Inline Add Customer Form -->
+    <div id="addCustomerFormSection" class="oo-inline-form-section" style="display: none;">
+        <div class="oo-inline-form-container">
+            <h2><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></h2>
+            <form id="addCustomerForm" method="post">
+                <?php wp_nonce_field( 'oo_add_customer_nonce', 'oo_add_customer_nonce' ); ?>
+                <input type="hidden" name="oo_action" value="add_customer" />
+                
+                <div class="oo-form-grid">
+                    <div class="oo-form-field">
+                        <label for="customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
+                        <input type="text" id="customer_name" name="name" class="regular-text" required />
+                    </div>
+                    
+                    <div class="oo-form-field">
+                        <label for="customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label>
+                        <?php
+                        echo oo_get_autocomplete_html(array(
+                            'input_id'              => 'customer_company',
+                            'input_name'            => 'company_search',
+                            'placeholder'           => 'Search for a company...',
+                            'ajax_action'           => 'oo_search_companies',
+                            'render_item_callback'  => 'renderCompanyItem',
+                            'on_select_callback'    => 'onCompanySelect',
+                            'on_add_new_callback'   => 'onAddNewCompany',
+                            'nonce'                 => wp_create_nonce('oo_search_companies_nonce'),
+                            'add_new_text'          => 'Create New Company',
+                            'hidden_field_id'       => 'selected_company_id',
+                            'hidden_field_name'     => 'company_id'
+                        ));
+                        ?>
+                    </div>
+                </div>
+                
+                <div class="oo-form-grid">
+                    <div class="oo-form-field">
+                        <label for="customer_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
+                        <?php
+                        echo oo_get_phone_repeater_html(array(
+                            'container_id'   => 'customer_phone_container',
+                            'field_name'     => 'phone_numbers',
+                            'add_button_text' => 'Add Phone Number',
+                            'max_phones'     => 5
+                        ));
+                        ?>
+                    </div>
+                    
+                    <div class="oo-form-field">
+                        <label for="customer_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
+                        <?php
+                        echo oo_get_email_repeater_html(array(
+                            'container_id'   => 'customer_email_container',
+                            'field_name'     => 'email_addresses',
+                            'add_button_text' => 'Add Email',
+                            'max_emails'     => 5
+                        ));
+                        ?>
+                    </div>
+                </div>
+                
+                <div class="oo-form-actions">
+                    <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Customer', 'operations-organizer' ); ?></button>
+                    <button type="button" id="cancelAddCustomerBtn" class="button"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <form method="get" class="oo-filters-form">
         <input type="hidden" name="page" value="oo_customers" />
@@ -175,72 +243,7 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
     ?>
 </div>
 
-<!-- Add Customer Modal -->
-<div id="addCustomerModal" class="oo-modal" style="display: none;">
-    <div class="oo-modal-content">
-        <div class="oo-modal-header">
-            <h2><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></h2>
-            <span class="oo-modal-close">&times;</span>
-        </div>
-        <form id="addCustomerForm" method="post">
-            <?php wp_nonce_field( 'oo_add_customer_nonce', 'oo_add_customer_nonce' ); ?>
-            <input type="hidden" name="oo_action" value="add_customer" />
-            
-            <div class="oo-form-field">
-                <label for="modal_customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
-                <input type="text" id="modal_customer_name" name="name" class="regular-text" required />
-            </div>
-            
-            <div class="oo-form-field">
-                <label for="modal_customer_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
-                <?php
-                echo oo_get_phone_repeater_html(array(
-                    'container_id'   => 'modal_customer_phone_container',
-                    'field_name'     => 'phone_numbers',
-                    'add_button_text' => 'Add Phone Number',
-                    'max_phones'     => 5
-                ));
-                ?>
-            </div>
-            
-            <div class="oo-form-field">
-                <label for="modal_customer_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
-                <?php
-                echo oo_get_email_repeater_html(array(
-                    'container_id'   => 'modal_customer_email_container',
-                    'field_name'     => 'email_addresses',
-                    'add_button_text' => 'Add Email',
-                    'max_emails'     => 5
-                ));
-                ?>
-            </div>
-            
-            <div class="oo-form-field">
-                <label for="modal_customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label>
-                <?php
-                echo oo_get_autocomplete_html(array(
-                    'input_id'              => 'modal_customer_company',
-                    'input_name'            => 'company_search',
-                    'placeholder'           => 'Search for a company...',
-                    'ajax_action'           => 'oo_search_companies',
-                    'render_item_callback'  => 'renderCompanyItem',
-                    'on_select_callback'    => 'onCompanySelect',
-                    'on_add_new_callback'   => 'onAddNewCompany',
-                    'nonce'                 => wp_create_nonce('oo_search_companies_nonce'),
-                    'add_new_text'          => 'Create New Company',
-                    'hidden_field_id'       => 'selected_company_id',
-                    'hidden_field_name'     => 'company_id'
-                ));
-                ?>
-            </div>
-            
-            <div class="oo-form-field">
-                <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Customer', 'operations-organizer' ); ?></button>
-                <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
-            </div>
-        </form>
-    </div>
-</div>
+
 
 <!-- Edit Customer Modal -->
 <div id="editCustomerModal" class="oo-modal" style="display: none;">
@@ -346,10 +349,17 @@ jQuery(document).ready(function($) {
         alert('Add New Company functionality will be implemented. Search term: ' + searchTerm);
     };
     
-    // Modal handling
-    $('#openAddCustomerModalBtn').on('click', function() {
-        $('#addCustomerModal').show();
-        $('#modal_customer_name').focus();
+    // Inline form handling
+    $('#toggleAddCustomerFormBtn').on('click', function() {
+        $('#addCustomerFormSection').slideToggle();
+        $('#customer_name').focus();
+    });
+    
+    $('#cancelAddCustomerBtn').on('click', function() {
+        $('#addCustomerFormSection').slideUp();
+        $('#addCustomerForm')[0].reset();
+        $('#customer_company').val('');
+        $('#selected_company_id').val('');
     });
     
     $('.oo-edit-customer-button').on('click', function() {
@@ -360,7 +370,6 @@ jQuery(document).ready(function($) {
     $('.oo-modal-close, .oo-modal-cancel').on('click', function() {
         $(this).closest('.oo-modal').hide();
         // Reset forms
-        $('#addCustomerForm')[0].reset();
         $('#editCustomerForm')[0].reset();
     });
     
@@ -438,6 +447,13 @@ jQuery(document).ready(function($) {
         var $form = $(form);
         var formData = new FormData(form);
         
+        // Show loading state for add form
+        if (action === 'add') {
+            var $submitButton = $form.find('button[type="submit"]');
+            var originalText = $submitButton.text();
+            $submitButton.prop('disabled', true).text('Adding Customer...');
+        }
+        
         $.ajax({
             url: window.location.href,
             type: 'POST',
@@ -445,11 +461,24 @@ jQuery(document).ready(function($) {
             processData: false,
             contentType: false,
             success: function(response) {
+                if (action === 'add') {
+                    // Hide the form and reset it
+                    $('#addCustomerFormSection').slideUp();
+                    $('#addCustomerForm')[0].reset();
+                    $('#customer_company').val('');
+                    $('#selected_company_id').val('');
+                }
                 // Reload the page to show updated data
                 window.location.reload();
             },
             error: function() {
                 alert('Error ' + (action === 'add' ? 'adding' : 'updating') + ' customer. Please try again.');
+            },
+            complete: function() {
+                if (action === 'add') {
+                    var $submitButton = $form.find('button[type="submit"]');
+                    $submitButton.prop('disabled', false).text(originalText);
+                }
             }
         });
     }

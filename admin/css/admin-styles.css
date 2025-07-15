@@ -4,6 +4,39 @@
     margin-bottom: 20px;
 }
 
+/* Inline Form Styles */
+.oo-inline-form-section {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 20px 0;
+    padding: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.oo-inline-form-container {
+    padding: 20px;
+}
+
+.oo-inline-form-container h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #23282d;
+    font-size: 1.3em;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
+
+.oo-form-actions {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+}
+
+.oo-form-actions .button {
+    margin-right: 10px;
+}
+
 /* Make plugin admin pages full width */
 .toplevel_page_oo_dashboard #wpcontent,
 .job-tracker_page_oo_employees #wpcontent,
