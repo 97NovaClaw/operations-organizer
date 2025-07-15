@@ -81,6 +81,12 @@
  * allowing for maximum flexibility. A developer can use these classes for consistency.
  */
 
+.oo-autocomplete-suggestion-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
 .oo-autocomplete-suggestion .item-primary-text {
     font-weight: 600;
     color: #1d2327;

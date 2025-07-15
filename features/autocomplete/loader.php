@@ -310,9 +310,11 @@ function oo_register_default_autocomplete_callbacks() {
     window.OO_Autocomplete_Callbacks.renderCompanyItem = function(item) {
         var initials = item.name ? item.name.charAt(0).toUpperCase() : 'C';
         
-        return '<div class="item-icon">' + initials + '</div>' +
+        return '<div class="oo-autocomplete-suggestion-item">' +
+               '<div class="item-icon">' + initials + '</div>' +
                '<div class="item-details-container">' +
                '<div class="item-primary-text">' + (item.name || 'Company') + '</div>' +
+               '</div>' +
                '</div>';
     };
 
@@ -324,9 +326,11 @@ function oo_register_default_autocomplete_callbacks() {
         var displayName = item.name || item.title || item.text || 'Item';
         var initials = displayName.charAt(0).toUpperCase();
         
-        return '<div class="item-icon">' + initials + '</div>' +
+        return '<div class="oo-autocomplete-suggestion-item">' +
+               '<div class="item-icon">' + initials + '</div>' +
                '<div class="item-details-container">' +
                '<div class="item-primary-text">' + displayName + '</div>' +
+               '</div>' +
                '</div>';
     };
     </script>
