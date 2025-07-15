@@ -590,6 +590,14 @@
     align-items: start;
 }
 
+/* Force 3-column grids to use full width */
+.oo-form-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
 .oo-form-field {
     display: flex;
     flex-direction: column;
@@ -717,6 +725,11 @@
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 16px;
     }
+    
+    .oo-form-grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
 }
 
 @media (max-width: 782px) {
@@ -726,6 +739,11 @@
     }
     
     .oo-form-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .oo-form-grid-3 {
         grid-template-columns: 1fr;
         gap: 15px;
     }

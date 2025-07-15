@@ -51,7 +51,7 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                 <!-- Job Details Section -->
                 <div class="oo-form-section">
                     <h3 class="oo-section-title"><?php esc_html_e( 'Job Details', 'operations-organizer' ); ?></h3>
-                    <div class="oo-form-grid">
+                    <div class="oo-form-grid-3">
                         <div class="oo-form-field">
                             <label for="job_number"><?php esc_html_e( 'Job Number', 'operations-organizer' ); ?> <span class="required">*</span></label>
                             <input type="text" id="job_number" name="job_number" required class="regular-text" />
@@ -94,7 +94,7 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                 <div class="oo-form-section">
                     <h3 class="oo-section-title"><?php esc_html_e( 'Client Information', 'operations-organizer' ); ?></h3>
                     <p class="description" style="margin-bottom: 15px; color: #646970;"><?php esc_html_e( 'The contractor, adjuster, or company assigning this work to you.', 'operations-organizer' ); ?></p>
-                    <div class="oo-form-grid">
+                    <div class="oo-form-grid-3">
                         <div class="oo-form-field">
                             <label for="client_name"><?php esc_html_e( 'Client Name', 'operations-organizer' ); ?></label>
                             <input type="text" id="client_name" name="client_name" class="regular-text" />
