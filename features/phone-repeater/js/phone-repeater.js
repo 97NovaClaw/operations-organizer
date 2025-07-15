@@ -106,13 +106,13 @@
 
         // Handle primary phone selection
         if (this.config.allow_primary) {
-            this.$container.on('change', '.oo-phone-primary', function() {
+            this.$container.on('change', '.oo-phone-primary-checkbox', function() {
                 self.handlePrimarySelection($(this));
             });
         }
 
         // Update JSON on any field change
-        this.$container.on('input change', '.oo-phone-field', function() {
+        this.$container.on('input change', '.oo-phone-field-group input', function() {
             self.updateJSON();
         });
     };
@@ -146,14 +146,14 @@
         var fieldBaseName = this.config.field_name + '[' + this.phoneCount + ']';
 
         var html = '<div class="oo-phone-row" data-row-id="' + rowId + '">';
+        html += '<div class="oo-phone-row-grid">';
         
         // Phone Type field
         html += '<div class="oo-phone-field-group">';
         if (this.config.show_labels) {
-            html += '<label class="oo-phone-field-label">Type</label>';
+            html += '<label>Type</label>';
         }
-        html += '<input type="text" class="oo-phone-field oo-phone-type" ' +
-                'name="' + fieldBaseName + '[type]" ' +
+        html += '<input type="text" name="' + fieldBaseName + '[type]" ' +
                 'value="' + this.escapeHtml(phoneData.type || '') + '" ' +
                 'placeholder="e.g., Office, Mobile, Fax" />';
         html += '</div>';
@@ -161,10 +161,9 @@
         // Phone Number field
         html += '<div class="oo-phone-field-group">';
         if (this.config.show_labels) {
-            html += '<label class="oo-phone-field-label">Number</label>';
+            html += '<label>Number</label>';
         }
-        html += '<input type="tel" class="oo-phone-field oo-phone-number" ' +
-                'name="' + fieldBaseName + '[number]" ' +
+        html += '<input type="tel" name="' + fieldBaseName + '[number]" ' +
                 'value="' + this.escapeHtml(phoneData.number || '') + '" ' +
                 'placeholder="Phone number" required />';
         html += '</div>';
@@ -172,31 +171,32 @@
         // Extension field
         html += '<div class="oo-phone-field-group">';
         if (this.config.show_labels) {
-            html += '<label class="oo-phone-field-label">Extension</label>';
+            html += '<label>Extension</label>';
         }
-        html += '<input type="text" class="oo-phone-field oo-phone-extension" ' +
-                'name="' + fieldBaseName + '[extension]" ' +
+        html += '<input type="text" name="' + fieldBaseName + '[extension]" ' +
                 'value="' + this.escapeHtml(phoneData.extension || '') + '" ' +
                 'placeholder="Ext." />';
         html += '</div>';
 
         // Primary phone checkbox (if enabled)
         if (this.config.allow_primary) {
-            html += '<div class="oo-phone-field-group">';
+            html += '<div class="oo-phone-field-group oo-phone-primary-field">';
             if (this.config.show_labels) {
-                html += '<label class="oo-phone-field-label">Primary</label>';
+                html += '<label class="oo-phone-primary-label">Primary</label>';
             }
-            html += '<input type="checkbox" class="oo-phone-field oo-phone-primary" ' +
+            html += '<input type="checkbox" class="oo-phone-primary-checkbox" ' +
                     'name="' + fieldBaseName + '[is_primary]" ' +
                     'value="1" ' + (phoneData.is_primary ? 'checked' : '') + ' />';
             html += '</div>';
         }
 
         // Remove button
-        html += '<div class="oo-phone-field-group">';
-        html += '<button type="button" class="button oo-remove-phone-btn" title="Remove this phone number">' +
+        html += '<div class="oo-phone-actions">';
+        html += '<button type="button" class="oo-phone-remove-btn" title="Remove this phone number">' +
                 '<span class="dashicons dashicons-trash"></span></button>';
         html += '</div>';
+        
+        html += '</div>'; // Close oo-phone-row-grid
 
         html += '</div>';
 
@@ -242,7 +242,7 @@
     PhoneRepeaterWidget.prototype.handlePrimarySelection = function($checkbox) {
         if ($checkbox.is(':checked')) {
             // Uncheck all other primary checkboxes
-            this.$phoneList.find('.oo-phone-primary').not($checkbox).prop('checked', false);
+            this.$phoneList.find('.oo-phone-primary-checkbox').not($checkbox).prop('checked', false);
         }
         this.updateJSON();
     };
@@ -287,10 +287,10 @@
         this.$phoneList.find('.oo-phone-row').each(function() {
             var $row = $(this);
             var phone = {
-                type: $row.find('.oo-phone-type').val().trim(),
-                number: $row.find('.oo-phone-number').val().trim(),
-                extension: $row.find('.oo-phone-extension').val().trim(),
-                is_primary: self.config.allow_primary ? $row.find('.oo-phone-primary').is(':checked') : false
+                type: $row.find('input[name*="[type]"]').val().trim(),
+                number: $row.find('input[name*="[number]"]').val().trim(),
+                extension: $row.find('input[name*="[extension]"]').val().trim(),
+                is_primary: self.config.allow_primary ? $row.find('.oo-phone-primary-checkbox').is(':checked') : false
             };
 
             // Only include if number is not empty
