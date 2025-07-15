@@ -69,6 +69,14 @@ function oo_get_autocomplete_html( $args = array() ) {
         'container_class'       => '',      // Additional CSS class for container
         'hidden_field_id'       => '',      // ID for hidden field to store selected value
         'hidden_field_name'     => '',      // Name for hidden field
+        'query_param'           => 'query', // Parameter name for search query (query, search, term, etc.)
+        'response_data_path'    => '',      // Path to data in response (empty for root, 'customers', 'results', etc.)
+        'data_mapping'          => array(   // Map response fields to expected fields
+            'id'    => 'id',
+            'name'  => 'name',
+            'title' => 'title',
+            'text'  => 'text'
+        ),
     );
 
     $config = wp_parse_args( $args, $defaults );
@@ -184,6 +192,72 @@ function oo_build_html_attributes( $attributes ) {
     }
     
     return implode( ' ', $html_attrs );
+}
+
+/**
+ * Get preconfigured autocomplete HTML for customers
+ * 
+ * @param array $args Configuration arguments
+ * @return string HTML output
+ */
+function oo_get_customer_autocomplete_html( $args = array() ) {
+    $defaults = array(
+        'input_id'              => 'customer_name',
+        'input_name'            => 'customer_name',
+        'placeholder'           => 'Type customer name...',
+        'ajax_action'           => 'oo_search_customers',
+        'render_item_callback'  => 'renderCustomerItem',
+        'on_select_callback'    => 'onCustomerSelect',
+        'on_add_new_callback'   => 'onAddNewCustomer',
+        'nonce'                 => wp_create_nonce('oo_search_customers_nonce'),
+        'add_new_text'          => 'Add New Customer',
+        'hidden_field_id'       => 'customer_id',
+        'hidden_field_name'     => 'customer_id',
+        'query_param'           => 'query',
+        'response_data_path'    => '',
+        'data_mapping'          => array(
+            'id'    => 'id',
+            'name'  => 'name',
+            'title' => 'display_name',
+            'text'  => 'name'
+        ),
+    );
+    
+    $config = wp_parse_args( $args, $defaults );
+    return oo_get_autocomplete_html( $config );
+}
+
+/**
+ * Get preconfigured autocomplete HTML for companies
+ * 
+ * @param array $args Configuration arguments
+ * @return string HTML output
+ */
+function oo_get_company_autocomplete_html( $args = array() ) {
+    $defaults = array(
+        'input_id'              => 'company_name',
+        'input_name'            => 'company_name',
+        'placeholder'           => 'Search for a company...',
+        'ajax_action'           => 'oo_search_companies',
+        'render_item_callback'  => 'renderCompanyItem',
+        'on_select_callback'    => 'onCompanySelect',
+        'on_add_new_callback'   => 'onAddNewCompany',
+        'nonce'                 => wp_create_nonce('oo_search_companies_nonce'),
+        'add_new_text'          => 'Create New Company',
+        'hidden_field_id'       => 'company_id',
+        'hidden_field_name'     => 'company_id',
+        'query_param'           => 'query',
+        'response_data_path'    => '',
+        'data_mapping'          => array(
+            'id'    => 'id',
+            'name'  => 'name',
+            'title' => 'name',
+            'text'  => 'name'
+        ),
+    );
+    
+    $config = wp_parse_args( $args, $defaults );
+    return oo_get_autocomplete_html( $config );
 }
 
 /**

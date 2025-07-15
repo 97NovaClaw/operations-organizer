@@ -556,10 +556,10 @@ class OO_Job {
             return;
         }
 
-        $search_term = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+        $search_term = isset($_POST['query']) ? sanitize_text_field($_POST['query']) : (isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '');
         
         if (strlen($search_term) < 2) {
-            wp_send_json_success(['customers' => []]);
+            wp_send_json_success([]);
             return;
         }
 
@@ -587,7 +587,7 @@ class OO_Job {
             );
         }
 
-        wp_send_json_success(['customers' => $customer_data]);
+        wp_send_json_success($customer_data);
     }
 
     /**

@@ -216,11 +216,12 @@
         this.showLoading();
 
         // Prepare AJAX data
+        var queryParam = this.config.query_param || 'query';
         var ajaxData = {
             action: this.config.ajax_action,
-            query: query,
             nonce: this.config.nonce
         };
+        ajaxData[queryParam] = query;
 
         // Add any additional context if provided
         if (this.config.context) {
@@ -251,7 +252,23 @@
      */
     AutocompleteWidget.prototype.handleSearchResponse = function(response, query) {
         if (response.success && response.data) {
-            this.displaySuggestions(response.data, query);
+            var data = response.data;
+            
+            // If response_data_path is specified, extract data from that path
+            if (this.config.response_data_path && this.config.response_data_path !== '') {
+                var pathParts = this.config.response_data_path.split('.');
+                for (var i = 0; i < pathParts.length; i++) {
+                    if (data && data.hasOwnProperty(pathParts[i])) {
+                        data = data[pathParts[i]];
+                    } else {
+                        console.warn('OO Autocomplete: Response data path not found:', this.config.response_data_path);
+                        data = [];
+                        break;
+                    }
+                }
+            }
+            
+            this.displaySuggestions(data, query);
         } else {
             console.error('OO Autocomplete: Search failed', response);
             this.showError(response.data ? response.data.message : 'Search failed');
@@ -317,7 +334,9 @@
      * Default item renderer (fallback)
      */
     AutocompleteWidget.prototype.defaultRenderItem = function(item) {
-        var displayText = item.name || item.title || item.text || 'Item';
+        var mapping = this.config.data_mapping || {};
+        var displayText = item[mapping.name] || item[mapping.title] || item[mapping.text] || 
+                         item.name || item.title || item.text || 'Item';
         var html = '<div class="oo-autocomplete-suggestion">' + 
                    '<div class="item-details-container">' +
                    '<div class="item-primary-text">' + this.escapeHtml(displayText) + '</div>' +
@@ -373,8 +392,11 @@
             }
         } else {
             console.warn('OO Autocomplete: Select callback not found:', callbackName);
-            // Default behavior: set input value
-            this.$input.val(item.name || item.title || item.text || '');
+            // Default behavior: set input value using data mapping
+            var mapping = this.config.data_mapping || {};
+            var displayText = item[mapping.name] || item[mapping.title] || item[mapping.text] || 
+                             item.name || item.title || item.text || '';
+            this.$input.val(displayText);
         }
 
         this.hideSuggestions();

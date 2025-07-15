@@ -141,20 +141,8 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                         <div class="oo-form-field">
                             <label for="customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?></label>
                             <?php
-                            // Use our new autocomplete component for customer selection
-                            echo oo_get_autocomplete_html(array(
-                                'input_id'              => 'customer_name',
-                                'input_name'            => 'customer_name',
-                                'placeholder'           => 'Type customer name...',
-                                'ajax_action'           => 'oo_search_customers',
-                                'render_item_callback'  => 'renderCustomerItem',
-                                'on_select_callback'    => 'onCustomerSelect',
-                                'on_add_new_callback'   => 'onAddNewCustomer',
-                                'nonce'                 => wp_create_nonce('oo_search_customers_nonce'),
-                                'add_new_text'          => 'Add New Customer',
-                                'hidden_field_id'       => 'customer_id',
-                                'hidden_field_name'     => 'customer_id'
-                            ));
+                            // Use our new customer autocomplete helper
+                            echo oo_get_customer_autocomplete_html();
                             ?>
                             <p class="description"><?php esc_html_e( 'Start typing to search existing customers or select "Add New Customer" from the dropdown.', 'operations-organizer' ); ?></p>
                         </div>
@@ -268,17 +256,10 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
             <div class="form-field">
                 <label for="modal_customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label>
                 <?php
-                // Use our new autocomplete component for company selection
-                echo oo_get_autocomplete_html(array(
+                // Use our new company autocomplete helper
+                echo oo_get_company_autocomplete_html(array(
                     'input_id'              => 'modal_customer_company',
                     'input_name'            => 'company_search',
-                    'placeholder'           => 'Search for a company...',
-                    'ajax_action'           => 'oo_search_companies',
-                    'render_item_callback'  => 'renderCompanyItem',
-                    'on_select_callback'    => 'onCompanySelect',
-                    'on_add_new_callback'   => 'onAddNewCompany',
-                    'nonce'                 => wp_create_nonce('oo_search_companies_nonce'),
-                    'add_new_text'          => 'Create New Company',
                     'hidden_field_id'       => 'selected_company_id',
                     'hidden_field_name'     => 'company_id'
                 ));
