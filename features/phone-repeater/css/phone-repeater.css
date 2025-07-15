@@ -48,9 +48,8 @@
     max-width: 100%;
 }
 
-.oo-phone-repeater-container.compact .oo-phone-meta-container {
+.oo-phone-repeater-container.compact .oo-phone-actions {
     gap: 4px;
-    margin-top: 2px;
 }
 
 .oo-phone-repeater-container.compact .oo-phone-primary-field {
@@ -121,11 +120,11 @@
     box-sizing: border-box;
 }
 
-.oo-phone-meta-container {
+.oo-phone-actions {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 8px;
-    margin-top: 8px;
 }
 
 .oo-phone-field-group {
@@ -165,8 +164,8 @@
 .oo-phone-primary-field {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 12px;
+    gap: 4px;
+    font-size: 11px;
     color: #646970;
     font-weight: 600;
     white-space: nowrap;
@@ -184,24 +183,25 @@
 }
 
 .oo-phone-remove-btn {
-    background: #d63638;
-    color: white;
+    background: none;
     border: none;
-    border-radius: 3px;
-    padding: 4px 6px;
+    color: #d63638;
     cursor: pointer;
-    font-size: 12px;
-    line-height: 1;
-    transition: background-color 0.15s ease;
+    font-size: 18px;
+    font-weight: bold;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    transition: all 0.15s ease;
 }
 
 .oo-phone-remove-btn:hover {
-    background: #b32d2e;
+    background-color: #d63638;
+    color: #fff;
+    transform: scale(1.1);
 }
 
 .oo-phone-remove-btn:focus {

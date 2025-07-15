@@ -194,25 +194,22 @@
         
         html += '</div>'; // Close oo-phone-fields-container
 
-        // Remove button
+        // Actions column with remove button and primary checkbox
         html += '<div class="oo-phone-actions">';
-        html += '<button type="button" class="oo-phone-remove-btn" title="Remove this phone number">' +
-                '<span class="dashicons dashicons-trash"></span></button>';
-        html += '</div>';
+        html += '<button type="button" class="oo-phone-remove-btn" title="Remove this phone number">×</button>';
         
-        html += '</div>'; // Close oo-phone-row-grid
-
-        // Meta container for primary checkbox
+        // Primary checkbox under the remove button
         if (this.config.allow_primary) {
-            html += '<div class="oo-phone-meta-container">';
             html += '<div class="oo-phone-primary-field">';
             html += '<input type="checkbox" class="oo-phone-primary-checkbox" ' +
                     'name="' + fieldBaseName + '[is_primary]" ' +
                     'value="1" ' + (phoneData.is_primary ? 'checked' : '') + ' />';
             html += '<span>Primary</span>';
             html += '</div>';
-            html += '</div>';
         }
+        html += '</div>';
+        
+        html += '</div>'; // Close oo-phone-row-grid
 
         html += '</div>'; // Close oo-phone-row
 

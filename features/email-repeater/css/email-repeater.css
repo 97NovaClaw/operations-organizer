@@ -205,30 +205,39 @@
 }
 
 .oo-email-add-btn {
+    background: #2271b1;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background-color 0.15s ease;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    font-size: 13px;
-    line-height: 1.4;
-    border-radius: 4px;
-    transition: all 0.15s ease;
+    gap: 4px;
     margin-top: 10px;
 }
 
 .oo-email-add-btn .dashicons {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 1;
 }
 
 .oo-email-add-btn:hover {
-    background-color: #f0f0f1;
-    border-color: #8c8f94;
+    background: #135e96;
+}
+
+.oo-email-add-btn:focus {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
 }
 
 .oo-email-add-btn:disabled {
-    opacity: 0.6;
+    background: #8c8f94;
     cursor: not-allowed;
 }
 
