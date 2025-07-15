@@ -3267,6 +3267,17 @@ class OO_DB { // Renamed class
         return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$customers_table . " WHERE customer_id = %d", $customer_id ) );
     }
 
+    public static function get_customer_with_company( $customer_id ) {
+        self::init();
+        global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( 
+            "SELECT c.*, comp.name as company_name FROM " . self::$customers_table . " c 
+             LEFT JOIN " . self::$companies_table . " comp ON c.company_id = comp.company_id 
+             WHERE c.customer_id = %d", 
+            $customer_id 
+        ) );
+    }
+
     public static function get_customers( $args = array() ) {
         self::init();
         global $wpdb;

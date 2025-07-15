@@ -645,14 +645,7 @@ class OO_Job {
         }
 
         // Get the newly created customer with company info
-        $new_customer = OO_DB::get_customers(array('search' => '', 'number' => 1, 'offset' => 0));
-        $customer = null;
-        foreach ($new_customer as $c) {
-            if ($c->customer_id == $result) {
-                $customer = $c;
-                break;
-            }
-        }
+        $customer = OO_DB::get_customer_with_company($result);
 
         if ($customer) {
             $display_name = $customer->name;
