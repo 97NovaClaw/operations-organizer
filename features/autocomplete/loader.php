@@ -283,26 +283,25 @@ function oo_register_default_autocomplete_callbacks() {
      * Default customer item renderer
      * Renders customer with icon, name, and address
      */
-    window.OO_Autocomplete_Callbacks.renderCustomerItem = function(item) {
-        var initials = '';
-        if (item.first_name && item.last_name) {
-            initials = item.first_name.charAt(0) + item.last_name.charAt(0);
-        } else if (item.name) {
-            var nameParts = item.name.split(' ');
-            initials = nameParts[0].charAt(0) + (nameParts[1] ? nameParts[1].charAt(0) : '');
-        }
+    if (typeof window.OO_Autocomplete_Callbacks.renderCustomerItem === 'undefined') {
+        window.OO_Autocomplete_Callbacks.renderCustomerItem = function(item) {
+            if (!item || typeof item !== 'object') return '';
 
-        var address = '';
-        if (item.address) {
-            address = '<div class="item-secondary-text">' + item.address + '</div>';
-        }
-
-        return '<div class="item-icon">' + initials.toUpperCase() + '</div>' +
-               '<div class="item-details-container">' +
-               '<div class="item-primary-text">' + (item.name || (item.first_name + ' ' + item.last_name)) + '</div>' +
-               address +
-               '</div>';
-    };
+            let mainText = item.name || 'Unnamed Customer';
+            let subText = item.company_name || '';
+            
+            let html = '<div class="oo-autocomplete-suggestion-item">';
+            html += '<div class="oo-item-main-text">' + mainText + '</div>';
+            
+            if (subText) {
+                html += '<div class="oo-item-sub-text">' + subText + '</div>';
+            }
+            
+            html += '</div>';
+            
+            return html;
+        };
+    }
 
     /**
      * Default company item renderer
