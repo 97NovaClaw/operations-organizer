@@ -114,8 +114,17 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                             ?>
                         </div>
                         <div class="oo-form-field">
-                            <label for="client_email"><?php esc_html_e( 'Client Email(s)', 'operations-organizer' ); ?></label>
-                            <input type="email" id="client_email" name="client_email" class="regular-text" />
+                            <label for="client_email_container"><?php esc_html_e( 'Client Email(s)', 'operations-organizer' ); ?></label>
+                            <?php
+                            echo oo_get_email_repeater_html(array(
+                                'container_id'   => 'client_email_container',
+                                'field_name'     => 'client_email_addresses',
+                                'add_button_text' => 'Add Email',
+                                'max_emails'     => 5,
+                                'show_labels'    => true,
+                                'container_class' => 'compact'
+                            ));
+                            ?>
                         </div>
                         <div class="oo-form-field oo-form-field-full">
                             <label for="client_contact"><?php esc_html_e( 'Additional Client Contact Info', 'operations-organizer' ); ?></label>

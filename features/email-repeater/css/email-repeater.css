@@ -1,0 +1,287 @@
+/* 
+ * Email Repeater Component Styles
+ *
+ * This file contains the styles for the email repeater component.
+ * It follows the established oo-form-field and oo-form-grid patterns.
+ */
+
+.oo-email-repeater-container {
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Compact mode for grid layouts */
+.oo-email-repeater-container.compact {
+    font-size: 11px;
+    width: 100%; /* Take full width of the grid column */
+    max-width: 100%; /* Ensure it doesn't exceed grid column */
+    box-sizing: border-box; /* Include padding and border in width calculation */
+}
+
+.oo-email-repeater-container.compact .oo-email-row {
+    padding: 6px;
+    margin-bottom: 4px;
+    border: 1px solid #ddd;
+    background: #f9f9f9;
+    border-radius: 3px;
+}
+
+.oo-email-repeater-container.compact .oo-email-field-group label {
+    font-size: 10px;
+    margin-bottom: 1px;
+    font-weight: 500;
+}
+
+.oo-email-repeater-container.compact .oo-email-field-group input[type="email"] {
+    padding: 3px 4px;
+    font-size: 11px;
+    line-height: 1.1;
+    border: 1px solid #ccc;
+}
+
+.oo-email-repeater-container.compact .oo-email-field-group textarea {
+    padding: 3px 4px;
+    font-size: 10px;
+    line-height: 1.2;
+    border: 1px solid #ccc;
+    resize: vertical;
+    min-height: 30px;
+}
+
+.oo-email-repeater-container.compact .oo-email-fields-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    width: 100%;
+    max-width: 100%;
+}
+
+.oo-email-repeater-container.compact .oo-email-remove-btn {
+    width: 18px;
+    height: 18px;
+    padding: 1px;
+    font-size: 10px;
+}
+
+.oo-email-repeater-container.compact .oo-email-add-btn {
+    padding: 3px 6px;
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+.oo-email-repeater-container.compact .oo-email-add-btn .dashicons {
+    font-size: 12px;
+    width: 12px;
+    height: 12px;
+}
+
+.oo-email-repeater-container.compact .oo-email-empty-state {
+    padding: 6px;
+    font-size: 10px;
+}
+
+.oo-email-repeater-container.compact .oo-email-list {
+    margin-bottom: 8px;
+}
+
+.oo-email-list {
+    margin-bottom: 15px;
+}
+
+.oo-email-row {
+    background: #fff;
+    border: 1px solid #e1e4e7;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 10px;
+    position: relative;
+    transition: all 0.15s ease;
+}
+
+.oo-email-row:hover {
+    border-color: #8c8f94;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.oo-email-row-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: start;
+}
+
+.oo-email-fields-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: start;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.oo-email-field-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.oo-email-field-group label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+    color: #1d2327;
+    font-size: 13px;
+}
+
+.oo-email-field-group input[type="email"] {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.4;
+    transition: border-color 0.15s ease;
+}
+
+.oo-email-field-group input[type="email"]:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+    outline: none;
+}
+
+.oo-email-field-group textarea {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.4;
+    transition: border-color 0.15s ease;
+    resize: vertical;
+    min-height: 40px;
+    font-family: inherit;
+}
+
+.oo-email-field-group textarea:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+    outline: none;
+}
+
+/* Email validation styles */
+.oo-email-input.oo-email-invalid {
+    border-color: #d63638;
+    box-shadow: 0 0 0 1px #d63638;
+}
+
+.oo-email-input.oo-email-invalid:focus {
+    border-color: #d63638;
+    box-shadow: 0 0 0 1px #d63638;
+}
+
+.oo-email-remove-btn {
+    background: none;
+    border: none;
+    color: #d63638;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    align-self: flex-start;
+    margin-top: 4px;
+}
+
+.oo-email-remove-btn:hover {
+    background-color: #d63638;
+    color: #fff;
+    transform: scale(1.1);
+}
+
+.oo-email-add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+    margin-top: 10px;
+}
+
+.oo-email-add-btn .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.oo-email-add-btn:hover {
+    background-color: #f0f0f1;
+    border-color: #8c8f94;
+}
+
+.oo-email-add-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.oo-email-empty-state {
+    padding: 20px;
+    text-align: center;
+    color: #646970;
+    font-style: italic;
+    background: #f9f9f9;
+    border: 1px dashed #c3c4c7;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 782px) {
+    .oo-email-fields-container {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .oo-email-row-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .oo-email-remove-btn {
+        align-self: center;
+        margin-top: 0;
+    }
+    
+    .oo-email-row {
+        padding: 10px;
+    }
+    
+    .oo-email-add-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Compact mode responsive adjustments */
+@media (max-width: 782px) {
+    .oo-email-repeater-container.compact .oo-email-fields-container {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+    
+    .oo-email-repeater-container.compact .oo-email-row {
+        padding: 4px;
+    }
+    
+    .oo-email-repeater-container.compact .oo-email-field-group textarea {
+        min-height: 25px;
+    }
+} 
