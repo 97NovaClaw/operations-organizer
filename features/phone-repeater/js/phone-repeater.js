@@ -81,7 +81,7 @@
         this.$container.append(this.$phoneList);
 
         // Create add button
-        this.$addButton = $('<button type="button" class="button oo-add-phone-btn">' + 
+        this.$addButton = $('<button type="button" class="oo-phone-add-btn">' + 
                            this.escapeHtml(this.config.add_button_text) + '</button>');
         this.$container.append(this.$addButton);
     };
@@ -99,7 +99,7 @@
         });
 
         // Delegate events for dynamic elements
-        this.$container.on('click', '.oo-remove-phone-btn', function(e) {
+        this.$container.on('click', '.oo-phone-remove-btn', function(e) {
             e.preventDefault();
             self.removePhoneRow($(this).closest('.oo-phone-row'));
         });
@@ -148,6 +148,9 @@
         var html = '<div class="oo-phone-row" data-row-id="' + rowId + '">';
         html += '<div class="oo-phone-row-grid">';
         
+        // Main fields container
+        html += '<div class="oo-phone-fields-container">';
+        
         // Phone Number field
         html += '<div class="oo-phone-field-group">';
         if (this.config.show_labels) {
@@ -175,20 +178,10 @@
         }
         html += '<input type="text" name="' + fieldBaseName + '[type]" ' +
                 'value="' + this.escapeHtml(phoneData.type || '') + '" ' +
-                'placeholder="e.g., Office, Mobile, Fax" />';
+                'placeholder="e.g., Office, Mobile" />';
         html += '</div>';
-
-        // Primary phone checkbox (if enabled)
-        if (this.config.allow_primary) {
-            html += '<div class="oo-phone-field-group oo-phone-primary-field">';
-            if (this.config.show_labels) {
-                html += '<label class="oo-phone-primary-label">Primary</label>';
-            }
-            html += '<input type="checkbox" class="oo-phone-primary-checkbox" ' +
-                    'name="' + fieldBaseName + '[is_primary]" ' +
-                    'value="1" ' + (phoneData.is_primary ? 'checked' : '') + ' />';
-            html += '</div>';
-        }
+        
+        html += '</div>'; // Close oo-phone-fields-container
 
         // Remove button
         html += '<div class="oo-phone-actions">';
@@ -198,7 +191,19 @@
         
         html += '</div>'; // Close oo-phone-row-grid
 
-        html += '</div>';
+        // Meta container for primary checkbox
+        if (this.config.allow_primary) {
+            html += '<div class="oo-phone-meta-container">';
+            html += '<div class="oo-phone-primary-field">';
+            html += '<input type="checkbox" class="oo-phone-primary-checkbox" ' +
+                    'name="' + fieldBaseName + '[is_primary]" ' +
+                    'value="1" ' + (phoneData.is_primary ? 'checked' : '') + ' />';
+            html += '<span>Primary</span>';
+            html += '</div>';
+            html += '</div>';
+        }
+
+        html += '</div>'; // Close oo-phone-row
 
         var $row = $(html);
         this.$phoneList.append($row);
@@ -206,7 +211,7 @@
 
         // If this is the first row and primary is enabled, make it primary
         if (this.config.allow_primary && this.phoneCount === 1) {
-            $row.find('.oo-phone-primary').prop('checked', true);
+            $row.find('.oo-phone-primary-checkbox').prop('checked', true);
         }
 
         this.updateAddButtonState();
@@ -217,14 +222,14 @@
      * Remove a phone row
      */
     PhoneRepeaterWidget.prototype.removePhoneRow = function($row) {
-        var wasPrimary = $row.find('.oo-phone-primary').is(':checked');
+        var wasPrimary = $row.find('.oo-phone-primary-checkbox').is(':checked');
         
         $row.remove();
         this.phoneCount--;
 
         // If we removed the primary phone, make the first remaining phone primary
         if (wasPrimary && this.config.allow_primary) {
-            this.$phoneList.find('.oo-phone-primary').first().prop('checked', true);
+            this.$phoneList.find('.oo-phone-primary-checkbox').first().prop('checked', true);
         }
 
         // Ensure we always have at least one row

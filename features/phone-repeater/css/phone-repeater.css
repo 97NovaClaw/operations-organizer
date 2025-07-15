@@ -17,8 +17,8 @@
     background: #fff;
     border: 1px solid #e1e4e7;
     border-radius: 4px;
-    padding: 15px;
-    margin-bottom: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
     position: relative;
     transition: all 0.15s ease;
 }
@@ -30,9 +30,23 @@
 
 .oo-phone-row-grid {
     display: grid;
-    grid-template-columns: 2fr 100px 1fr 80px 40px;
-    gap: 15px;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: start;
+}
+
+.oo-phone-fields-container {
+    display: grid;
+    grid-template-columns: 2fr 80px 1fr;
+    gap: 10px;
     align-items: end;
+}
+
+.oo-phone-meta-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
 }
 
 .oo-phone-field-group {
@@ -42,19 +56,19 @@
 
 .oo-phone-field-group label {
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     font-weight: 600;
     color: #1d2327;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .oo-phone-field-group input[type="text"] {
     width: 100%;
-    padding: 8px 12px;
+    padding: 6px 8px;
     border: 1px solid #8c8f94;
     border-radius: 4px;
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: 13px;
+    line-height: 1.4;
     transition: border-color 0.15s ease;
 }
 
@@ -71,29 +85,23 @@
 
 .oo-phone-primary-field {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #646970;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .oo-phone-primary-checkbox {
     margin: 0 !important;
-    transform: scale(1.2);
-}
-
-.oo-phone-primary-label {
-    font-size: 12px;
-    color: #646970;
-    margin-bottom: 6px;
-    text-align: center;
-    font-weight: 600;
+    transform: scale(1.1);
 }
 
 .oo-phone-actions {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-top: 24px; /* Account for label height */
 }
 
 .oo-phone-remove-btn {
@@ -101,7 +109,7 @@
     color: white;
     border: none;
     border-radius: 3px;
-    padding: 6px 8px;
+    padding: 4px 6px;
     cursor: pointer;
     font-size: 12px;
     line-height: 1;
@@ -109,8 +117,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
 }
 
 .oo-phone-remove-btn:hover {
@@ -127,14 +135,14 @@
     color: white;
     border: none;
     border-radius: 4px;
-    padding: 8px 16px;
+    padding: 6px 12px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
     transition: background-color 0.15s ease;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .oo-phone-add-btn:hover {
@@ -152,66 +160,65 @@
 }
 
 .oo-phone-add-btn .dashicons {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
     line-height: 1;
 }
 
 .oo-phone-empty-state {
     text-align: center;
-    padding: 20px;
+    padding: 16px;
     color: #646970;
     font-style: italic;
     background: #f8f9fa;
     border: 1px dashed #c3c4c7;
     border-radius: 4px;
     margin-bottom: 15px;
+    font-size: 13px;
 }
 
 .oo-phone-max-reached {
     background: #fff3cd;
     border: 1px solid #ffeaa7;
     color: #856404;
-    padding: 8px 12px;
+    padding: 6px 10px;
     border-radius: 4px;
     font-size: 12px;
     margin-bottom: 10px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 1200px) {
-    .oo-phone-row-grid {
-        grid-template-columns: 2fr 80px 1fr 60px 40px;
-        gap: 12px;
+/* Responsive adjustments for very small spaces */
+@media (max-width: 600px) {
+    .oo-phone-fields-container {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .oo-phone-meta-container {
+        flex-wrap: wrap;
+        margin-top: 6px;
+    }
+    
+    .oo-phone-row {
+        padding: 10px;
     }
 }
 
-@media (max-width: 782px) {
-    .oo-phone-row {
-        padding: 15px;
-    }
-    
+/* For even smaller spaces - make it ultra compact */
+@media (max-width: 480px) {
     .oo-phone-row-grid {
         grid-template-columns: 1fr;
-        gap: 15px;
+        gap: 8px;
     }
     
     .oo-phone-actions {
-        padding-top: 0;
-        justify-content: center;
+        justify-content: flex-end;
+        margin-top: 6px;
     }
     
-    .oo-phone-primary-field {
-        flex-direction: row;
-        gap: 8px;
-        justify-content: flex-start;
-        align-items: center;
-    }
-    
-    .oo-phone-primary-label {
-        margin-bottom: 0;
-        text-align: left;
+    .oo-phone-meta-container {
+        margin-top: 4px;
     }
 }
 
@@ -264,10 +271,11 @@
     left: 50%;
     transform: translate(-50%, -50%);
     background: rgba(255, 255, 255, 0.9);
-    padding: 10px 20px;
+    padding: 8px 16px;
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     z-index: 1000;
+    font-size: 13px;
 }
 
 /* Focus management */
