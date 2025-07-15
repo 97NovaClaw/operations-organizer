@@ -108,7 +108,8 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                                 'add_button_text' => 'Add Phone Number',
                                 'max_phones'     => 5,
                                 'allow_primary'  => true,
-                                'show_labels'    => true
+                                'show_labels'    => true,
+                                'container_class' => 'compact'
                             ));
                             ?>
                         </div>

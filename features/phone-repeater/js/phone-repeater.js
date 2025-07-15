@@ -75,6 +75,11 @@
     PhoneRepeaterWidget.prototype.setupDOM = function() {
         // Add CSS class to container
         this.$container.addClass('oo-phone-repeater-container');
+        
+        // Add any additional container classes
+        if (this.config.container_class) {
+            this.$container.addClass(this.config.container_class);
+        }
 
         // Create phone list container
         this.$phoneList = $('<div class="oo-phone-list"></div>');

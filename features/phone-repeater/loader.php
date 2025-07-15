@@ -107,6 +107,7 @@ function oo_get_phone_repeater_html( $args = array() ) {
         'allow_primary'      => (bool) $config['allow_primary'],
         'show_labels'        => (bool) $config['show_labels'],
         'max_phones'         => intval( $config['max_phones'] ),
+        'container_class'    => $config['container_class'],
     );
 
     // Generate container HTML

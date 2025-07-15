@@ -9,6 +9,59 @@
     margin: 0;
 }
 
+/* Compact mode for grid layouts */
+.oo-phone-repeater-container.compact {
+    font-size: 12px;
+}
+
+.oo-phone-repeater-container.compact .oo-phone-row {
+    padding: 8px;
+    margin-bottom: 6px;
+    border: 1px solid #ddd;
+    background: #f9f9f9;
+}
+
+.oo-phone-repeater-container.compact .oo-phone-field-group label {
+    font-size: 11px;
+    margin-bottom: 2px;
+}
+
+.oo-phone-repeater-container.compact .oo-phone-field-group input[type="text"] {
+    padding: 4px 6px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.oo-phone-repeater-container.compact .oo-phone-fields-container {
+    grid-template-columns: 2fr 60px 1fr;
+    gap: 6px;
+}
+
+.oo-phone-repeater-container.compact .oo-phone-meta-container {
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.oo-phone-repeater-container.compact .oo-phone-primary-field {
+    font-size: 10px;
+}
+
+.oo-phone-repeater-container.compact .oo-phone-remove-btn {
+    width: 20px;
+    height: 20px;
+    padding: 2px;
+}
+
+.oo-phone-repeater-container.compact .oo-phone-add-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+.oo-phone-repeater-container.compact .oo-phone-empty-state {
+    padding: 8px;
+    font-size: 11px;
+}
+
 .oo-phone-list {
     margin-bottom: 15px;
 }
