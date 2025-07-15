@@ -42,16 +42,9 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
                     <div class="oo-form-field">
                         <label for="customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label>
                         <?php
-                        echo oo_get_autocomplete_html(array(
+                        echo oo_get_company_autocomplete_html(array(
                             'input_id'              => 'customer_company',
                             'input_name'            => 'company_search',
-                            'placeholder'           => 'Search for a company...',
-                            'ajax_action'           => 'oo_search_companies',
-                            'render_item_callback'  => 'renderCompanyItem',
-                            'on_select_callback'    => 'onCompanySelect',
-                            'on_add_new_callback'   => 'onAddNewCompany',
-                            'nonce'                 => wp_create_nonce('oo_search_companies_nonce'),
-                            'add_new_text'          => 'Create New Company',
                             'hidden_field_id'       => 'selected_company_id',
                             'hidden_field_name'     => 'company_id'
                         ));
@@ -289,16 +282,10 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
             <div class="oo-form-field">
                 <label for="edit_customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label>
                 <?php
-                echo oo_get_autocomplete_html(array(
+                echo oo_get_company_autocomplete_html(array(
                     'input_id'              => 'edit_customer_company',
                     'input_name'            => 'company_search',
-                    'placeholder'           => 'Search for a company...',
-                    'ajax_action'           => 'oo_search_companies',
-                    'render_item_callback'  => 'renderCompanyItem',
                     'on_select_callback'    => 'onEditCompanySelect',
-                    'on_add_new_callback'   => 'onAddNewCompany',
-                    'nonce'                 => wp_create_nonce('oo_search_companies_nonce'),
-                    'add_new_text'          => 'Create New Company',
                     'hidden_field_id'       => 'edit_selected_company_id',
                     'hidden_field_name'     => 'company_id'
                 ));
@@ -325,7 +312,7 @@ jQuery(document).ready(function($) {
     window.OO_Autocomplete_Callbacks = window.OO_Autocomplete_Callbacks || {};
     
     /**
-     * Handle company selection in the add modal
+     * Handle company selection in the add form
      */
     window.OO_Autocomplete_Callbacks.onCompanySelect = function(company, $input) {
         $('#selected_company_id').val(company.id);
