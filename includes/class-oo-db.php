@@ -913,29 +913,41 @@ class OO_DB { // Renamed class
     // ... existing code ...
 
     // --- Stream CRUD Methods (Was Stream Type) ---
-    public static function add_stream( $stream_name, $stream_description = '', $is_active = 1 ) {
-        // formerly add_stream_type
+    public static function add_stream( $stream_name, $stream_slug = '', $stream_description = '', $is_active = 1 ) {
+        // Updated to support slug parameter for dynamic streams
         oo_log('Attempting to add stream.', __METHOD__);
-        oo_log(compact('stream_name', 'stream_description', 'is_active'), __METHOD__);
+        oo_log(compact('stream_name', 'stream_slug', 'stream_description', 'is_active'), __METHOD__);
         self::init(); 
         global $wpdb;
         if (empty($stream_name)) {
             return new WP_Error('missing_field', 'Stream Name is required.');
         }
+        
+        // Check for duplicate name
         $exists = $wpdb->get_var( $wpdb->prepare("SELECT stream_id FROM " . self::$streams_table . " WHERE stream_name = %s", $stream_name) );
         if ($exists) {
             return new WP_Error('stream_exists', 'Stream name already exists.');
         }
+        
+        // Check for duplicate slug if provided
+        if (!empty($stream_slug)) {
+            $slug_exists = $wpdb->get_var( $wpdb->prepare("SELECT stream_id FROM " . self::$streams_table . " WHERE stream_slug = %s", $stream_slug) );
+            if ($slug_exists) {
+                return new WP_Error('stream_slug_exists', 'Stream slug already exists.');
+            }
+        }
+        
         $result = $wpdb->insert(
             self::$streams_table, 
             array(
-                'stream_name' => sanitize_text_field($stream_name), 
+                'stream_name' => sanitize_text_field($stream_name),
+                'stream_slug' => sanitize_key($stream_slug),
                 'stream_description' => sanitize_textarea_field($stream_description), 
                 'is_active' => intval($is_active),
                 'created_at' => current_time('mysql', 1),
                 'updated_at' => current_time('mysql', 1)
             ), 
-            array('%s', '%s', '%d', '%s', '%s')
+            array('%s', '%s', '%s', '%d', '%s', '%s')
         );
         if ($result === false) {
             return new WP_Error('db_error', 'Could not add stream. Error: ' . $wpdb->last_error);
@@ -957,6 +969,14 @@ class OO_DB { // Renamed class
         self::init();
         global $wpdb;
         return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$streams_table . " WHERE stream_name = %s", $stream_name ) );
+    }
+    
+    public static function get_stream_by_slug($stream_slug) {
+        // New method for dynamic stream management
+        oo_log('Attempting to get stream by slug: ' . $stream_slug, __METHOD__);
+        self::init();
+        global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$streams_table . " WHERE stream_slug = %s", $stream_slug ) );
     }
 
     public static function update_stream($stream_id, $stream_name, $stream_description = null, $is_active = null) {
@@ -5253,6 +5273,145 @@ class OO_DB { // Renamed class
 
         oo_log('Executing get_jobs_for_stream_count query: ' . $prepared_sql, __METHOD__);
         return (int) $wpdb->get_var( $prepared_sql );
+    }
+
+    // --- Generic Stream Data Methods for Dynamic Streams ---
+    
+    /**
+     * Get stream-specific data for a job using dynamic table name
+     * @param int $job_id The job ID
+     * @param int $stream_id The stream ID (for logging)
+     * @param string $table_name The dynamic table name
+     * @return object|null The stream data or null if not found
+     */
+    public static function get_stream_data_by_job($job_id, $stream_id, $table_name) {
+        self::init();
+        global $wpdb;
+        
+        oo_log("Getting stream data for job {$job_id} from table {$table_name}", __METHOD__);
+        
+        $sql = "SELECT * FROM {$table_name} WHERE job_id = %d LIMIT 1";
+        return $wpdb->get_row($wpdb->prepare($sql, $job_id));
+    }
+    
+    /**
+     * Add stream-specific data using dynamic table name
+     * @param array $args The data to insert
+     * @param int $stream_id The stream ID (for logging)
+     * @param string $table_name The dynamic table name
+     * @return int|WP_Error The inserted ID on success, WP_Error on failure
+     */
+    public static function add_stream_data($args, $stream_id, $table_name) {
+        self::init();
+        global $wpdb;
+        
+        oo_log("Adding stream data to table {$table_name}", __METHOD__);
+        oo_log($args, __METHOD__);
+        
+        // Prepare data for insertion
+        $data = array();
+        $formats = array();
+        
+        // Common fields
+        if (isset($args['job_id'])) {
+            $data['job_id'] = intval($args['job_id']);
+            $formats[] = '%d';
+        }
+        
+        if (isset($args['notes'])) {
+            $data['notes'] = sanitize_textarea_field($args['notes']);
+            $formats[] = '%s';
+        }
+        
+        if (isset($args['status'])) {
+            $data['status'] = sanitize_text_field($args['status']);
+            $formats[] = '%s';
+        }
+        
+        // Store any additional data as JSON in stream_specific_data field
+        $additional_data = array();
+        foreach ($args as $key => $value) {
+            if (!in_array($key, array('job_id', 'notes', 'status'))) {
+                $additional_data[$key] = $value;
+            }
+        }
+        
+        if (!empty($additional_data)) {
+            $data['stream_specific_data'] = json_encode($additional_data);
+            $formats[] = '%s';
+        }
+        
+        $result = $wpdb->insert($table_name, $data, $formats);
+        
+        if ($result === false) {
+            oo_log('Error adding stream data: ' . $wpdb->last_error, __METHOD__);
+            return new WP_Error('db_insert_error', 'Could not add stream data: ' . $wpdb->last_error);
+        }
+        
+        return $wpdb->insert_id;
+    }
+    
+    /**
+     * Update stream-specific data using dynamic table name
+     * @param int $data_id The record ID to update
+     * @param array $data The data to update
+     * @param int $stream_id The stream ID (for logging)
+     * @param string $table_name The dynamic table name
+     * @return bool|WP_Error True on success, WP_Error on failure
+     */
+    public static function update_stream_data($data_id, $data, $stream_id, $table_name) {
+        self::init();
+        global $wpdb;
+        
+        oo_log("Updating stream data ID {$data_id} in table {$table_name}", __METHOD__);
+        oo_log($data, __METHOD__);
+        
+        // Prepare data for update
+        $update_data = array();
+        $formats = array();
+        
+        // Common fields
+        if (isset($data['notes'])) {
+            $update_data['notes'] = sanitize_textarea_field($data['notes']);
+            $formats[] = '%s';
+        }
+        
+        if (isset($data['status'])) {
+            $update_data['status'] = sanitize_text_field($data['status']);
+            $formats[] = '%s';
+        }
+        
+        // Store any additional data as JSON in stream_specific_data field
+        $additional_data = array();
+        foreach ($data as $key => $value) {
+            if (!in_array($key, array('notes', 'status'))) {
+                $additional_data[$key] = $value;
+            }
+        }
+        
+        if (!empty($additional_data)) {
+            $update_data['stream_specific_data'] = json_encode($additional_data);
+            $formats[] = '%s';
+        }
+        
+        // Always update the timestamp
+        $update_data['updated_at'] = current_time('mysql');
+        $formats[] = '%s';
+        
+        $result = $wpdb->update(
+            $table_name,
+            $update_data,
+            array('stream_data_id' => $data_id),
+            $formats,
+            array('%d')
+        );
+        
+        if ($result === false) {
+            oo_log('Error updating stream data: ' . $wpdb->last_error, __METHOD__);
+            return new WP_Error('db_update_error', 'Could not update stream data: ' . $wpdb->last_error);
+        }
+        
+        return true;
     }
 
 }

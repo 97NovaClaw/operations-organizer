@@ -512,7 +512,7 @@ class OO_Job {
         $total_jobs = OO_DB::get_jobs_count($args);
         
         // Get all hardcoded streams for the form
-        $streams = oo_get_hardcoded_streams();
+        $streams = oo_get_streams();
 
         // Pass data to the view
         $GLOBALS['jobs'] = $jobs;

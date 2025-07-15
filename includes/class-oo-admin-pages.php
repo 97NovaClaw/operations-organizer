@@ -11,7 +11,7 @@ class OO_Admin_Pages { // Renamed class
     private static $stream_pages_config = array(); // Store stream page slugs and names
 
     public function add_admin_menu_pages() {
-        $streams = oo_get_hardcoded_streams(); 
+        $streams = oo_get_streams(); 
         self::$stream_pages_config = array(); 
 
         $main_menu_icon = 'dashicons-analytics'; // A general icon for the plugin group
@@ -142,12 +142,12 @@ class OO_Admin_Pages { // Renamed class
     public static function get_stream_page_configs_for_redirect() {
         if (empty(self::$stream_pages_config)) {
             oo_log('[RedirectDebug] stream_pages_config was empty in get_stream_page_configs_for_redirect. Attempting to populate.', __CLASS__);
-            // Ensure oo_get_hardcoded_streams() is available and OO_DB is loaded if direct DB call is needed.
-            // This assumes oo_get_hardcoded_streams() is safe to call here and returns the expected structure.
-            $streams = function_exists('oo_get_hardcoded_streams') ? oo_get_hardcoded_streams() : array();
+            // Ensure oo_get_streams() is available and OO_DB is loaded if direct DB call is needed.
+            // This assumes oo_get_streams() is safe to call here and returns the expected structure.
+            $streams = function_exists('oo_get_streams') ? oo_get_streams() : array();
             if (empty($streams) && class_exists('OO_DB')) {
-                // Fallback if hardcoded streams function isn't suitable or if we prefer live DB data.
-                // This part might need adjustment if oo_get_hardcoded_streams is the sole source of truth for menu creation.
+                // Fallback if streams function isn't suitable or if we prefer live DB data.
+                // This part might need adjustment if oo_get_streams is the sole source of truth for menu creation.
                 // For robustness, this function should ideally rely on the same source as add_admin_menu_pages.
                 $streams = OO_DB::get_streams(array('number' => -1)); // Get all streams
             }

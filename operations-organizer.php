@@ -42,6 +42,9 @@ require_once OO_PLUGIN_DIR . 'features/autocomplete/loader.php'; // Reusable aut
 require_once OO_PLUGIN_DIR . 'features/phone-repeater/loader.php'; // Reusable phone repeater component
 require_once OO_PLUGIN_DIR . 'features/email-repeater/loader.php'; // Reusable email repeater component
 
+// Include Stream Management feature
+require_once OO_PLUGIN_DIR . 'features/stream-management/index.php'; // Dynamic stream management
+
 // Include Stream Dashboard feature files
 require_once OO_PLUGIN_DIR . 'features/stream-dashboard/database.php';
 require_once OO_PLUGIN_DIR . 'features/stream-dashboard/ajax.php';
@@ -52,8 +55,8 @@ function oo_activate_plugin() {
     // Create database tables
     OO_DB::create_tables();
     
-    // Initialize hardcoded streams
-    initialize_hardcoded_streams();
+    // Initialize default streams (legacy streams will be migrated automatically)
+    initialize_default_streams();
     
     // Set a transient for activation redirect (e.g., to a welcome page or dashboard)
     set_transient('oo_activated', true, 30);
@@ -272,10 +275,7 @@ add_action('wp_ajax_oo_get_phase', array('OO_Phase', 'ajax_get_phase'));
 add_action('wp_ajax_oo_update_phase', array('OO_Phase', 'ajax_update_phase'));
 add_action('wp_ajax_oo_toggle_phase_status', array('OO_Phase', 'ajax_toggle_phase_status'));
 
-add_action('wp_ajax_oo_add_stream', array('OO_Stream', 'ajax_add_stream'));
-add_action('wp_ajax_oo_get_stream', array('OO_Stream', 'ajax_get_stream'));
-add_action('wp_ajax_oo_update_stream', array('OO_Stream', 'ajax_update_stream'));
-add_action('wp_ajax_oo_toggle_stream_status', array('OO_Stream', 'ajax_toggle_stream_status'));
+// Stream AJAX handlers are now managed by the stream-management feature
 
 add_action('wp_ajax_oo_get_dashboard_data', array('OO_Dashboard', 'ajax_get_dashboard_data'));
 add_action('wp_ajax_oo_get_job_log_details', array('OO_Dashboard', 'ajax_get_job_log_details'));
@@ -329,39 +329,55 @@ add_action('wp_ajax_oo_get_json_kpi_measures_for_stream', array('OO_Stream_Dashb
 add_action('wp_ajax_oo_get_json_derived_kpi_definitions', array('OO_Stream_Dashboard_AJAX', 'ajax_get_json_derived_kpi_definitions'));
 
 /**
- * Initialize hardcoded streams in the database.
- * This ensures the 4 specific streams are in the database as specified.
+ * Initialize default streams in the database.
+ * This ensures the original 4 streams are migrated to the dynamic system.
  */
-function initialize_hardcoded_streams() {
-    // Get the hardcoded stream definitions
-    $streams = oo_get_hardcoded_streams();
+function initialize_default_streams() {
+    // Define the original 4 streams for migration
+    $default_streams = array(
+        array(
+            'stream_name' => 'Soft Content',
+            'stream_slug' => 'soft_content',
+            'stream_description' => 'Soft Content stream for textiles and similar items'
+        ),
+        array(
+            'stream_name' => 'Electronics',
+            'stream_slug' => 'electronics',
+            'stream_description' => 'Electronics stream for electronic devices and components'
+        ),
+        array(
+            'stream_name' => 'Art',
+            'stream_slug' => 'art',
+            'stream_description' => 'Art stream for artwork and creative items'
+        ),
+        array(
+            'stream_name' => 'Content',
+            'stream_slug' => 'content',
+            'stream_description' => 'Content stream for general content items'
+        )
+    );
     
-    // For each hardcoded stream, check if it exists and add if needed
-    foreach ($streams as $stream) {
-        $existing_stream = OO_DB::get_stream($stream->stream_id);
+    // For each default stream, check if it exists and add if needed
+    foreach ($default_streams as $stream_data) {
+        $existing_stream = OO_DB::get_stream_by_slug($stream_data['stream_slug']);
         
         if (!$existing_stream) {
-            // Stream doesn't exist with this ID, try to add it
-            $result = OO_DB::add_stream(
-                $stream->stream_name,
-                $stream->stream_description,
-                $stream->is_active
+            // Stream doesn't exist, add it using the new dynamic system
+            $result = OO_Stream_Management_Form_Handler::create_new_stream(
+                $stream_data['stream_name'],
+                $stream_data['stream_description']
             );
             
             if (is_wp_error($result)) {
                 // Log the error if logging function exists
                 if (function_exists('oo_log')) {
-                    oo_log('Error creating hardcoded stream: ' . $result->get_error_message(), 'initialize_hardcoded_streams');
+                    oo_log('Error creating default stream: ' . $result->get_error_message(), 'initialize_default_streams');
+                }
+            } else {
+                if (function_exists('oo_log')) {
+                    oo_log('Successfully migrated stream: ' . $stream_data['stream_name'], 'initialize_default_streams');
                 }
             }
-        } else {
-            // Stream exists, but ensure name and description match
-            OO_DB::update_stream(
-                $stream->stream_id,
-                $stream->stream_name,
-                $stream->stream_description,
-                $stream->is_active
-            );
         }
     }
 } 

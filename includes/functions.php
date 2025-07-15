@@ -188,37 +188,38 @@ if ( ! function_exists( 'oo_sanitize_date' ) ) {
 }
 
 /**
- * Get hardcoded streams used in the application
+ * Get streams from database (replaces hardcoded streams)
  * 
+ * @param array $args Optional arguments for filtering streams
+ * @return array Array of stream objects from database
+ */
+function oo_get_streams($args = array()) {
+    // Default arguments
+    $defaults = array(
+        'is_active' => 1, // Only active streams by default
+        'orderby' => 'stream_name',
+        'order' => 'ASC',
+        'number' => -1 // Get all streams
+    );
+    
+    $args = wp_parse_args($args, $defaults);
+    
+    // Get streams from database
+    $streams = OO_DB::get_streams($args);
+    
+    return $streams ? $streams : array();
+}
+
+/**
+ * Get hardcoded streams used in the application (DEPRECATED)
+ * 
+ * @deprecated Use oo_get_streams() instead
  * @return array Array of stream objects with id, name, and description properties
  */
 function oo_get_hardcoded_streams() {
-    return array(
-        (object) array(
-            'stream_id' => 1,
-            'stream_name' => 'Soft Content',
-            'stream_description' => 'Soft Content stream for textiles and similar items',
-            'is_active' => 1
-        ),
-        (object) array(
-            'stream_id' => 2,
-            'stream_name' => 'Electronics',
-            'stream_description' => 'Electronics stream for electronic devices and components',
-            'is_active' => 1
-        ),
-        (object) array(
-            'stream_id' => 3,
-            'stream_name' => 'Art',
-            'stream_description' => 'Art stream for artwork and creative items',
-            'is_active' => 1
-        ),
-        (object) array(
-            'stream_id' => 4,
-            'stream_name' => 'Content',
-            'stream_description' => 'Content stream for general content items',
-            'is_active' => 1
-        )
-    );
+    // For backward compatibility during transition, return database streams
+    // but maintain the same format as the old hardcoded version
+    return oo_get_streams();
 }
 
 /**
@@ -233,18 +234,15 @@ function oo_get_stream_data_for_job($job_id, $stream_id) {
         return null;
     }
     
-    switch (intval($stream_id)) {
-        case 1: // Soft Content
-            return OO_DB::get_stream_data_soft_content_by_job($job_id);
-        case 2: // Electronics
-            return OO_DB::get_stream_data_electronics_by_job($job_id);
-        case 3: // Art
-            return OO_DB::get_stream_data_art_by_job($job_id);
-        case 4: // Content
-            return OO_DB::get_stream_data_content_by_job($job_id);
-        default:
-            return null;
+    // Use dynamic table name lookup
+    $table_name = oo_get_stream_table_name($stream_id);
+    
+    if (empty($table_name)) {
+        return null;
     }
+    
+    // Use generic database method for any stream
+    return OO_DB::get_stream_data_by_job($job_id, $stream_id, $table_name);
 }
 
 /**
@@ -260,20 +258,17 @@ function oo_create_stream_data_for_job($job_id, $stream_id, $data = array()) {
         return new WP_Error('missing_fields', 'Job ID and Stream ID are required.');
     }
     
+    // Use dynamic table name lookup
+    $table_name = oo_get_stream_table_name($stream_id);
+    
+    if (empty($table_name)) {
+        return new WP_Error('invalid_stream', 'Invalid stream ID.');
+    }
+    
     $args = array_merge(array('job_id' => $job_id), $data);
     
-    switch (intval($stream_id)) {
-        case 1: // Soft Content
-            return OO_DB::add_stream_data_soft_content($args);
-        case 2: // Electronics
-            return OO_DB::add_stream_data_electronics($args);
-        case 3: // Art
-            return OO_DB::add_stream_data_art($args);
-        case 4: // Content
-            return OO_DB::add_stream_data_content($args);
-        default:
-            return new WP_Error('invalid_stream', 'Invalid stream ID.');
-    }
+    // Use generic database method for any stream
+    return OO_DB::add_stream_data($args, $stream_id, $table_name);
 }
 
 /**
@@ -289,18 +284,15 @@ function oo_update_stream_data($data_id, $stream_id, $data) {
         return new WP_Error('missing_fields', 'Data ID, Stream ID, and data are required.');
     }
     
-    switch (intval($stream_id)) {
-        case 1: // Soft Content
-            return OO_DB::update_stream_data_soft_content($data_id, $data);
-        case 2: // Electronics
-            return OO_DB::update_stream_data_electronics($data_id, $data);
-        case 3: // Art
-            return OO_DB::update_stream_data_art($data_id, $data);
-        case 4: // Content
-            return OO_DB::update_stream_data_content($data_id, $data);
-        default:
-            return new WP_Error('invalid_stream', 'Invalid stream ID.');
+    // Use dynamic table name lookup
+    $table_name = oo_get_stream_table_name($stream_id);
+    
+    if (empty($table_name)) {
+        return new WP_Error('invalid_stream', 'Invalid stream ID.');
     }
+    
+    // Use generic database method for any stream
+    return OO_DB::update_stream_data($data_id, $data, $stream_id, $table_name);
 }
 
 /**
@@ -310,33 +302,39 @@ function oo_update_stream_data($data_id, $stream_id, $data) {
  * @return string The stream name
  */
 function oo_get_stream_name($stream_id) {
-    $streams = oo_get_hardcoded_streams();
-    foreach ($streams as $stream) {
-        if ($stream->stream_id == $stream_id) {
-            return $stream->stream_name;
-        }
+    if (empty($stream_id)) {
+        return 'Unknown Stream';
     }
+    
+    // Get stream directly from database
+    $stream = OO_DB::get_stream($stream_id);
+    
+    if ($stream && !empty($stream->stream_name)) {
+        return $stream->stream_name;
+    }
+    
     return 'Unknown Stream';
 }
 
 /**
- * Get the database table name for a specific stream
+ * Get the database table name for a specific stream (dynamic version)
  * 
  * @param int $stream_id The stream ID
  * @return string The table name or empty string if invalid
  */
 function oo_get_stream_table_name($stream_id) {
     global $wpdb;
-    switch (intval($stream_id)) {
-        case 1: // Soft Content
-            return $wpdb->prefix . 'oo_stream_data_soft_content';
-        case 2: // Electronics
-            return $wpdb->prefix . 'oo_stream_data_electronics';
-        case 3: // Art
-            return $wpdb->prefix . 'oo_stream_data_art';
-        case 4: // Content
-            return $wpdb->prefix . 'oo_stream_data_content';
-        default:
-            return '';
+    
+    if (empty($stream_id)) {
+        return '';
     }
+    
+    // Get stream from database to find its slug
+    $stream = OO_DB::get_stream($stream_id);
+    
+    if (!$stream || empty($stream->stream_slug)) {
+        return '';
+    }
+    
+    return $wpdb->prefix . 'oo_stream_data_' . $stream->stream_slug;
 } 

@@ -18,7 +18,7 @@ class OO_Dashboard { // Renamed class
         $GLOBALS['phases'] = OO_DB::get_phases(array('is_active' => 1, 'orderby' => 'stream_id, order_in_stream'));
         
         // Use hardcoded streams as requested by the client
-        $GLOBALS['streams'] = oo_get_hardcoded_streams();
+        $GLOBALS['streams'] = oo_get_streams();
         // For backward compatibility with dashboard-page.php that still uses stream_types
         $GLOBALS['stream_types'] = $GLOBALS['streams'];
 
