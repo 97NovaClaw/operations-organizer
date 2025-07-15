@@ -7,16 +7,17 @@
 
 .oo-phone-repeater-container {
     margin: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Compact mode for grid layouts */
 .oo-phone-repeater-container.compact {
     font-size: 11px;
-    max-width: 240px; /* Ensure it fits within grid minimum */
-    background: #f0f8ff; /* Light blue background to test if class is applied */
-    border: 1px solid #0073aa; /* Blue border to make it obvious */
-    border-radius: 4px;
-    padding: 4px;
+    width: 100%; /* Take full width of the grid column */
+    max-width: 100%; /* Ensure it doesn't exceed grid column */
+    box-sizing: border-box; /* Include padding and border in width calculation */
 }
 
 .oo-phone-repeater-container.compact .oo-phone-row {
@@ -43,6 +44,8 @@
 .oo-phone-repeater-container.compact .oo-phone-fields-container {
     grid-template-columns: 2fr 50px 1fr;
     gap: 4px;
+    width: 100%;
+    max-width: 100%;
 }
 
 .oo-phone-repeater-container.compact .oo-phone-meta-container {
@@ -113,6 +116,9 @@
     grid-template-columns: 2fr 80px 1fr;
     gap: 10px;
     align-items: end;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .oo-phone-meta-container {
