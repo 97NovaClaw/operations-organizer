@@ -1,0 +1,319 @@
+/* 
+ * Phone Repeater Component Styles
+ *
+ * This file contains the styles for the phone repeater component.
+ * It follows the WordPress admin styling patterns and matches the autocomplete component.
+ */
+
+.oo-phone-repeater-container {
+    margin: 10px 0;
+}
+
+.oo-phone-list {
+    margin-bottom: 15px;
+}
+
+.oo-phone-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    position: relative;
+}
+
+.oo-phone-row:hover {
+    background: #f0f0f1;
+    border-color: #8c8f94;
+}
+
+.oo-phone-field-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.oo-phone-field-group:last-child {
+    flex: 0 0 auto;
+}
+
+.oo-phone-field-label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #1d2327;
+    font-size: 14px;
+}
+
+.oo-phone-field {
+    padding: 6px 8px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.4;
+    background: #fff;
+    transition: border-color 0.15s ease;
+}
+
+.oo-phone-field:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+    outline: none;
+}
+
+.oo-phone-field:disabled {
+    background: #f6f7f7;
+    color: #646970;
+    cursor: not-allowed;
+}
+
+/* Specific field styling */
+.oo-phone-type {
+    max-width: 120px;
+}
+
+.oo-phone-number {
+    min-width: 140px;
+}
+
+.oo-phone-extension {
+    max-width: 80px;
+}
+
+.oo-phone-primary {
+    width: auto;
+    margin: 0;
+    transform: scale(1.2);
+}
+
+/* Remove button styling */
+.oo-remove-phone-btn {
+    background: #dc3232;
+    border-color: #dc3232;
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.oo-remove-phone-btn:hover {
+    background: #a02020;
+    border-color: #a02020;
+    color: #fff;
+}
+
+.oo-remove-phone-btn:focus {
+    box-shadow: 0 0 0 2px #dc3232;
+    outline: none;
+}
+
+.oo-remove-phone-btn .dashicons {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* Add button styling */
+.oo-add-phone-btn {
+    background: #2271b1;
+    border-color: #2271b1;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-weight: 600;
+}
+
+.oo-add-phone-btn:hover {
+    background: #135e96;
+    border-color: #135e96;
+    color: #fff;
+}
+
+.oo-add-phone-btn:focus {
+    box-shadow: 0 0 0 2px #2271b1;
+    outline: none;
+}
+
+.oo-add-phone-btn.disabled,
+.oo-add-phone-btn:disabled {
+    background: #f6f7f7;
+    border-color: #ddd;
+    color: #a7aaad;
+    cursor: not-allowed;
+}
+
+.oo-add-phone-btn.disabled:hover,
+.oo-add-phone-btn:disabled:hover {
+    background: #f6f7f7;
+    border-color: #ddd;
+    color: #a7aaad;
+}
+
+/* Primary phone indicator */
+.oo-phone-row .oo-phone-primary:checked + label::after,
+.oo-phone-row .oo-phone-primary:checked::after {
+    content: "Primary";
+    position: absolute;
+    top: -8px;
+    right: 15px;
+    background: #46b450;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* Responsive design */
+@media (max-width: 782px) {
+    .oo-phone-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    
+    .oo-phone-field-group {
+        flex: none;
+    }
+    
+    .oo-phone-field-group:last-child {
+        flex: none;
+        align-self: center;
+    }
+    
+    .oo-phone-type,
+    .oo-phone-number,
+    .oo-phone-extension {
+        max-width: none;
+        min-width: 0;
+    }
+}
+
+/* Animation for adding/removing rows */
+.oo-phone-row {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Empty state styling */
+.oo-phone-list:empty::before {
+    content: "No phone numbers added yet.";
+    display: block;
+    text-align: center;
+    color: #646970;
+    font-style: italic;
+    padding: 20px;
+    border: 2px dashed #ddd;
+    border-radius: 4px;
+    background: #f9f9f9;
+}
+
+/* Validation states */
+.oo-phone-field.error {
+    border-color: #dc3232;
+    box-shadow: 0 0 0 1px #dc3232;
+}
+
+.oo-phone-field.error:focus {
+    border-color: #dc3232;
+    box-shadow: 0 0 0 1px #dc3232;
+}
+
+.oo-phone-field.success {
+    border-color: #46b450;
+}
+
+.oo-phone-field.success:focus {
+    border-color: #46b450;
+    box-shadow: 0 0 0 1px #46b450;
+}
+
+/* Loading state */
+.oo-phone-repeater-container.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.oo-phone-repeater-container.loading::after {
+    content: "Loading...";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+/* Focus management */
+.oo-phone-row:focus-within {
+    background: #f0f6fc;
+    border-color: #2271b1;
+}
+
+/* Accessibility improvements */
+.oo-phone-field:focus {
+    outline: none;
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+.oo-remove-phone-btn:focus,
+.oo-add-phone-btn:focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .oo-phone-row {
+        border-color: #000;
+    }
+    
+    .oo-phone-field {
+        border-color: #000;
+    }
+    
+    .oo-phone-field:focus {
+        border-color: #000;
+        box-shadow: 0 0 0 2px #000;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .oo-phone-row {
+        animation: none;
+    }
+    
+    .oo-phone-field,
+    .oo-remove-phone-btn,
+    .oo-add-phone-btn {
+        transition: none;
+    }
+} 

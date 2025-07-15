@@ -39,6 +39,7 @@ require_once OO_PLUGIN_DIR . 'fix-database.php'; // Load database fix utilities
 
 // Include feature files
 require_once OO_PLUGIN_DIR . 'features/autocomplete/loader.php'; // Reusable autocomplete component
+require_once OO_PLUGIN_DIR . 'features/phone-repeater/loader.php'; // Reusable phone repeater component
 
 // Include Stream Dashboard feature files
 require_once OO_PLUGIN_DIR . 'features/stream-dashboard/database.php';
