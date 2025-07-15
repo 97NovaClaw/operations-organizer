@@ -423,7 +423,7 @@ class OO_Job {
                 'claim_number' => isset($_POST['claim_number']) ? sanitize_text_field($_POST['claim_number']) : '',
                 'customer_id' => $customer_id,
                 'client_name' => isset($_POST['client_name']) ? sanitize_text_field($_POST['client_name']) : '',
-                'client_phone' => isset($_POST['client_phone']) ? sanitize_text_field($_POST['client_phone']) : '',
+                'client_phone' => self::process_client_phone_data(),
                 'client_email' => isset($_POST['client_email']) ? sanitize_email($_POST['client_email']) : '',
                 'client_contact' => isset($_POST['client_contact']) ? sanitize_textarea_field($_POST['client_contact']) : '',
                 'address' => isset($_POST['address']) ? sanitize_text_field($_POST['address']) : '',
@@ -524,6 +524,25 @@ class OO_Job {
 
         // Include the view
         include_once OO_PLUGIN_DIR . 'admin/views/job-management-page.php';
+    }
+
+    /**
+     * Process client phone data from the phone repeater
+     */
+    private static function process_client_phone_data() {
+        $phone_json = '';
+        
+        if ( ! empty( $_POST['client_phone_numbers_json'] ) ) {
+            $phone_data = json_decode( stripslashes( $_POST['client_phone_numbers_json'] ), true );
+            if ( json_last_error() === JSON_ERROR_NONE ) {
+                $validated_phone_data = oo_validate_phone_data( $phone_data );
+                if ( ! is_wp_error( $validated_phone_data ) ) {
+                    $phone_json = wp_json_encode( $validated_phone_data );
+                }
+            }
+        }
+        
+        return $phone_json;
     }
 
     /**

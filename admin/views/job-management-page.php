@@ -100,8 +100,17 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                             <input type="text" id="client_name" name="client_name" class="regular-text" />
                         </div>
                         <div class="oo-form-field">
-                            <label for="client_phone"><?php esc_html_e( 'Client Phone Number(s)', 'operations-organizer' ); ?></label>
-                            <input type="text" id="client_phone" name="client_phone" class="regular-text" />
+                            <label for="client_phone_container"><?php esc_html_e( 'Client Phone Number(s)', 'operations-organizer' ); ?></label>
+                            <?php
+                            echo oo_get_phone_repeater_html(array(
+                                'container_id'   => 'client_phone_container',
+                                'field_name'     => 'client_phone_numbers',
+                                'add_button_text' => 'Add Phone Number',
+                                'max_phones'     => 5,
+                                'allow_primary'  => true,
+                                'show_labels'    => true
+                            ));
+                            ?>
                         </div>
                         <div class="oo-form-field">
                             <label for="client_email"><?php esc_html_e( 'Client Email(s)', 'operations-organizer' ); ?></label>
