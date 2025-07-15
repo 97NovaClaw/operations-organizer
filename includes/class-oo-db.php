@@ -3246,8 +3246,6 @@ class OO_DB { // Renamed class
 
         $data = array(
             'name' => sanitize_text_field( $args['name'] ),
-            'email' => isset($args['email']) ? sanitize_email( $args['email'] ) : null,
-            'phone' => isset($args['phone']) ? sanitize_text_field( $args['phone'] ) : null,
             'phone_numbers' => isset($args['phone_numbers']) ? sanitize_text_field( $args['phone_numbers'] ) : null,
             'email_addresses' => isset($args['email_addresses']) ? sanitize_text_field( $args['email_addresses'] ) : null,
             'company_id' => isset($args['company_id']) ? intval( $args['company_id'] ) : null,
@@ -3345,14 +3343,6 @@ class OO_DB { // Renamed class
 
         if ( isset( $args['name'] ) ) {
             $data['name'] = sanitize_text_field( $args['name'] );
-        }
-
-        if ( isset( $args['email'] ) ) {
-            $data['email'] = sanitize_email( $args['email'] );
-        }
-
-        if ( isset( $args['phone'] ) ) {
-            $data['phone'] = sanitize_text_field( $args['phone'] );
         }
 
         if ( isset( $args['phone_numbers'] ) ) {

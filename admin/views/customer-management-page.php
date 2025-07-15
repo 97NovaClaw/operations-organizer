@@ -192,8 +192,15 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
             </div>
             
             <div class="oo-form-field">
-                <label for="modal_customer_email"><?php esc_html_e( 'Email', 'operations-organizer' ); ?></label>
-                <input type="email" id="modal_customer_email" name="email" class="regular-text" />
+                <label for="modal_customer_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
+                <?php
+                echo oo_get_phone_repeater_html(array(
+                    'container_id'   => 'modal_customer_phone_container',
+                    'field_name'     => 'phone_numbers',
+                    'add_button_text' => 'Add Phone Number',
+                    'max_phones'     => 5
+                ));
+                ?>
             </div>
             
             <div class="oo-form-field">
@@ -204,18 +211,6 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
                     'field_name'     => 'email_addresses',
                     'add_button_text' => 'Add Email',
                     'max_emails'     => 5
-                ));
-                ?>
-            </div>
-            
-            <div class="oo-form-field">
-                <label for="modal_customer_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
-                <?php
-                echo oo_get_phone_repeater_html(array(
-                    'container_id'   => 'modal_customer_phone_container',
-                    'field_name'     => 'phone_numbers',
-                    'add_button_text' => 'Add Phone Number',
-                    'max_phones'     => 5
                 ));
                 ?>
             </div>
@@ -265,8 +260,15 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
             </div>
             
             <div class="oo-form-field">
-                <label for="edit_customer_email"><?php esc_html_e( 'Email', 'operations-organizer' ); ?></label>
-                <input type="email" id="edit_customer_email" name="email" class="regular-text" />
+                <label for="edit_customer_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
+                <?php
+                echo oo_get_phone_repeater_html(array(
+                    'container_id'   => 'edit_customer_phone_container',
+                    'field_name'     => 'phone_numbers',
+                    'add_button_text' => 'Add Phone Number',
+                    'max_phones'     => 5
+                ));
+                ?>
             </div>
             
             <div class="oo-form-field">
@@ -277,18 +279,6 @@ global $customers, $total_customers, $current_page, $per_page, $search_term, $ac
                     'field_name'     => 'email_addresses',
                     'add_button_text' => 'Add Email',
                     'max_emails'     => 5
-                ));
-                ?>
-            </div>
-            
-            <div class="oo-form-field">
-                <label for="edit_customer_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
-                <?php
-                echo oo_get_phone_repeater_html(array(
-                    'container_id'   => 'edit_customer_phone_container',
-                    'field_name'     => 'phone_numbers',
-                    'add_button_text' => 'Add Phone Number',
-                    'max_phones'     => 5
                 ));
                 ?>
             </div>

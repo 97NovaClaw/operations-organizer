@@ -179,7 +179,6 @@ class OO_Customer {
      */
     private static function handle_add_customer() {
         $name = sanitize_text_field( $_POST['name'] );
-        $email = sanitize_email( $_POST['email'] );
         $company_id = ! empty( $_POST['company_id'] ) ? intval( $_POST['company_id'] ) : null;
         
         // Process phone numbers
@@ -213,8 +212,6 @@ class OO_Customer {
 
         $customer_data = array(
             'name' => $name,
-            'email' => $email,
-            'phone' => $phone_json,
             'phone_numbers' => $phone_json,
             'email_addresses' => $email_json,
             'company_id' => $company_id,
@@ -235,7 +232,6 @@ class OO_Customer {
     private static function handle_edit_customer() {
         $customer_id = intval( $_POST['customer_id'] );
         $name = sanitize_text_field( $_POST['name'] );
-        $email = sanitize_email( $_POST['email'] );
         $company_id = ! empty( $_POST['company_id'] ) ? intval( $_POST['company_id'] ) : null;
         
         // Process phone numbers
@@ -269,8 +265,6 @@ class OO_Customer {
 
         $customer_data = array(
             'name' => $name,
-            'email' => $email,
-            'phone' => $phone_json,
             'phone_numbers' => $phone_json,
             'email_addresses' => $email_json,
             'company_id' => $company_id,

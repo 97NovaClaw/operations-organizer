@@ -580,8 +580,8 @@ class OO_Job {
             $customer_data[] = array(
                 'id' => $customer->customer_id,
                 'name' => $customer->name,
-                'email' => $customer->email,
-                'phone' => $customer->phone,
+                'phone_numbers' => $customer->phone_numbers,
+                'email_addresses' => $customer->email_addresses,
                 'company_name' => $customer->company_name,
                 'display_name' => $display_name
             );
@@ -601,10 +601,34 @@ class OO_Job {
             return;
         }
 
+        // Process phone numbers
+        $phone_json = '';
+        if ( ! empty( $_POST['phone_numbers_json'] ) ) {
+            $phone_data = json_decode( stripslashes( $_POST['phone_numbers_json'] ), true );
+            if ( json_last_error() === JSON_ERROR_NONE ) {
+                $validated_phone_data = oo_validate_phone_data( $phone_data );
+                if ( ! is_wp_error( $validated_phone_data ) ) {
+                    $phone_json = wp_json_encode( $validated_phone_data );
+                }
+            }
+        }
+
+        // Process email addresses
+        $email_json = '';
+        if ( ! empty( $_POST['email_addresses_json'] ) ) {
+            $email_data = json_decode( stripslashes( $_POST['email_addresses_json'] ), true );
+            if ( json_last_error() === JSON_ERROR_NONE ) {
+                $validated_email_data = oo_validate_email_data( $email_data );
+                if ( ! is_wp_error( $validated_email_data ) ) {
+                    $email_json = wp_json_encode( $validated_email_data );
+                }
+            }
+        }
+
         $customer_data = array(
             'name' => isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '',
-            'email' => isset($_POST['email']) ? sanitize_email($_POST['email']) : '',
-            'phone' => isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '',
+            'phone_numbers' => $phone_json,
+            'email_addresses' => $email_json,
             'company_id' => isset($_POST['company_id']) ? intval($_POST['company_id']) : null,
         );
 
@@ -641,8 +665,8 @@ class OO_Job {
                 'customer' => array(
                     'id' => $customer->customer_id,
                     'name' => $customer->name,
-                    'email' => $customer->email,
-                    'phone' => $customer->phone,
+                    'phone_numbers' => $customer->phone_numbers,
+                    'email_addresses' => $customer->email_addresses,
                     'company_name' => $customer->company_name,
                     'display_name' => $display_name
                 )
