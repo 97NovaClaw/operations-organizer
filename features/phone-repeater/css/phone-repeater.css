@@ -11,55 +11,75 @@
 
 /* Compact mode for grid layouts */
 .oo-phone-repeater-container.compact {
-    font-size: 12px;
+    font-size: 11px;
+    max-width: 240px; /* Ensure it fits within grid minimum */
+    background: #f0f8ff; /* Light blue background to test if class is applied */
+    border: 1px solid #0073aa; /* Blue border to make it obvious */
+    border-radius: 4px;
+    padding: 4px;
 }
 
 .oo-phone-repeater-container.compact .oo-phone-row {
-    padding: 8px;
-    margin-bottom: 6px;
+    padding: 6px;
+    margin-bottom: 4px;
     border: 1px solid #ddd;
     background: #f9f9f9;
+    border-radius: 3px;
 }
 
 .oo-phone-repeater-container.compact .oo-phone-field-group label {
-    font-size: 11px;
-    margin-bottom: 2px;
+    font-size: 10px;
+    margin-bottom: 1px;
+    font-weight: 500;
 }
 
 .oo-phone-repeater-container.compact .oo-phone-field-group input[type="text"] {
-    padding: 4px 6px;
-    font-size: 12px;
-    line-height: 1.2;
+    padding: 3px 4px;
+    font-size: 11px;
+    line-height: 1.1;
+    border: 1px solid #ccc;
 }
 
 .oo-phone-repeater-container.compact .oo-phone-fields-container {
-    grid-template-columns: 2fr 60px 1fr;
-    gap: 6px;
+    grid-template-columns: 2fr 50px 1fr;
+    gap: 4px;
 }
 
 .oo-phone-repeater-container.compact .oo-phone-meta-container {
-    gap: 6px;
-    margin-top: 4px;
+    gap: 4px;
+    margin-top: 2px;
 }
 
 .oo-phone-repeater-container.compact .oo-phone-primary-field {
-    font-size: 10px;
+    font-size: 9px;
 }
 
 .oo-phone-repeater-container.compact .oo-phone-remove-btn {
-    width: 20px;
-    height: 20px;
-    padding: 2px;
+    width: 18px;
+    height: 18px;
+    padding: 1px;
+    font-size: 10px;
 }
 
 .oo-phone-repeater-container.compact .oo-phone-add-btn {
-    padding: 4px 8px;
-    font-size: 11px;
+    padding: 3px 6px;
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+.oo-phone-repeater-container.compact .oo-phone-add-btn .dashicons {
+    font-size: 12px;
+    width: 12px;
+    height: 12px;
 }
 
 .oo-phone-repeater-container.compact .oo-phone-empty-state {
-    padding: 8px;
-    font-size: 11px;
+    padding: 6px;
+    font-size: 10px;
+}
+
+.oo-phone-repeater-container.compact .oo-phone-list {
+    margin-bottom: 8px;
 }
 
 .oo-phone-list {

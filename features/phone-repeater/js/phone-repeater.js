@@ -79,6 +79,7 @@
         // Add any additional container classes
         if (this.config.container_class) {
             this.$container.addClass(this.config.container_class);
+            console.log('OO Phone Repeater: Added container class:', this.config.container_class);
         }
 
         // Create phone list container
