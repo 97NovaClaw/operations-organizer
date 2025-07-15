@@ -93,7 +93,7 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                 <!-- Client Information Section -->
                 <div class="oo-form-section">
                     <h3 class="oo-section-title"><?php esc_html_e( 'Client Information', 'operations-organizer' ); ?></h3>
-                    <p class="description" style="margin-bottom: 15px; color: #646970;"><?php esc_html_e( 'The contractor, adjuster, or company assigning this work to you.', 'operations-organizer' ); ?></p>
+                    <p class="description" style="margin-bottom: 15px; color: #646970;"><?php esc_html_e( 'The homeowner or policy holder whose belongings need to be cleaned.', 'operations-organizer' ); ?></p>
                     <div class="oo-form-grid-3">
                         <div class="oo-form-field">
                             <label for="client_name"><?php esc_html_e( 'Client Name', 'operations-organizer' ); ?></label>
@@ -136,7 +136,7 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                 <!-- Customer Information Section -->
                 <div class="oo-form-section">
                     <h3 class="oo-section-title"><?php esc_html_e( 'Customer Information', 'operations-organizer' ); ?></h3>
-                    <p class="description" style="margin-bottom: 15px; color: #646970;"><?php esc_html_e( 'The homeowner or policy holder whose belongings need to be cleaned.', 'operations-organizer' ); ?></p>
+                    <p class="description" style="margin-bottom: 15px; color: #646970;"><?php esc_html_e( 'The contractor, adjuster, or company assigning this work to you.', 'operations-organizer' ); ?></p>
                     <div class="oo-form-grid">
                         <div class="oo-form-field">
                             <label for="customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?></label>
