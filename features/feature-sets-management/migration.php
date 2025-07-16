@@ -56,7 +56,7 @@ class OO_Feature_Sets_Migration {
         $result = OO_DB::add_feature_set(
             'Operational Tools',
             'operational_tools',
-            'Core operational functionality including inventory management, job tracking, quality control, and basic reporting.',
+            'Core operational functionality including Phase Log Actions, Phase Dashboard, Phase & KPI Settings, inventory management, job tracking, quality control, and basic reporting.',
             1, // Active
             0  // Sort order (first)
         );

@@ -55,32 +55,66 @@ $phases = OO_Stream_Dashboard_DB::get_phases(array('is_active' => null, 'orderby
 $employees = OO_Stream_Dashboard_DB::get_employees(array('is_active' => 1, 'orderby' => 'last_name', 'order' => 'ASC', 'number' => -1));
 // --- END FIX ---
 
-// Determine the active sub-tab for this stream page.
-$active_tab = isset( $_GET['sub_tab'] ) ? sanitize_key( $_GET['sub_tab'] ) : 'phase_log_actions';
-
 // Get feature set sub-tabs for this stream
 $feature_set_tabs = oo_get_feature_set_sub_tabs($current_stream_tab_slug);
+
+// Check if stream has Operational Tools feature set
+$has_operational_tools = false;
+foreach ($feature_set_tabs as $feature_tab) {
+    if ($feature_tab['slug'] === 'operational_tools') {
+        $has_operational_tools = true;
+        break;
+    }
+}
+
+// Determine the active sub-tab for this stream page
+// Default to first available tab based on what feature sets are available
+$default_tab = 'phase_log_actions'; // Default if operational tools available
+if (!$has_operational_tools && !empty($feature_set_tabs)) {
+    // If no operational tools, default to first feature set
+    $default_tab = 'feature_set_' . $feature_set_tabs[0]['slug'];
+} elseif (!$has_operational_tools && empty($feature_set_tabs)) {
+    // No feature sets at all - show a message
+    $default_tab = 'no_feature_sets';
+}
+
+$active_tab = isset( $_GET['sub_tab'] ) ? sanitize_key( $_GET['sub_tab'] ) : $default_tab;
 
 ?>
 <div class="wrap oo-stream-page oo-stream-page-<?php echo esc_attr( $current_stream_tab_slug ); ?>">
     <h1><?php echo esc_html( $current_stream_name ); ?> <?php esc_html_e( 'Stream Management', 'operations-organizer' ); ?></h1>
 
     <h2 class="nav-tab-wrapper">
-        <a href="?page=<?php echo esc_attr( $_REQUEST['page'] ); ?>&sub_tab=phase_log_actions" class="nav-tab <?php echo $active_tab == 'phase_log_actions' ? 'nav-tab-active' : ''; ?>">
-            <?php esc_html_e( 'Phase Log Actions', 'operations-organizer' ); ?>
-        </a>
-        <a href="?page=<?php echo esc_attr( $_REQUEST['page'] ); ?>&sub_tab=phase_dashboard" class="nav-tab <?php echo $active_tab == 'phase_dashboard' ? 'nav-tab-active' : ''; ?>">
-            <?php esc_html_e( 'Phase Dashboard', 'operations-organizer' ); ?>
-        </a>
-        <a href="?page=<?php echo esc_attr( $_REQUEST['page'] ); ?>&sub_tab=phase_kpi_settings" class="nav-tab <?php echo $active_tab == 'phase_kpi_settings' ? 'nav-tab-active' : ''; ?>">
-            <?php esc_html_e( 'Phase & KPI Settings', 'operations-organizer' ); ?>
-        </a>
+        <?php
+        // Check if stream has Operational Tools feature set for core tabs
+        $has_operational_tools = false;
+        foreach ($feature_set_tabs as $feature_tab) {
+            if ($feature_tab['slug'] === 'operational_tools') {
+                $has_operational_tools = true;
+                break;
+            }
+        }
+        
+        // Only show core tabs if stream has Operational Tools feature set
+        if ($has_operational_tools): ?>
+            <a href="?page=<?php echo esc_attr( $_REQUEST['page'] ); ?>&sub_tab=phase_log_actions" class="nav-tab <?php echo $active_tab == 'phase_log_actions' ? 'nav-tab-active' : ''; ?>">
+                <?php esc_html_e( 'Phase Log Actions', 'operations-organizer' ); ?>
+            </a>
+            <a href="?page=<?php echo esc_attr( $_REQUEST['page'] ); ?>&sub_tab=phase_dashboard" class="nav-tab <?php echo $active_tab == 'phase_dashboard' ? 'nav-tab-active' : ''; ?>">
+                <?php esc_html_e( 'Phase Dashboard', 'operations-organizer' ); ?>
+            </a>
+            <a href="?page=<?php echo esc_attr( $_REQUEST['page'] ); ?>&sub_tab=phase_kpi_settings" class="nav-tab <?php echo $active_tab == 'phase_kpi_settings' ? 'nav-tab-active' : ''; ?>">
+                <?php esc_html_e( 'Phase & KPI Settings', 'operations-organizer' ); ?>
+            </a>
+        <?php endif; ?>
         
         <?php if (!empty($feature_set_tabs)): ?>
             <?php foreach ($feature_set_tabs as $feature_tab): ?>
-                <a href="?page=<?php echo esc_attr( $_REQUEST['page'] ); ?>&sub_tab=feature_set_<?php echo esc_attr($feature_tab['slug']); ?>" class="nav-tab <?php echo $active_tab == 'feature_set_' . $feature_tab['slug'] ? 'nav-tab-active' : ''; ?>" title="<?php echo esc_attr($feature_tab['description']); ?>">
-                    <?php echo esc_html($feature_tab['name']); ?>
-                </a>
+                <?php if ($feature_tab['slug'] !== 'operational_tools'): // Don't show operational_tools as a separate tab ?>
+                    <a href="?page=<?php echo esc_attr( $_REQUEST['page'] ); ?>&sub_tab=feature_set_<?php echo esc_attr($feature_tab['slug']); ?>" class="nav-tab <?php echo $active_tab == 'feature_set_' . $feature_tab['slug'] ? 'nav-tab-active' : ''; ?>" title="<?php echo esc_attr($feature_tab['description']); ?>">
+                        <?php echo esc_html($feature_tab['name']); ?>
+                    </a>
+                <?php endif; ?>
             <?php endforeach; ?>
         <?php endif; ?>
     </h2>
@@ -92,13 +126,36 @@ $feature_set_tabs = oo_get_feature_set_sub_tabs($current_stream_tab_slug);
 
 		switch ( $active_tab ) {
 			case 'phase_dashboard':
-				include_once $tab_view_path . 'tab-phase-dashboard.php';
+				if ($has_operational_tools) {
+					include_once $tab_view_path . 'tab-phase-dashboard.php';
+				} else {
+					echo '<div class="notice notice-warning"><p>' . __('Phase Dashboard is not available. This stream does not have the Operational Tools feature set assigned.', 'operations-organizer') . '</p></div>';
+				}
 				break;
 			case 'phase_kpi_settings':
-				include_once $tab_view_path . 'tab-settings.php';
+				if ($has_operational_tools) {
+					include_once $tab_view_path . 'tab-settings.php';
+				} else {
+					echo '<div class="notice notice-warning"><p>' . __('Phase & KPI Settings is not available. This stream does not have the Operational Tools feature set assigned.', 'operations-organizer') . '</p></div>';
+				}
 				break;
 			case 'phase_log_actions':
-				include_once $tab_view_path . 'tab-log-actions.php';
+				if ($has_operational_tools) {
+					include_once $tab_view_path . 'tab-log-actions.php';
+				} else {
+					echo '<div class="notice notice-warning"><p>' . __('Phase Log Actions is not available. This stream does not have the Operational Tools feature set assigned.', 'operations-organizer') . '</p></div>';
+				}
+				break;
+			case 'no_feature_sets':
+				echo '<div class="wrap">';
+				echo '<h2>' . __('No Feature Sets Assigned', 'operations-organizer') . '</h2>';
+				echo '<div class="notice notice-info">';
+				echo '<p>' . sprintf(
+					__('This stream does not have any feature sets assigned. Please visit the %s to assign feature sets to this stream.', 'operations-organizer'),
+					'<a href="' . admin_url('admin.php?page=oo_feature_sets_management') . '">' . __('Feature Sets Management page', 'operations-organizer') . '</a>'
+				) . '</p>';
+				echo '</div>';
+				echo '</div>';
 				break;
 			default:
 				// Check if this is a feature set tab
@@ -108,8 +165,12 @@ $feature_set_tabs = oo_get_feature_set_sub_tabs($current_stream_tab_slug);
 					echo oo_render_feature_set_content($current_stream_tab_slug, $feature_set_slug);
 					echo '</div>';
 				} else {
-					// Default to phase log actions
-					include_once $tab_view_path . 'tab-log-actions.php';
+					// Fallback - show appropriate message
+					if ($has_operational_tools) {
+						include_once $tab_view_path . 'tab-log-actions.php';
+					} else {
+						echo '<div class="notice notice-warning"><p>' . __('The requested functionality is not available for this stream.', 'operations-organizer') . '</p></div>';
+					}
 				}
 				break;
 		}

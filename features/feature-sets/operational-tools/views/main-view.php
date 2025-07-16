@@ -14,6 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
         <?php if (!empty($feature_set->description)): ?>
             <p class="description"><?php echo esc_html($feature_set->description); ?></p>
         <?php endif; ?>
+        <div class="notice notice-info" style="margin: 15px 0;">
+            <p><strong><?php esc_html_e('Note:', 'operations-organizer'); ?></strong> <?php esc_html_e('This feature set provides the core stream dashboard tabs (Phase Log Actions, Phase Dashboard, Phase & KPI Settings). Removing this feature set from a stream will hide those core tabs.', 'operations-organizer'); ?></p>
+        </div>
     </div>
     
     <div class="oo-operational-tools-content">
