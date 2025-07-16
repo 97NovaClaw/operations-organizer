@@ -80,9 +80,22 @@ $streams = oo_get_streams(array('is_active' => null)); // Get all streams regard
                                     <button type="button" class="button button-small oo-edit-stream" data-stream-id="<?php echo esc_attr($stream->stream_id); ?>">
                                         <?php esc_html_e('Edit', 'operations-organizer'); ?>
                                     </button>
-                                    <button type="button" class="button button-small oo-toggle-stream-status" data-stream-id="<?php echo esc_attr($stream->stream_id); ?>">
-                                        <?php echo $stream->is_active ? esc_html__('Deactivate', 'operations-organizer') : esc_html__('Activate', 'operations-organizer'); ?>
+                                    <?php
+                                    $toggle_action_text = $stream->is_active ? __('Deactivate', 'operations-organizer') : __('Activate', 'operations-organizer');
+                                    $new_status_val = $stream->is_active ? 0 : 1;
+                                    ?>
+                                    <button type="button" 
+                                            class="button button-small oo-toggle-stream-status" 
+                                            data-stream-id="<?php echo esc_attr($stream->stream_id); ?>"
+                                            data-new-status="<?php echo esc_attr($new_status_val); ?>">
+                                        <?php echo esc_html($toggle_action_text); ?>
                                     </button>
+                                    | <a href="#" 
+                                       class="oo-delete-stream" 
+                                       data-stream-id="<?php echo esc_attr($stream->stream_id); ?>" 
+                                       style="color:#b32d2e; text-decoration: none;">
+                                        <?php esc_html_e('Delete', 'operations-organizer'); ?>
+                                    </a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -302,11 +315,46 @@ jQuery(document).ready(function($) {
     
     // Toggle Stream Status Handler
     $('.oo-toggle-stream-status').on('click', function() {
-        var streamId = $(this).data('stream-id');
+        var $button = $(this);
+        var streamId = $button.data('stream-id');
+        var newStatus = $button.data('new-status');
+        
+        $button.prop('disabled', true);
         
         $.post(ajaxurl, {
             action: 'oo_toggle_stream_status',
             nonce: '<?php echo wp_create_nonce('oo_toggle_stream_status_nonce'); ?>',
+            stream_id: streamId,
+            is_active: newStatus
+        }, function(response) {
+            if (response.success) {
+                alert(response.data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + response.data.message);
+                $button.prop('disabled', false);
+            }
+        }).fail(function() {
+            alert('An unknown error occurred.');
+            $button.prop('disabled', false);
+        });
+    });
+    
+    // Delete Stream Handler
+    $('.oo-delete-stream').on('click', function(e) {
+        e.preventDefault();
+        
+        if (!confirm('Are you sure you want to delete this stream? This action cannot be undone.')) {
+            return;
+        }
+        
+        var streamId = $(this).data('stream-id');
+        var $spinner = $('<span class="spinner is-active"></span>');
+        $(this).parent().append($spinner);
+        
+        $.post(ajaxurl, {
+            action: 'oo_delete_stream',
+            nonce: '<?php echo wp_create_nonce('oo_delete_stream_nonce'); ?>',
             stream_id: streamId
         }, function(response) {
             if (response.success) {
@@ -314,7 +362,11 @@ jQuery(document).ready(function($) {
                 location.reload();
             } else {
                 alert('Error: ' + response.data.message);
+                $spinner.remove();
             }
+        }).fail(function() {
+            alert('An unknown error occurred during deletion.');
+            $spinner.remove();
         });
     });
     

@@ -108,13 +108,14 @@ class OO_Stream_Management_AJAX {
         }
         
         $stream_id = isset($_POST['stream_id']) ? intval($_POST['stream_id']) : 0;
+        $new_status = isset($_POST['is_active']) ? intval($_POST['is_active']) : 0;
         
         if ($stream_id <= 0) {
             wp_send_json_error(array('message' => __('Invalid stream ID.', 'operations-organizer')));
             return;
         }
         
-        $result = OO_DB::toggle_stream_status($stream_id);
+        $result = OO_DB::toggle_stream_status($stream_id, $new_status);
         
         if (is_wp_error($result)) {
             wp_send_json_error(array('message' => $result->get_error_message()));
