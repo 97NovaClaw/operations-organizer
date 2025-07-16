@@ -42,21 +42,15 @@ require_once OO_PLUGIN_DIR . 'features/autocomplete/loader.php'; // Reusable aut
 require_once OO_PLUGIN_DIR . 'features/phone-repeater/loader.php'; // Reusable phone repeater component
 require_once OO_PLUGIN_DIR . 'features/email-repeater/loader.php'; // Reusable email repeater component
 
-// --- Temporary Debugging ---
-$debug_path = OO_PLUGIN_DIR . 'features/stream-management/index.php';
-if (!file_exists($debug_path)) {
-    $error_message = 'Operations Organizer Debug: File does not exist at path: ' . $debug_path;
-    error_log($error_message);
-    // We can't wp_die here during activation, but we can log the error.
+// Include Stream Management feature (with safety check)
+$stream_management_path = OO_PLUGIN_DIR . 'features/stream-management/index.php';
+if (file_exists($stream_management_path) && is_readable($stream_management_path)) {
+    require_once $stream_management_path; // Dynamic stream management
+} else {
+    // Log the missing file for debugging
+    error_log("Operations Organizer: Stream management feature not found at: " . $stream_management_path);
+    error_log("Operations Organizer: Plugin will continue without dynamic stream management features.");
 }
-if (!is_readable($debug_path)) {
-    $error_message = 'Operations Organizer Debug: File is not readable at path: ' . $debug_path;
-    error_log($error_message);
-}
-// --- End Temporary Debugging ---
-
-// Include Stream Management feature
-require_once OO_PLUGIN_DIR . 'features/stream-management/index.php'; // Dynamic stream management
 
 // Include Stream Dashboard feature files
 require_once OO_PLUGIN_DIR . 'features/stream-dashboard/database.php';
