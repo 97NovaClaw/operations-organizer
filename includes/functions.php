@@ -373,7 +373,13 @@ function oo_get_feature_set_by_slug($slug) {
  * Get feature sets for a stream
  */
 function oo_get_feature_sets_for_stream($stream_id, $is_active = 1) {
-    return OO_DB::get_feature_sets_for_stream($stream_id, $is_active);
+    oo_log('[FEATURE_SET_DEBUG] oo_get_feature_sets_for_stream called with stream_id: ' . $stream_id . ', is_active: ' . ($is_active === null ? 'NULL' : $is_active));
+    
+    $result = OO_DB::get_feature_sets_for_stream($stream_id, $is_active);
+    
+    oo_log('[FEATURE_SET_DEBUG] oo_get_feature_sets_for_stream: Database returned ' . count($result) . ' feature sets');
+    
+    return $result;
 }
 
 /**
@@ -433,15 +439,23 @@ function oo_render_feature_set_content($stream_slug, $feature_set_slug) {
  * This generates the sub-tab structure for the dashboard
  */
 function oo_get_feature_set_sub_tabs($stream_slug) {
+    oo_log('[FEATURE_SET_DEBUG] oo_get_feature_set_sub_tabs called with stream_slug: ' . $stream_slug);
+    
     $stream = oo_get_stream_by_slug($stream_slug);
     if (!$stream) {
+        oo_log('[FEATURE_SET_DEBUG] oo_get_feature_set_sub_tabs: Stream not found for slug: ' . $stream_slug);
         return array();
     }
     
+    oo_log('[FEATURE_SET_DEBUG] oo_get_feature_set_sub_tabs: Stream found - ID: ' . $stream->stream_id . ', Name: ' . $stream->stream_name);
+    
     $feature_sets = oo_get_feature_sets_for_stream($stream->stream_id, 1);
+    oo_log('[FEATURE_SET_DEBUG] oo_get_feature_set_sub_tabs: Feature sets from database: ', $feature_sets);
+    
     $sub_tabs = array();
     
     foreach ($feature_sets as $feature_set) {
+        oo_log('[FEATURE_SET_DEBUG] oo_get_feature_set_sub_tabs: Processing feature set: ' . $feature_set->name . ' (slug: ' . $feature_set->slug . ')');
         $sub_tabs[] = array(
             'id' => $feature_set->slug,
             'name' => $feature_set->name,
@@ -455,6 +469,8 @@ function oo_get_feature_set_sub_tabs($stream_slug) {
     usort($sub_tabs, function($a, $b) {
         return $a['sort_order'] - $b['sort_order'];
     });
+    
+    oo_log('[FEATURE_SET_DEBUG] oo_get_feature_set_sub_tabs: Final sub_tabs array: ', $sub_tabs);
     
     return $sub_tabs;
 }

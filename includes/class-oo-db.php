@@ -5878,7 +5878,7 @@ class OO_DB { // Renamed class
      * Get feature sets for a stream
      */
     public static function get_feature_sets_for_stream($stream_id, $is_active = 1) {
-        oo_log('Getting feature sets for stream ' . $stream_id, __METHOD__);
+        oo_log('[FEATURE_SET_DEBUG] OO_DB::get_feature_sets_for_stream called with stream_id: ' . $stream_id . ', is_active: ' . ($is_active === null ? 'NULL' : $is_active), __METHOD__);
         self::init();
         global $wpdb;
         
@@ -5897,7 +5897,20 @@ class OO_DB { // Renamed class
         
         $sql .= " ORDER BY fs.sort_order ASC, fs.name ASC";
         
-        return $wpdb->get_results($wpdb->prepare($sql, $params));
+        $prepared_sql = $wpdb->prepare($sql, $params);
+        oo_log('[FEATURE_SET_DEBUG] OO_DB::get_feature_sets_for_stream: Executing SQL: ' . $prepared_sql, __METHOD__);
+        
+        $results = $wpdb->get_results($prepared_sql);
+        
+        oo_log('[FEATURE_SET_DEBUG] OO_DB::get_feature_sets_for_stream: Query returned ' . count($results) . ' results', __METHOD__);
+        
+        if (!empty($results)) {
+            foreach ($results as $result) {
+                oo_log('[FEATURE_SET_DEBUG] OO_DB::get_feature_sets_for_stream: Result - Feature Set: ' . $result->name . ' (slug: ' . $result->slug . ', fs.is_active: ' . $result->is_active . ', link.is_active: ' . $result->link_is_active . ')', __METHOD__);
+            }
+        }
+        
+        return $results;
     }
     
     /**

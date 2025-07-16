@@ -55,17 +55,91 @@ $phases = OO_Stream_Dashboard_DB::get_phases(array('is_active' => null, 'orderby
 $employees = OO_Stream_Dashboard_DB::get_employees(array('is_active' => 1, 'orderby' => 'last_name', 'order' => 'ASC', 'number' => -1));
 // --- END FIX ---
 
+// ========== DEBUGGING: Feature Set Investigation ==========
+oo_log('[FEATURE_SET_DEBUG] ========== STREAM DASHBOARD FEATURE SET DEBUGGING ==========');
+oo_log('[FEATURE_SET_DEBUG] Current stream ID: ' . $current_stream_id);
+oo_log('[FEATURE_SET_DEBUG] Current stream name: ' . $current_stream_name);
+oo_log('[FEATURE_SET_DEBUG] Current stream tab slug: ' . $current_stream_tab_slug);
+
 // Get feature set sub-tabs for this stream
 $feature_set_tabs = oo_get_feature_set_sub_tabs($current_stream_tab_slug);
+oo_log('[FEATURE_SET_DEBUG] Feature set tabs returned: ', $feature_set_tabs);
 
 // Check if stream has Operational Tools feature set
 $has_operational_tools = false;
 foreach ($feature_set_tabs as $feature_tab) {
+    oo_log('[FEATURE_SET_DEBUG] Checking feature tab: ' . $feature_tab['slug']);
     if ($feature_tab['slug'] === 'operational_tools') {
         $has_operational_tools = true;
+        oo_log('[FEATURE_SET_DEBUG] ✓ OPERATIONAL TOOLS FOUND in feature set tabs');
         break;
     }
 }
+
+if (!$has_operational_tools) {
+    oo_log('[FEATURE_SET_DEBUG] ✗ OPERATIONAL TOOLS NOT FOUND in feature set tabs');
+}
+
+// Additional debugging: Check database directly
+oo_log('[FEATURE_SET_DEBUG] ========== DIRECT DATABASE CHECKS ==========');
+
+// Get stream by slug to verify stream ID
+$stream_from_slug = oo_get_stream_by_slug($current_stream_tab_slug);
+oo_log('[FEATURE_SET_DEBUG] Stream from slug lookup: ', $stream_from_slug);
+
+if ($stream_from_slug) {
+    oo_log('[FEATURE_SET_DEBUG] Stream ID from slug: ' . $stream_from_slug->stream_id);
+    oo_log('[FEATURE_SET_DEBUG] Stream ID matches current: ' . ($stream_from_slug->stream_id == $current_stream_id ? 'YES' : 'NO'));
+    
+    // Get feature sets directly from database
+    $feature_sets_active = oo_get_feature_sets_for_stream($stream_from_slug->stream_id, 1);
+    oo_log('[FEATURE_SET_DEBUG] Active feature sets for stream: ', $feature_sets_active);
+    
+    $feature_sets_all = oo_get_feature_sets_for_stream($stream_from_slug->stream_id, null);
+    oo_log('[FEATURE_SET_DEBUG] ALL feature sets for stream (including inactive): ', $feature_sets_all);
+    
+    // Check for operational tools specifically
+    $operational_tools_fs = oo_get_feature_set_by_slug('operational_tools');
+    oo_log('[FEATURE_SET_DEBUG] Operational tools feature set: ', $operational_tools_fs);
+    
+    if ($operational_tools_fs) {
+        oo_log('[FEATURE_SET_DEBUG] Operational tools feature set ID: ' . $operational_tools_fs->feature_set_id);
+        oo_log('[FEATURE_SET_DEBUG] Operational tools is_active: ' . $operational_tools_fs->is_active);
+        
+        // Check if this specific feature set is assigned to this stream
+        $found_in_active = false;
+        $found_in_all = false;
+        
+        foreach ($feature_sets_active as $fs) {
+            if ($fs->feature_set_id == $operational_tools_fs->feature_set_id) {
+                $found_in_active = true;
+                oo_log('[FEATURE_SET_DEBUG] ✓ Operational tools found in ACTIVE assignments');
+                break;
+            }
+        }
+        
+        foreach ($feature_sets_all as $fs) {
+            if ($fs->feature_set_id == $operational_tools_fs->feature_set_id) {
+                $found_in_all = true;
+                oo_log('[FEATURE_SET_DEBUG] ✓ Operational tools found in ALL assignments (is_active: ' . $fs->link_is_active . ')');
+                break;
+            }
+        }
+        
+        if (!$found_in_active) {
+            oo_log('[FEATURE_SET_DEBUG] ✗ Operational tools NOT found in active assignments');
+        }
+        if (!$found_in_all) {
+            oo_log('[FEATURE_SET_DEBUG] ✗ Operational tools NOT found in any assignments');
+        }
+    } else {
+        oo_log('[FEATURE_SET_DEBUG] ✗ Operational tools feature set not found in database');
+    }
+} else {
+    oo_log('[FEATURE_SET_DEBUG] ✗ Could not find stream by slug: ' . $current_stream_tab_slug);
+}
+
+oo_log('[FEATURE_SET_DEBUG] ========== END FEATURE SET DEBUGGING ==========');
 
 // Determine the active sub-tab for this stream page
 // Default to first available tab based on what feature sets are available
@@ -73,12 +147,17 @@ $default_tab = 'phase_log_actions'; // Default if operational tools available
 if (!$has_operational_tools && !empty($feature_set_tabs)) {
     // If no operational tools, default to first feature set
     $default_tab = 'feature_set_' . $feature_set_tabs[0]['slug'];
+    oo_log('[FEATURE_SET_DEBUG] No operational tools, defaulting to: ' . $default_tab);
 } elseif (!$has_operational_tools && empty($feature_set_tabs)) {
     // No feature sets at all - show a message
     $default_tab = 'no_feature_sets';
+    oo_log('[FEATURE_SET_DEBUG] No feature sets at all, defaulting to: ' . $default_tab);
+} else {
+    oo_log('[FEATURE_SET_DEBUG] Has operational tools, defaulting to: ' . $default_tab);
 }
 
 $active_tab = isset( $_GET['sub_tab'] ) ? sanitize_key( $_GET['sub_tab'] ) : $default_tab;
+oo_log('[FEATURE_SET_DEBUG] Active tab determined: ' . $active_tab);
 
 ?>
 <div class="wrap oo-stream-page oo-stream-page-<?php echo esc_attr( $current_stream_tab_slug ); ?>">
@@ -94,6 +173,8 @@ $active_tab = isset( $_GET['sub_tab'] ) ? sanitize_key( $_GET['sub_tab'] ) : $de
                 break;
             }
         }
+        
+        oo_log('[FEATURE_SET_DEBUG] Final has_operational_tools check: ' . ($has_operational_tools ? 'TRUE' : 'FALSE'));
         
         // Only show core tabs if stream has Operational Tools feature set
         if ($has_operational_tools): ?>
@@ -124,29 +205,39 @@ $active_tab = isset( $_GET['sub_tab'] ) ? sanitize_key( $_GET['sub_tab'] ) : $de
 		// TODO: Include the content for the active tab from the /views/ directory.
 		$tab_view_path = OO_PLUGIN_DIR . 'features/stream-dashboard/views/';
 
+		oo_log('[FEATURE_SET_DEBUG] About to render tab content for: ' . $active_tab);
+		oo_log('[FEATURE_SET_DEBUG] has_operational_tools for content rendering: ' . ($has_operational_tools ? 'TRUE' : 'FALSE'));
+
 		switch ( $active_tab ) {
 			case 'phase_dashboard':
 				if ($has_operational_tools) {
+					oo_log('[FEATURE_SET_DEBUG] Rendering phase_dashboard tab');
 					include_once $tab_view_path . 'tab-phase-dashboard.php';
 				} else {
+					oo_log('[FEATURE_SET_DEBUG] Blocking phase_dashboard tab - no operational tools');
 					echo '<div class="notice notice-warning"><p>' . __('Phase Dashboard is not available. This stream does not have the Operational Tools feature set assigned.', 'operations-organizer') . '</p></div>';
 				}
 				break;
 			case 'phase_kpi_settings':
 				if ($has_operational_tools) {
+					oo_log('[FEATURE_SET_DEBUG] Rendering phase_kpi_settings tab');
 					include_once $tab_view_path . 'tab-settings.php';
 				} else {
+					oo_log('[FEATURE_SET_DEBUG] Blocking phase_kpi_settings tab - no operational tools');
 					echo '<div class="notice notice-warning"><p>' . __('Phase & KPI Settings is not available. This stream does not have the Operational Tools feature set assigned.', 'operations-organizer') . '</p></div>';
 				}
 				break;
 			case 'phase_log_actions':
 				if ($has_operational_tools) {
+					oo_log('[FEATURE_SET_DEBUG] Rendering phase_log_actions tab');
 					include_once $tab_view_path . 'tab-log-actions.php';
 				} else {
+					oo_log('[FEATURE_SET_DEBUG] Blocking phase_log_actions tab - no operational tools');
 					echo '<div class="notice notice-warning"><p>' . __('Phase Log Actions is not available. This stream does not have the Operational Tools feature set assigned.', 'operations-organizer') . '</p></div>';
 				}
 				break;
 			case 'no_feature_sets':
+				oo_log('[FEATURE_SET_DEBUG] Rendering no_feature_sets message');
 				echo '<div class="wrap">';
 				echo '<h2>' . __('No Feature Sets Assigned', 'operations-organizer') . '</h2>';
 				echo '<div class="notice notice-info">';
@@ -161,14 +252,17 @@ $active_tab = isset( $_GET['sub_tab'] ) ? sanitize_key( $_GET['sub_tab'] ) : $de
 				// Check if this is a feature set tab
 				if (strpos($active_tab, 'feature_set_') === 0) {
 					$feature_set_slug = substr($active_tab, 12); // Remove 'feature_set_' prefix
+					oo_log('[FEATURE_SET_DEBUG] Rendering feature set content for: ' . $feature_set_slug);
 					echo '<div class="oo-feature-set-content">';
 					echo oo_render_feature_set_content($current_stream_tab_slug, $feature_set_slug);
 					echo '</div>';
 				} else {
 					// Fallback - show appropriate message
 					if ($has_operational_tools) {
+						oo_log('[FEATURE_SET_DEBUG] Fallback: rendering phase_log_actions (has operational tools)');
 						include_once $tab_view_path . 'tab-log-actions.php';
 					} else {
+						oo_log('[FEATURE_SET_DEBUG] Fallback: showing unavailable message (no operational tools)');
 						echo '<div class="notice notice-warning"><p>' . __('The requested functionality is not available for this stream.', 'operations-organizer') . '</p></div>';
 					}
 				}
