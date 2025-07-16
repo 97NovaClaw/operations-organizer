@@ -96,8 +96,10 @@ $streams = oo_get_streams(array('is_active' => null)); // Get all streams regard
         </div>
         
         <!-- Database Migration Section -->
-        <div class="oo-migration-section">
-            <button type="button" id="oo-migrate-stream-slugs" class="button button-secondary">
+        <div class="oo-migration-section" style="background: #f0f8ff; border: 2px solid #007cba; padding: 20px; margin-top: 20px;">
+            <h3 style="margin-top: 0;">Database Migration</h3>
+            <p>If you're having trouble creating new streams, click the button below to update your database schema:</p>
+            <button type="button" id="oo-migrate-stream-slugs" class="button button-secondary" style="margin-right: 10px;">
                 <?php esc_html_e('Migrate Stream Database', 'operations-organizer'); ?>
             </button>
             <span class="migration-description"><?php esc_html_e('Run this if you have issues creating new streams', 'operations-organizer'); ?></span>
@@ -212,12 +214,13 @@ $streams = oo_get_streams(array('is_active' => null)); // Get all streams regard
 }
 
 .oo-migration-section {
-    text-align: right;
+    text-align: left;
     margin-top: 20px;
-    padding: 15px;
-    background: #f9f9f9;
-    border: 1px solid #e0e0e0;
-    border-radius: 3px;
+    padding: 20px;
+    background: #f0f8ff;
+    border: 2px solid #007cba;
+    border-radius: 5px;
+    clear: both;
 }
 
 .migration-description {
@@ -230,6 +233,8 @@ $streams = oo_get_streams(array('is_active' => null)); // Get all streams regard
 
 <script>
 jQuery(document).ready(function($) {
+    console.log('Stream Management page loaded');
+    console.log('Migration button element:', $('#oo-migrate-stream-slugs'));
     // Add Stream Form Handler
     $('#oo-add-stream-form').on('submit', function(e) {
         e.preventDefault();
