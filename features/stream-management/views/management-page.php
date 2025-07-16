@@ -7,6 +7,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Get all streams for display (including inactive ones for management)
 $streams = oo_get_streams(array('is_active' => null)); // Get all streams regardless of status
+
+// Get all feature sets for assignment
+$feature_sets = OO_DB::get_feature_sets(array('is_active' => 1));
 ?>
 
 <div class="wrap oo-stream-management-page">
@@ -53,6 +56,7 @@ $streams = oo_get_streams(array('is_active' => null)); // Get all streams regard
                         <tr>
                             <th scope="col" class="manage-column column-name column-primary"><?php esc_html_e('Stream Name', 'operations-organizer'); ?></th>
                             <th scope="col" class="manage-column column-description"><?php esc_html_e('Description', 'operations-organizer'); ?></th>
+                            <th scope="col" class="manage-column column-feature-sets"><?php esc_html_e('Feature Sets', 'operations-organizer'); ?></th>
                             <th scope="col" class="manage-column column-status"><?php esc_html_e('Status', 'operations-organizer'); ?></th>
                             <th scope="col" class="manage-column column-created"><?php esc_html_e('Created', 'operations-organizer'); ?></th>
                             <th scope="col" class="manage-column column-actions"><?php esc_html_e('Actions', 'operations-organizer'); ?></th>
@@ -60,6 +64,10 @@ $streams = oo_get_streams(array('is_active' => null)); // Get all streams regard
                     </thead>
                     <tbody>
                         <?php foreach ($streams as $stream): ?>
+                            <?php
+                            // Get feature sets for this stream
+                            $stream_feature_sets = OO_DB::get_feature_sets_for_stream($stream->stream_id, 1);
+                            ?>
                             <tr data-stream-id="<?php echo esc_attr($stream->stream_id); ?>">
                                 <td class="column-name column-primary">
                                     <strong><?php echo esc_html($stream->stream_name); ?></strong>
@@ -67,6 +75,19 @@ $streams = oo_get_streams(array('is_active' => null)); // Get all streams regard
                                 </td>
                                 <td class="column-description" data-colname="<?php esc_attr_e('Description', 'operations-organizer'); ?>">
                                     <?php echo esc_html($stream->stream_description ?: __('No description', 'operations-organizer')); ?>
+                                </td>
+                                <td class="column-feature-sets" data-colname="<?php esc_attr_e('Feature Sets', 'operations-organizer'); ?>">
+                                    <?php if (!empty($stream_feature_sets)): ?>
+                                        <?php foreach ($stream_feature_sets as $fs): ?>
+                                            <span class="feature-set-badge"><?php echo esc_html($fs->name); ?></span>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <em><?php esc_html_e('No feature sets assigned', 'operations-organizer'); ?></em>
+                                    <?php endif; ?>
+                                    <br>
+                                    <button type="button" class="button button-small oo-manage-stream-feature-sets" data-stream-id="<?php echo esc_attr($stream->stream_id); ?>">
+                                        <?php esc_html_e('Manage', 'operations-organizer'); ?>
+                                    </button>
                                 </td>
                                 <td class="column-status" data-colname="<?php esc_attr_e('Status', 'operations-organizer'); ?>">
                                     <span class="status-badge status-<?php echo $stream->is_active ? 'active' : 'inactive'; ?>">
@@ -151,6 +172,25 @@ $streams = oo_get_streams(array('is_active' => null)); // Get all streams regard
     </div>
 </div>
 
+<!-- Feature Set Management Modal -->
+<div id="oo-feature-set-modal" class="oo-modal" style="display:none;">
+    <div class="oo-modal-content">
+        <span class="oo-close-button">&times;</span>
+        <h2><?php esc_html_e('Manage Feature Sets', 'operations-organizer'); ?></h2>
+        <div id="stream-feature-sets-list">
+            <!-- Feature set checkboxes will be loaded here -->
+        </div>
+        <div class="oo-modal-actions">
+            <button type="button" id="oo-save-feature-set-assignments" class="button button-primary">
+                <?php esc_html_e('Save Assignments', 'operations-organizer'); ?>
+            </button>
+            <button type="button" class="button oo-close-button">
+                <?php esc_html_e('Cancel', 'operations-organizer'); ?>
+            </button>
+        </div>
+    </div>
+</div>
+
 <style>
 .oo-stream-management-container {
     max-width: 1200px;
@@ -184,6 +224,47 @@ $streams = oo_get_streams(array('is_active' => null)); // Get all streams regard
 .status-inactive {
     background: #f8d7da;
     color: #721c24;
+}
+
+.feature-set-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    margin: 1px 2px;
+    background: #e1f5fe;
+    color: #0277bd;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.feature-set-assignment {
+    margin: 10px 0;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background: #f9f9f9;
+}
+
+.feature-set-assignment label {
+    display: block;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.feature-set-assignment small {
+    color: #666;
+    font-style: italic;
+}
+
+.oo-modal-actions {
+    margin-top: 20px;
+    text-align: right;
+    border-top: 1px solid #ddd;
+    padding-top: 15px;
+}
+
+.oo-modal-actions .button {
+    margin-left: 10px;
 }
 
 .required {
@@ -412,6 +493,104 @@ jQuery(document).ready(function($) {
             // Re-enable button
             $button.prop('disabled', false).text(originalText);
         });
+    });
+    
+    // Feature Set Management Handler
+    $('.oo-manage-stream-feature-sets').on('click', function() {
+        var streamId = $(this).data('stream-id');
+        var streamName = $(this).closest('tr').find('.column-name strong').text();
+        
+        // Set the modal title and stream ID
+        $('#oo-feature-set-modal h2').text('Manage Feature Sets for: ' + streamName);
+        $('#oo-feature-set-modal').data('stream-id', streamId);
+        
+        // Load current assignments
+        loadStreamFeatureSets(streamId);
+        
+        // Show modal
+        $('#oo-feature-set-modal').show();
+    });
+    
+    // Load stream feature sets
+    function loadStreamFeatureSets(streamId) {
+        var $container = $('#stream-feature-sets-list');
+        $container.html('<div class="spinner is-active"></div>');
+        
+        // Get assigned feature sets for this stream
+        $.post(ajaxurl, {
+            action: 'oo_get_stream_feature_sets',
+            nonce: '<?php echo wp_create_nonce('oo_get_stream_feature_sets_nonce'); ?>',
+            stream_id: streamId
+        }, function(response) {
+            if (response.success) {
+                var assignedFeatureSets = response.data.feature_sets || [];
+                var allFeatureSets = <?php echo json_encode($feature_sets); ?>;
+                var html = '';
+                
+                allFeatureSets.forEach(function(fs) {
+                    var isAssigned = assignedFeatureSets.some(function(afs) {
+                        return afs.feature_set_id == fs.feature_set_id;
+                    });
+                    
+                    html += '<div class="feature-set-assignment">';
+                    html += '<label>';
+                    html += '<input type="checkbox" value="' + fs.feature_set_id + '" ' + (isAssigned ? 'checked' : '') + '> ';
+                    html += fs.name;
+                    if (fs.description) {
+                        html += ' <small>(' + fs.description + ')</small>';
+                    }
+                    html += '</label>';
+                    html += '</div>';
+                });
+                
+                $container.html(html);
+            } else {
+                $container.html('<div class="notice notice-error"><p>Error loading feature sets: ' + response.data.message + '</p></div>');
+            }
+        });
+    }
+    
+    // Save feature set assignments
+    $('#oo-save-feature-set-assignments').on('click', function() {
+        var streamId = $('#oo-feature-set-modal').data('stream-id');
+        var selectedFeatureSets = [];
+        
+        $('#stream-feature-sets-list input[type="checkbox"]:checked').each(function() {
+            selectedFeatureSets.push($(this).val());
+        });
+        
+        var $button = $(this);
+        $button.prop('disabled', true).text('Saving...');
+        
+        $.post(ajaxurl, {
+            action: 'oo_update_stream_feature_sets',
+            nonce: '<?php echo wp_create_nonce('oo_update_stream_feature_sets_nonce'); ?>',
+            stream_id: streamId,
+            feature_sets: selectedFeatureSets
+        }, function(response) {
+            if (response.success) {
+                alert('Feature sets updated successfully!');
+                $('#oo-feature-set-modal').hide();
+                location.reload(); // Refresh to show updated assignments
+            } else {
+                alert('Error: ' + response.data.message);
+            }
+        }).fail(function() {
+            alert('Request failed. Please try again.');
+        }).always(function() {
+            $button.prop('disabled', false).text('Save Assignments');
+        });
+    });
+    
+    // Close feature set modal
+    $('#oo-feature-set-modal .oo-close-button').on('click', function() {
+        $('#oo-feature-set-modal').hide();
+    });
+    
+    $(window).on('click', function(e) {
+        if (e.target.id === 'oo-feature-set-modal') {
+            $('#oo-feature-set-modal').hide();
+        }
     });
 });
 </script> 

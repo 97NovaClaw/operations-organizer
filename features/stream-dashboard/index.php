@@ -58,6 +58,9 @@ $employees = OO_Stream_Dashboard_DB::get_employees(array('is_active' => 1, 'orde
 // Determine the active sub-tab for this stream page.
 $active_tab = isset( $_GET['sub_tab'] ) ? sanitize_key( $_GET['sub_tab'] ) : 'phase_log_actions';
 
+// Get feature set sub-tabs for this stream
+$feature_set_tabs = oo_get_feature_set_sub_tabs($current_stream_tab_slug);
+
 ?>
 <div class="wrap oo-stream-page oo-stream-page-<?php echo esc_attr( $current_stream_tab_slug ); ?>">
     <h1><?php echo esc_html( $current_stream_name ); ?> <?php esc_html_e( 'Stream Management', 'operations-organizer' ); ?></h1>
@@ -72,6 +75,14 @@ $active_tab = isset( $_GET['sub_tab'] ) ? sanitize_key( $_GET['sub_tab'] ) : 'ph
         <a href="?page=<?php echo esc_attr( $_REQUEST['page'] ); ?>&sub_tab=phase_kpi_settings" class="nav-tab <?php echo $active_tab == 'phase_kpi_settings' ? 'nav-tab-active' : ''; ?>">
             <?php esc_html_e( 'Phase & KPI Settings', 'operations-organizer' ); ?>
         </a>
+        
+        <?php if (!empty($feature_set_tabs)): ?>
+            <?php foreach ($feature_set_tabs as $feature_tab): ?>
+                <a href="?page=<?php echo esc_attr( $_REQUEST['page'] ); ?>&sub_tab=feature_set_<?php echo esc_attr($feature_tab['slug']); ?>" class="nav-tab <?php echo $active_tab == 'feature_set_' . $feature_tab['slug'] ? 'nav-tab-active' : ''; ?>" title="<?php echo esc_attr($feature_tab['description']); ?>">
+                    <?php echo esc_html($feature_tab['name']); ?>
+                </a>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </h2>
 
 	<div class="oo-stream-tab-content">
@@ -87,8 +98,19 @@ $active_tab = isset( $_GET['sub_tab'] ) ? sanitize_key( $_GET['sub_tab'] ) : 'ph
 				include_once $tab_view_path . 'tab-settings.php';
 				break;
 			case 'phase_log_actions':
-			default:
 				include_once $tab_view_path . 'tab-log-actions.php';
+				break;
+			default:
+				// Check if this is a feature set tab
+				if (strpos($active_tab, 'feature_set_') === 0) {
+					$feature_set_slug = substr($active_tab, 12); // Remove 'feature_set_' prefix
+					echo '<div class="oo-feature-set-content">';
+					echo oo_render_feature_set_content($current_stream_tab_slug, $feature_set_slug);
+					echo '</div>';
+				} else {
+					// Default to phase log actions
+					include_once $tab_view_path . 'tab-log-actions.php';
+				}
 				break;
 		}
 		?>

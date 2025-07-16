@@ -52,6 +52,26 @@ if (file_exists($stream_management_path) && is_readable($stream_management_path)
     error_log("Operations Organizer: Plugin will continue without dynamic stream management features.");
 }
 
+// Include Feature Sets Management feature
+$feature_sets_management_path = OO_PLUGIN_DIR . 'features/feature-sets-management/index.php';
+if (file_exists($feature_sets_management_path) && is_readable($feature_sets_management_path)) {
+    require_once $feature_sets_management_path; // Feature sets management
+} else {
+    // Log the missing file for debugging
+    error_log("Operations Organizer: Feature sets management feature not found at: " . $feature_sets_management_path);
+    error_log("Operations Organizer: Plugin will continue without feature sets management features.");
+}
+
+// Include Feature Set Modules
+$operational_tools_path = OO_PLUGIN_DIR . 'features/feature-sets/operational-tools/index.php';
+if (file_exists($operational_tools_path) && is_readable($operational_tools_path)) {
+    require_once $operational_tools_path; // Operational tools feature set
+} else {
+    // Log the missing file for debugging
+    error_log("Operations Organizer: Operational tools feature set not found at: " . $operational_tools_path);
+    error_log("Operations Organizer: Plugin will continue without operational tools feature set.");
+}
+
 // Include Stream Dashboard feature files
 require_once OO_PLUGIN_DIR . 'features/stream-dashboard/database.php';
 require_once OO_PLUGIN_DIR . 'features/stream-dashboard/ajax.php';

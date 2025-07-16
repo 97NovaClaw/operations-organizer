@@ -23,6 +23,10 @@ class OO_DB { // Renamed class
     private static $derived_kpi_definitions_table; // New table for derived KPI definitions
     private static $job_log_derived_values_table; // New table for storing calculated derived values
     
+    // Feature sets tables
+    private static $feature_sets_table; // New table for feature sets
+    private static $stream_feature_set_link_table; // New table for stream-feature set relationships
+    
     // Stream-specific data tables
     private static $stream_data_soft_content_table;
     private static $stream_data_electronics_table;
@@ -47,6 +51,10 @@ class OO_DB { // Renamed class
         self::$phase_kpi_measures_link_table = $wpdb->prefix . 'oo_phase_kpi_measures_link'; // Initialize new link table name
         self::$derived_kpi_definitions_table = $wpdb->prefix . 'oo_derived_kpi_definitions'; // Initialize new table name
         self::$job_log_derived_values_table = $wpdb->prefix . 'oo_job_log_derived_values'; // Initialize new table name
+        
+        // Feature sets tables
+        self::$feature_sets_table = $wpdb->prefix . 'oo_feature_sets';
+        self::$stream_feature_set_link_table = $wpdb->prefix . 'oo_stream_feature_set_link';
         
         // Stream-specific data tables
         self::$stream_data_soft_content_table = $wpdb->prefix . 'oo_stream_data_soft_content';
@@ -633,6 +641,38 @@ class OO_DB { // Renamed class
             INDEX idx_log_id (log_id),
             INDEX idx_derived_definition_id (derived_definition_id)
         ) $charset_collate;";
+        
+        // SQL for oo_feature_sets table
+        $sql_feature_sets = "CREATE TABLE " . self::$feature_sets_table . " (
+            feature_set_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            name VARCHAR(100) NOT NULL,
+            slug VARCHAR(100) NOT NULL,
+            description TEXT NULL,
+            is_active BOOLEAN NOT NULL DEFAULT 1,
+            sort_order INT NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (feature_set_id),
+            UNIQUE KEY uq_feature_set_name (name),
+            UNIQUE KEY uq_feature_set_slug (slug),
+            INDEX idx_is_active (is_active),
+            INDEX idx_sort_order (sort_order)
+        ) $charset_collate;";
+        
+        // SQL for oo_stream_feature_set_link table
+        $sql_stream_feature_set_link = "CREATE TABLE " . self::$stream_feature_set_link_table . " (
+            link_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            stream_id INT UNSIGNED NOT NULL,
+            feature_set_id INT UNSIGNED NOT NULL,
+            is_active BOOLEAN NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (link_id),
+            UNIQUE KEY uq_stream_feature_set (stream_id, feature_set_id),
+            INDEX idx_stream_id (stream_id),
+            INDEX idx_feature_set_id (feature_set_id),
+            INDEX idx_is_active (is_active)
+        ) $charset_collate;";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         
@@ -696,6 +736,12 @@ class OO_DB { // Renamed class
         
         oo_log('Running dbDelta for job_log_derived_values table (' . self::$job_log_derived_values_table . ').', __METHOD__);
         dbDelta( $sql_job_log_derived_values );
+        
+        oo_log('Running dbDelta for feature_sets table (' . self::$feature_sets_table . ').', __METHOD__);
+        dbDelta( $sql_feature_sets );
+        
+        oo_log('Running dbDelta for stream_feature_set_link table (' . self::$stream_feature_set_link_table . ').', __METHOD__);
+        dbDelta( $sql_stream_feature_set_link );
         
         oo_log('Finished dbDelta calls. Check logs for specific table creation/update details.', __METHOD__);
     }
@@ -5533,6 +5579,351 @@ class OO_DB { // Renamed class
         }
         
         return true;
+    }
+
+    // --- Feature Sets CRUD Methods ---
+    
+    /**
+     * Add a new feature set
+     */
+    public static function add_feature_set($name, $slug = '', $description = '', $is_active = 1, $sort_order = 0) {
+        oo_log('Attempting to add feature set.', __METHOD__);
+        oo_log(compact('name', 'slug', 'description', 'is_active', 'sort_order'), __METHOD__);
+        self::init();
+        global $wpdb;
+        
+        if (empty($name)) {
+            return new WP_Error('missing_field', 'Feature set name is required.');
+        }
+        
+        // Generate slug if not provided
+        if (empty($slug)) {
+            $slug = sanitize_key(strtolower(str_replace(' ', '_', $name)));
+        }
+        
+        // Check for duplicate name
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT feature_set_id FROM " . self::$feature_sets_table . " WHERE name = %s", $name));
+        if ($exists) {
+            return new WP_Error('feature_set_exists', 'Feature set name already exists.');
+        }
+        
+        // Check for duplicate slug
+        $slug_exists = $wpdb->get_var($wpdb->prepare("SELECT feature_set_id FROM " . self::$feature_sets_table . " WHERE slug = %s", $slug));
+        if ($slug_exists) {
+            return new WP_Error('feature_set_slug_exists', 'Feature set slug already exists.');
+        }
+        
+        $result = $wpdb->insert(
+            self::$feature_sets_table,
+            array(
+                'name' => sanitize_text_field($name),
+                'slug' => sanitize_key($slug),
+                'description' => sanitize_textarea_field($description),
+                'is_active' => intval($is_active),
+                'sort_order' => intval($sort_order),
+                'created_at' => current_time('mysql', 1),
+                'updated_at' => current_time('mysql', 1)
+            ),
+            array('%s', '%s', '%s', '%d', '%d', '%s', '%s')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('db_error', 'Could not add feature set. Error: ' . $wpdb->last_error);
+        }
+        
+        return $wpdb->insert_id;
+    }
+    
+    /**
+     * Get feature set by ID
+     */
+    public static function get_feature_set($feature_set_id) {
+        oo_log('Attempting to get feature set by ID: ' . $feature_set_id, __METHOD__);
+        self::init();
+        global $wpdb;
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::$feature_sets_table . " WHERE feature_set_id = %d", $feature_set_id));
+    }
+    
+    /**
+     * Get feature set by slug
+     */
+    public static function get_feature_set_by_slug($slug) {
+        oo_log('Attempting to get feature set by slug: ' . $slug, __METHOD__);
+        self::init();
+        global $wpdb;
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::$feature_sets_table . " WHERE slug = %s", $slug));
+    }
+    
+    /**
+     * Get all feature sets
+     */
+    public static function get_feature_sets($args = array()) {
+        oo_log('Attempting to get feature sets with args:', __METHOD__);
+        oo_log($args, __METHOD__);
+        self::init();
+        global $wpdb;
+        
+        $defaults = array(
+            'is_active' => null,
+            'orderby' => 'sort_order',
+            'order' => 'ASC',
+            'search' => '',
+            'number' => -1,
+            'offset' => 0
+        );
+        $args = wp_parse_args($args, $defaults);
+        
+        $sql_base = "SELECT * FROM " . self::$feature_sets_table;
+        $where_clauses = array();
+        $query_params = array();
+        
+        if (!is_null($args['is_active'])) {
+            $where_clauses[] = "is_active = %d";
+            $query_params[] = $args['is_active'];
+        }
+        
+        if (!empty($args['search'])) {
+            $search_term = '%' . $wpdb->esc_like($args['search']) . '%';
+            $where_clauses[] = "(name LIKE %s OR description LIKE %s)";
+            $query_params[] = $search_term;
+            $query_params[] = $search_term;
+        }
+        
+        $sql_where = "";
+        if (!empty($where_clauses)) {
+            $sql_where = " WHERE " . implode(" AND ", $where_clauses);
+        }
+        
+        $sql = $sql_base . $sql_where;
+        if (!empty($query_params)) {
+            $sql = $wpdb->prepare($sql, $query_params);
+        }
+        
+        $orderby_clause = "";
+        if (!empty($args['orderby'])) {
+            $orderby_val = sanitize_sql_orderby($args['orderby']);
+            if ($orderby_val) {
+                $order_val = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
+                $orderby_clause = " ORDER BY $orderby_val $order_val";
+            }
+        }
+        $sql .= $orderby_clause;
+        
+        $limit_clause = "";
+        if (isset($args['number']) && $args['number'] > 0) {
+            $limit_clause = sprintf(" LIMIT %d OFFSET %d", intval($args['number']), intval($args['offset']));
+        }
+        $sql .= $limit_clause;
+        
+        return $wpdb->get_results($sql);
+    }
+    
+    /**
+     * Update feature set
+     */
+    public static function update_feature_set($feature_set_id, $name, $description = '', $is_active = 1, $sort_order = 0) {
+        oo_log('Attempting to update feature set ID: ' . $feature_set_id, __METHOD__);
+        self::init();
+        global $wpdb;
+        
+        if (empty($name)) {
+            return new WP_Error('missing_field', 'Feature set name is required.');
+        }
+        
+        // Check for duplicate name (excluding current feature set)
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT feature_set_id FROM " . self::$feature_sets_table . " WHERE name = %s AND feature_set_id != %d", $name, $feature_set_id));
+        if ($exists) {
+            return new WP_Error('feature_set_exists', 'Feature set name already exists.');
+        }
+        
+        $result = $wpdb->update(
+            self::$feature_sets_table,
+            array(
+                'name' => sanitize_text_field($name),
+                'description' => sanitize_textarea_field($description),
+                'is_active' => intval($is_active),
+                'sort_order' => intval($sort_order),
+                'updated_at' => current_time('mysql', 1)
+            ),
+            array('feature_set_id' => $feature_set_id),
+            array('%s', '%s', '%d', '%d', '%s'),
+            array('%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('db_error', 'Could not update feature set. Error: ' . $wpdb->last_error);
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Toggle feature set status
+     */
+    public static function toggle_feature_set_status($feature_set_id, $is_active) {
+        oo_log('Toggling feature set status for ID: ' . $feature_set_id . ' to ' . $is_active, __METHOD__);
+        self::init();
+        global $wpdb;
+        
+        $result = $wpdb->update(
+            self::$feature_sets_table,
+            array('is_active' => intval($is_active), 'updated_at' => current_time('mysql', 1)),
+            array('feature_set_id' => $feature_set_id),
+            array('%d', '%s'),
+            array('%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('db_error', 'Could not update feature set status. Error: ' . $wpdb->last_error);
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Delete feature set (soft delete - mark as inactive)
+     */
+    public static function delete_feature_set($feature_set_id) {
+        oo_log('Attempting to delete feature set ID: ' . $feature_set_id, __METHOD__);
+        self::init();
+        global $wpdb;
+        
+        // Soft delete - just mark as inactive
+        $result = $wpdb->update(
+            self::$feature_sets_table,
+            array('is_active' => 0, 'updated_at' => current_time('mysql', 1)),
+            array('feature_set_id' => $feature_set_id),
+            array('%d', '%s'),
+            array('%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('db_error', 'Could not delete feature set. Error: ' . $wpdb->last_error);
+        }
+        
+        return true;
+    }
+    
+    // --- Stream-Feature Set Link Methods ---
+    
+    /**
+     * Assign feature set to stream
+     */
+    public static function assign_feature_set_to_stream($stream_id, $feature_set_id) {
+        oo_log('Assigning feature set ' . $feature_set_id . ' to stream ' . $stream_id, __METHOD__);
+        self::init();
+        global $wpdb;
+        
+        // Check if link already exists
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT link_id FROM " . self::$stream_feature_set_link_table . " WHERE stream_id = %d AND feature_set_id = %d",
+            $stream_id, $feature_set_id
+        ));
+        
+        if ($exists) {
+            // Reactivate if it exists but is inactive
+            $result = $wpdb->update(
+                self::$stream_feature_set_link_table,
+                array('is_active' => 1, 'updated_at' => current_time('mysql', 1)),
+                array('stream_id' => $stream_id, 'feature_set_id' => $feature_set_id),
+                array('%d', '%s'),
+                array('%d', '%d')
+            );
+            return $result !== false;
+        }
+        
+        $result = $wpdb->insert(
+            self::$stream_feature_set_link_table,
+            array(
+                'stream_id' => intval($stream_id),
+                'feature_set_id' => intval($feature_set_id),
+                'is_active' => 1,
+                'created_at' => current_time('mysql', 1),
+                'updated_at' => current_time('mysql', 1)
+            ),
+            array('%d', '%d', '%d', '%s', '%s')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('db_error', 'Could not assign feature set to stream. Error: ' . $wpdb->last_error);
+        }
+        
+        return $wpdb->insert_id;
+    }
+    
+    /**
+     * Remove feature set from stream
+     */
+    public static function remove_feature_set_from_stream($stream_id, $feature_set_id) {
+        oo_log('Removing feature set ' . $feature_set_id . ' from stream ' . $stream_id, __METHOD__);
+        self::init();
+        global $wpdb;
+        
+        $result = $wpdb->update(
+            self::$stream_feature_set_link_table,
+            array('is_active' => 0, 'updated_at' => current_time('mysql', 1)),
+            array('stream_id' => $stream_id, 'feature_set_id' => $feature_set_id),
+            array('%d', '%s'),
+            array('%d', '%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('db_error', 'Could not remove feature set from stream. Error: ' . $wpdb->last_error);
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Get feature sets for a stream
+     */
+    public static function get_feature_sets_for_stream($stream_id, $is_active = 1) {
+        oo_log('Getting feature sets for stream ' . $stream_id, __METHOD__);
+        self::init();
+        global $wpdb;
+        
+        $sql = "SELECT fs.*, sfl.link_id, sfl.is_active as link_is_active 
+                FROM " . self::$feature_sets_table . " fs
+                INNER JOIN " . self::$stream_feature_set_link_table . " sfl ON fs.feature_set_id = sfl.feature_set_id
+                WHERE sfl.stream_id = %d";
+        
+        $params = array($stream_id);
+        
+        if (!is_null($is_active)) {
+            $sql .= " AND sfl.is_active = %d AND fs.is_active = %d";
+            $params[] = $is_active;
+            $params[] = $is_active;
+        }
+        
+        $sql .= " ORDER BY fs.sort_order ASC, fs.name ASC";
+        
+        return $wpdb->get_results($wpdb->prepare($sql, $params));
+    }
+    
+    /**
+     * Get streams for a feature set
+     */
+    public static function get_streams_for_feature_set($feature_set_id, $is_active = 1) {
+        oo_log('Getting streams for feature set ' . $feature_set_id, __METHOD__);
+        self::init();
+        global $wpdb;
+        
+        $sql = "SELECT s.*, sfl.link_id, sfl.is_active as link_is_active 
+                FROM " . self::$streams_table . " s
+                INNER JOIN " . self::$stream_feature_set_link_table . " sfl ON s.stream_id = sfl.stream_id
+                WHERE sfl.feature_set_id = %d";
+        
+        $params = array($feature_set_id);
+        
+        if (!is_null($is_active)) {
+            $sql .= " AND sfl.is_active = %d AND s.is_active = %d";
+            $params[] = $is_active;
+            $params[] = $is_active;
+        }
+        
+        $sql .= " ORDER BY s.stream_name ASC";
+        
+        return $wpdb->get_results($wpdb->prepare($sql, $params));
     }
 
 }

@@ -337,4 +337,132 @@ function oo_get_stream_table_name($stream_id) {
     }
     
     return $wpdb->prefix . 'oo_stream_data_' . $stream->stream_slug;
+}
+
+/**
+ * Get stream by slug
+ */
+function oo_get_stream_by_slug($slug) {
+    return OO_DB::get_stream_by_slug($slug);
+}
+
+// --- Feature Sets Functions ---
+
+/**
+ * Get all feature sets
+ */
+function oo_get_feature_sets($args = array()) {
+    return OO_DB::get_feature_sets($args);
+}
+
+/**
+ * Get feature set by ID
+ */
+function oo_get_feature_set($feature_set_id) {
+    return OO_DB::get_feature_set($feature_set_id);
+}
+
+/**
+ * Get feature set by slug
+ */
+function oo_get_feature_set_by_slug($slug) {
+    return OO_DB::get_feature_set_by_slug($slug);
+}
+
+/**
+ * Get feature sets for a stream
+ */
+function oo_get_feature_sets_for_stream($stream_id, $is_active = 1) {
+    return OO_DB::get_feature_sets_for_stream($stream_id, $is_active);
+}
+
+/**
+ * Render feature set content for a stream
+ * This function provides a hook-based system for feature sets to render their content
+ */
+function oo_render_feature_set_content($stream_slug, $feature_set_slug) {
+    // Get the stream and feature set
+    $stream = oo_get_stream_by_slug($stream_slug);
+    $feature_set = oo_get_feature_set_by_slug($feature_set_slug);
+    
+    if (!$stream || !$feature_set) {
+        return '<div class="notice notice-error"><p>' . __('Stream or feature set not found.', 'operations-organizer') . '</p></div>';
+    }
+    
+    // Check if the feature set is assigned to this stream
+    $assigned_feature_sets = oo_get_feature_sets_for_stream($stream->stream_id, 1);
+    $is_assigned = false;
+    foreach ($assigned_feature_sets as $assigned_fs) {
+        if ($assigned_fs->feature_set_id == $feature_set->feature_set_id) {
+            $is_assigned = true;
+            break;
+        }
+    }
+    
+    if (!$is_assigned) {
+        return '<div class="notice notice-warning"><p>' . __('This feature set is not assigned to this stream.', 'operations-organizer') . '</p></div>';
+    }
+    
+    // Start output buffering
+    ob_start();
+    
+    // Fire the hook for this specific feature set
+    do_action('oo_render_feature_set_' . $feature_set_slug, $stream, $feature_set);
+    
+    // If no specific hook handler, fire the generic hook
+    if (!has_action('oo_render_feature_set_' . $feature_set_slug)) {
+        do_action('oo_render_feature_set_generic', $stream, $feature_set);
+    }
+    
+    // Get the output
+    $content = ob_get_clean();
+    
+    // If still no content, show a default message
+    if (empty(trim($content))) {
+        $content = '<div class="notice notice-info"><p>' . 
+                   sprintf(__('Feature set "%s" is assigned but no content renderer is available.', 'operations-organizer'), 
+                          esc_html($feature_set->name)) . 
+                   '</p></div>';
+    }
+    
+    return $content;
+}
+
+/**
+ * Get feature set sub-tabs for a stream
+ * This generates the sub-tab structure for the dashboard
+ */
+function oo_get_feature_set_sub_tabs($stream_slug) {
+    $stream = oo_get_stream_by_slug($stream_slug);
+    if (!$stream) {
+        return array();
+    }
+    
+    $feature_sets = oo_get_feature_sets_for_stream($stream->stream_id, 1);
+    $sub_tabs = array();
+    
+    foreach ($feature_sets as $feature_set) {
+        $sub_tabs[] = array(
+            'id' => $feature_set->slug,
+            'name' => $feature_set->name,
+            'slug' => $feature_set->slug,
+            'description' => $feature_set->description,
+            'sort_order' => $feature_set->sort_order
+        );
+    }
+    
+    // Sort by sort_order
+    usort($sub_tabs, function($a, $b) {
+        return $a['sort_order'] - $b['sort_order'];
+    });
+    
+    return $sub_tabs;
+}
+
+/**
+ * Register a feature set content renderer
+ * This is a helper function for feature set modules to register their content renderers
+ */
+function oo_register_feature_set_renderer($feature_set_slug, $callback) {
+    add_action('oo_render_feature_set_' . $feature_set_slug, $callback, 10, 2);
 } 

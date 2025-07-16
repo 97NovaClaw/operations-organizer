@@ -15,6 +15,8 @@ class OO_Stream_Management_AJAX {
         add_action('wp_ajax_oo_toggle_stream_status', array(__CLASS__, 'ajax_toggle_stream_status'));
         add_action('wp_ajax_oo_delete_stream', array(__CLASS__, 'ajax_delete_stream'));
         add_action('wp_ajax_oo_migrate_stream_slugs', array(__CLASS__, 'ajax_migrate_stream_slugs'));
+        add_action('wp_ajax_oo_get_stream_feature_sets', array(__CLASS__, 'ajax_get_stream_feature_sets'));
+        add_action('wp_ajax_oo_update_stream_feature_sets', array(__CLASS__, 'ajax_update_stream_feature_sets'));
     }
     
     public static function ajax_add_stream() {
@@ -175,5 +177,70 @@ class OO_Stream_Management_AJAX {
         } catch (Exception $e) {
             wp_send_json_error(array('message' => __('Migration failed: ', 'operations-organizer') . $e->getMessage()));
         }
+    }
+    
+    public static function ajax_get_stream_feature_sets() {
+        check_ajax_referer('oo_get_stream_feature_sets_nonce', 'nonce');
+        
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'operations-organizer')), 403);
+            return;
+        }
+        
+        $stream_id = isset($_POST['stream_id']) ? intval($_POST['stream_id']) : 0;
+        
+        if ($stream_id <= 0) {
+            wp_send_json_error(array('message' => __('Invalid stream ID.', 'operations-organizer')));
+            return;
+        }
+        
+        $feature_sets = OO_DB::get_feature_sets_for_stream($stream_id, 1);
+        
+        wp_send_json_success(array('feature_sets' => $feature_sets));
+    }
+    
+    public static function ajax_update_stream_feature_sets() {
+        check_ajax_referer('oo_update_stream_feature_sets_nonce', 'nonce');
+        
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'operations-organizer')), 403);
+            return;
+        }
+        
+        $stream_id = isset($_POST['stream_id']) ? intval($_POST['stream_id']) : 0;
+        $feature_sets = isset($_POST['feature_sets']) ? array_map('intval', $_POST['feature_sets']) : array();
+        
+        if ($stream_id <= 0) {
+            wp_send_json_error(array('message' => __('Invalid stream ID.', 'operations-organizer')));
+            return;
+        }
+        
+        // Get currently assigned feature sets
+        $current_feature_sets = OO_DB::get_feature_sets_for_stream($stream_id, 1);
+        $current_ids = array_map(function($fs) { return $fs->feature_set_id; }, $current_feature_sets);
+        
+        // Remove feature sets that are no longer selected
+        foreach ($current_ids as $current_id) {
+            if (!in_array($current_id, $feature_sets)) {
+                $result = OO_DB::remove_feature_set_from_stream($stream_id, $current_id);
+                if (is_wp_error($result)) {
+                    wp_send_json_error(array('message' => $result->get_error_message()));
+                    return;
+                }
+            }
+        }
+        
+        // Add new feature sets
+        foreach ($feature_sets as $feature_set_id) {
+            if (!in_array($feature_set_id, $current_ids)) {
+                $result = OO_DB::assign_feature_set_to_stream($stream_id, $feature_set_id);
+                if (is_wp_error($result)) {
+                    wp_send_json_error(array('message' => $result->get_error_message()));
+                    return;
+                }
+            }
+        }
+        
+        wp_send_json_success(array('message' => __('Feature sets updated successfully.', 'operations-organizer')));
     }
 } 
