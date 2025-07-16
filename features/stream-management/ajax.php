@@ -14,6 +14,7 @@ class OO_Stream_Management_AJAX {
         add_action('wp_ajax_oo_update_stream', array(__CLASS__, 'ajax_update_stream'));
         add_action('wp_ajax_oo_toggle_stream_status', array(__CLASS__, 'ajax_toggle_stream_status'));
         add_action('wp_ajax_oo_delete_stream', array(__CLASS__, 'ajax_delete_stream'));
+        add_action('wp_ajax_oo_migrate_stream_slugs', array(__CLASS__, 'ajax_migrate_stream_slugs'));
     }
     
     public static function ajax_add_stream() {
@@ -147,5 +148,31 @@ class OO_Stream_Management_AJAX {
         }
         
         wp_send_json_success(array('message' => __('Stream deleted successfully.', 'operations-organizer')));
+    }
+    
+    /**
+     * Handle AJAX request to migrate stream slugs
+     */
+    public static function ajax_migrate_stream_slugs() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'oo_migrate_stream_slugs_nonce')) {
+            wp_send_json_error(array('message' => __('Security verification failed.', 'operations-organizer')));
+            return;
+        }
+        
+        // Check user permissions
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('You do not have permission to perform this action.', 'operations-organizer')));
+            return;
+        }
+        
+        try {
+            // Run the migration
+            OO_DB::migrate_stream_slugs();
+            
+            wp_send_json_success(array('message' => __('Database migration completed successfully.', 'operations-organizer')));
+        } catch (Exception $e) {
+            wp_send_json_error(array('message' => __('Migration failed: ', 'operations-organizer') . $e->getMessage()));
+        }
     }
 } 

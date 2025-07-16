@@ -94,6 +94,14 @@ $streams = oo_get_streams(array('is_active' => null)); // Get all streams regard
                 </div>
             <?php endif; ?>
         </div>
+        
+        <!-- Database Migration Section -->
+        <div class="oo-migration-section">
+            <button type="button" id="oo-migrate-stream-slugs" class="button button-secondary">
+                <?php esc_html_e('Migrate Stream Database', 'operations-organizer'); ?>
+            </button>
+            <span class="migration-description"><?php esc_html_e('Run this if you have issues creating new streams', 'operations-organizer'); ?></span>
+        </div>
     </div>
 </div>
 
@@ -202,6 +210,22 @@ $streams = oo_get_streams(array('is_active' => null)); // Get all streams regard
 .oo-close-button:focus {
     color: black;
 }
+
+.oo-migration-section {
+    text-align: right;
+    margin-top: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+}
+
+.migration-description {
+    margin-left: 10px;
+    font-style: italic;
+    color: #666;
+    font-size: 13px;
+}
 </style>
 
 <script>
@@ -299,6 +323,38 @@ jQuery(document).ready(function($) {
         if (e.target.id === 'oo-edit-stream-modal') {
             $('#oo-edit-stream-modal').hide();
         }
+    });
+    
+    // Migration Button Handler
+    $('#oo-migrate-stream-slugs').on('click', function() {
+        var $button = $(this);
+        var originalText = $button.text();
+        
+        // Confirm before running migration
+        if (!confirm('This will update the database to support dynamic streams. Continue?')) {
+            return;
+        }
+        
+        // Disable button and show loading state
+        $button.prop('disabled', true).text('Running Migration...');
+        
+        $.post(ajaxurl, {
+            action: 'oo_migrate_stream_slugs',
+            nonce: '<?php echo wp_create_nonce('oo_migrate_stream_slugs_nonce'); ?>'
+        }, function(response) {
+            if (response.success) {
+                alert('Migration completed successfully! ' + response.data.message);
+                // Optionally reload to refresh any data
+                location.reload();
+            } else {
+                alert('Migration failed: ' + response.data.message);
+            }
+        }).fail(function() {
+            alert('Migration request failed. Please check your connection and try again.');
+        }).always(function() {
+            // Re-enable button
+            $button.prop('disabled', false).text(originalText);
+        });
     });
 });
 </script> 
