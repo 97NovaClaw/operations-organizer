@@ -59,6 +59,9 @@ class OO_DB { // Renamed class
         
         // Check for email and phone repeater columns
         self::check_repeater_columns();
+        
+        // Check for stream_slug column and migrate existing data
+        self::check_stream_slug_column();
     }
 
     /**
@@ -186,6 +189,69 @@ class OO_DB { // Renamed class
     }
 
     /**
+     * Check for stream_slug column and add it if missing, then populate existing streams with slugs.
+     */
+    private static function check_stream_slug_column() {
+        self::init();
+        global $wpdb;
+        
+        // Check if stream_slug column exists
+        $column_exists = $wpdb->get_results(
+            $wpdb->prepare(
+                "SHOW COLUMNS FROM " . self::$streams_table . " LIKE %s",
+                'stream_slug'
+            )
+        );
+        
+        if (empty($column_exists)) {
+            oo_log('stream_slug column missing in streams table. Adding it now.', __METHOD__);
+            
+            // Add the column
+            $result = $wpdb->query(
+                "ALTER TABLE " . self::$streams_table . " 
+                ADD COLUMN `stream_slug` VARCHAR(100) NOT NULL DEFAULT '' AFTER `stream_name`,
+                ADD UNIQUE KEY uq_stream_slug (stream_slug)"
+            );
+            
+            if ($result === false) {
+                oo_log('Failed to add stream_slug column to streams table: ' . $wpdb->last_error, __METHOD__);
+                return;
+            } else {
+                oo_log('Successfully added stream_slug column to streams table', __METHOD__);
+            }
+            
+            // Populate existing streams with slugs based on their names
+            $existing_streams = $wpdb->get_results("SELECT stream_id, stream_name FROM " . self::$streams_table . " WHERE stream_slug = ''");
+            
+            foreach ($existing_streams as $stream) {
+                $slug = sanitize_key(strtolower(str_replace(' ', '_', $stream->stream_name)));
+                
+                // Ensure unique slug
+                $original_slug = $slug;
+                $counter = 1;
+                while ($wpdb->get_var($wpdb->prepare("SELECT stream_id FROM " . self::$streams_table . " WHERE stream_slug = %s AND stream_id != %d", $slug, $stream->stream_id))) {
+                    $slug = $original_slug . '_' . $counter;
+                    $counter++;
+                }
+                
+                $update_result = $wpdb->update(
+                    self::$streams_table,
+                    array('stream_slug' => $slug),
+                    array('stream_id' => $stream->stream_id),
+                    array('%s'),
+                    array('%d')
+                );
+                
+                if ($update_result !== false) {
+                    oo_log("Updated stream '{$stream->stream_name}' with slug '{$slug}'", __METHOD__);
+                } else {
+                    oo_log("Failed to update stream '{$stream->stream_name}' with slug: " . $wpdb->last_error, __METHOD__);
+                }
+            }
+        }
+    }
+
+    /**
      * Create/update custom database tables.
      */
     public static function create_tables() {
@@ -216,12 +282,14 @@ class OO_DB { // Renamed class
         $sql_streams = "CREATE TABLE " . self::$streams_table . " (
             stream_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
             stream_name VARCHAR(100) NOT NULL,
+            stream_slug VARCHAR(100) NOT NULL,
             stream_description TEXT NULL,
             is_active BOOLEAN NOT NULL DEFAULT 1,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (stream_id),
-            UNIQUE KEY uq_stream_name (stream_name)
+            UNIQUE KEY uq_stream_name (stream_name),
+            UNIQUE KEY uq_stream_slug (stream_slug)
         ) $charset_collate;";
         
         // SQL for oo_jobs table
