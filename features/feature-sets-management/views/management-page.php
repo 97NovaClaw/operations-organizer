@@ -94,6 +94,27 @@ $migration_status = OO_Feature_Sets_Migration::get_migration_status();
                             <p class="description"><?php esc_html_e('Lower numbers appear first in sub-tabs.', 'operations-organizer'); ?></p>
                         </td>
                     </tr>
+                    <tr>
+                        <th scope="row">
+                            <label><?php esc_html_e('Assign to Streams', 'operations-organizer'); ?></label>
+                        </th>
+                        <td>
+                            <div id="add-feature-set-stream-assignments" class="stream-checkbox-group" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccd0d4; padding: 10px; background: #f9f9f9;">
+                                <?php
+                                // Get all active streams for assignment
+                                $active_streams = oo_get_streams(array('is_active' => 1));
+                                if (!empty($active_streams)) {
+                                    foreach ($active_streams as $stream) {
+                                        echo '<label style="display: block; margin: 5px 0;"><input type="checkbox" name="assign_to_streams[]" value="' . esc_attr($stream->stream_id) . '"> ' . esc_html($stream->stream_name) . '</label>';
+                                    }
+                                } else {
+                                    echo '<p>' . esc_html__('No active streams found.', 'operations-organizer') . '</p>';
+                                }
+                                ?>
+                            </div>
+                            <p class="description"><?php esc_html_e('Select which streams should have this feature set available.', 'operations-organizer'); ?></p>
+                        </td>
+                    </tr>
                 </table>
                 <?php submit_button(__('Add Feature Set', 'operations-organizer'), 'primary', 'submit_add_feature_set'); ?>
             </form>
@@ -203,6 +224,18 @@ $migration_status = OO_Feature_Sets_Migration::get_migration_status();
                         <input type="number" id="edit_feature_set_sort_order" name="sort_order" value="0" min="0" class="small-text" />
                     </td>
                 </tr>
+                <tr>
+                    <th scope="row">
+                        <label><?php esc_html_e('Assigned to Streams', 'operations-organizer'); ?></label>
+                    </th>
+                    <td>
+                        <div id="edit-feature-set-stream-assignments" class="stream-checkbox-group" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccd0d4; padding: 10px; background: #f9f9f9;">
+                            <!-- Stream checkboxes will be populated by JavaScript -->
+                            <p><?php esc_html_e('Loading streams...', 'operations-organizer'); ?></p>
+                        </div>
+                        <p class="description"><?php esc_html_e('Select which streams should have this feature set available.', 'operations-organizer'); ?></p>
+                    </td>
+                </tr>
             </table>
             <?php submit_button(__('Update Feature Set', 'operations-organizer'), 'primary', 'submit_edit_feature_set'); ?>
         </form>
@@ -291,6 +324,27 @@ $migration_status = OO_Feature_Sets_Migration::get_migration_status();
     color: #d63384;
 }
 
+.stream-checkbox-group {
+    border-radius: 3px;
+}
+
+.stream-checkbox-group label {
+    display: block;
+    margin: 5px 0;
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+}
+
+.stream-checkbox-group label:hover {
+    background-color: #f0f0f0;
+}
+
+.stream-checkbox-group input[type="checkbox"] {
+    margin-right: 8px;
+}
+
 .oo-modal {
     position: fixed;
     z-index: 9999;
@@ -336,12 +390,19 @@ jQuery(document).ready(function($) {
     $('#oo-add-feature-set-form').on('submit', function(e) {
         e.preventDefault();
         
+        // Get selected streams
+        var selectedStreams = [];
+        $('#add-feature-set-stream-assignments input[type="checkbox"]:checked').each(function() {
+            selectedStreams.push($(this).val());
+        });
+        
         var formData = {
             action: 'oo_add_feature_set',
             nonce: $('#oo_add_feature_set_nonce_field').val(),
             name: $('#feature_set_name').val(),
             description: $('#feature_set_description').val(),
-            sort_order: $('#feature_set_sort_order').val()
+            sort_order: $('#feature_set_sort_order').val(),
+            assign_to_streams: selectedStreams
         };
         
         $.post(ajaxurl, formData, function(response) {
@@ -370,6 +431,10 @@ jQuery(document).ready(function($) {
                 $('#edit_feature_set_name').val(featureSet.name);
                 $('#edit_feature_set_description').val(featureSet.description);
                 $('#edit_feature_set_sort_order').val(featureSet.sort_order);
+                
+                // Load stream assignments
+                loadStreamAssignments(featureSetId);
+                
                 $('#oo-edit-feature-set-modal').show();
             } else {
                 alert('Error: ' + response.data.message);
@@ -377,9 +442,48 @@ jQuery(document).ready(function($) {
         });
     });
     
+    // Function to load stream assignments for edit modal
+    function loadStreamAssignments(featureSetId) {
+        var $container = $('#edit-feature-set-stream-assignments');
+        $container.html('<p>Loading streams...</p>');
+        
+        $.post(ajaxurl, {
+            action: 'oo_get_feature_set_stream_assignments',
+            nonce: '<?php echo wp_create_nonce('oo_get_feature_set_stream_assignments_nonce'); ?>',
+            feature_set_id: featureSetId
+        }, function(response) {
+            if (response.success) {
+                var assignedStreams = response.data.assigned_streams || [];
+                var allStreams = response.data.all_streams || [];
+                var html = '';
+                
+                allStreams.forEach(function(stream) {
+                    var isAssigned = assignedStreams.some(function(assigned) {
+                        return assigned.stream_id == stream.stream_id;
+                    });
+                    
+                    html += '<label style="display: block; margin: 5px 0; padding: 5px;">';
+                    html += '<input type="checkbox" name="assign_to_streams[]" value="' + stream.stream_id + '"' + (isAssigned ? ' checked' : '') + '> ';
+                    html += stream.stream_name;
+                    html += '</label>';
+                });
+                
+                $container.html(html);
+            } else {
+                $container.html('<p style="color: red;">Error loading streams: ' + response.data.message + '</p>');
+            }
+        });
+    }
+    
     // Edit Feature Set Form Handler
     $('#oo-edit-feature-set-form').on('submit', function(e) {
         e.preventDefault();
+        
+        // Get selected streams
+        var selectedStreams = [];
+        $('#edit-feature-set-stream-assignments input[type="checkbox"]:checked').each(function() {
+            selectedStreams.push($(this).val());
+        });
         
         var formData = {
             action: 'oo_update_feature_set',
@@ -387,7 +491,8 @@ jQuery(document).ready(function($) {
             feature_set_id: $('#edit_feature_set_id').val(),
             name: $('#edit_feature_set_name').val(),
             description: $('#edit_feature_set_description').val(),
-            sort_order: $('#edit_feature_set_sort_order').val()
+            sort_order: $('#edit_feature_set_sort_order').val(),
+            assign_to_streams: selectedStreams
         };
         
         $.post(ajaxurl, formData, function(response) {
