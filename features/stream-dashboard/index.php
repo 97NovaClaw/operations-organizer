@@ -165,15 +165,8 @@ oo_log('[FEATURE_SET_DEBUG] Active tab determined: ' . $active_tab);
 
     <h2 class="nav-tab-wrapper">
         <?php
-        // Check if stream has Operational Tools feature set for core tabs
-        $has_operational_tools = false;
-        foreach ($feature_set_tabs as $feature_tab) {
-            if ($feature_tab['slug'] === 'operational_tools') {
-                $has_operational_tools = true;
-                break;
-            }
-        }
-        
+        // NOTE: $has_operational_tools was already determined above around line 56
+        // based on database query results, so we don't need to check again
         oo_log('[FEATURE_SET_DEBUG] Final has_operational_tools check: ' . ($has_operational_tools ? 'TRUE' : 'FALSE'));
         
         // Only show core tabs if stream has Operational Tools feature set
