@@ -33,7 +33,8 @@ class OO_Job_Details_AJAX {
         }
         
         // Check capabilities
-        if (!current_user_can(oo_get_capability())) {
+        $capability = function_exists('oo_get_capability') ? oo_get_capability() : 'manage_options';
+        if (!current_user_can($capability)) {
             wp_send_json_error('Insufficient permissions');
         }
         
@@ -69,7 +70,8 @@ class OO_Job_Details_AJAX {
         }
         
         // Check capabilities
-        if (!current_user_can(oo_get_capability())) {
+        $capability = function_exists('oo_get_capability') ? oo_get_capability() : 'manage_options';
+        if (!current_user_can($capability)) {
             wp_send_json_error('Insufficient permissions');
         }
         
@@ -152,7 +154,8 @@ class OO_Job_Details_AJAX {
         }
         
         // Check capabilities
-        if (!current_user_can(oo_get_capability())) {
+        $capability = function_exists('oo_get_capability') ? oo_get_capability() : 'manage_options';
+        if (!current_user_can($capability)) {
             wp_send_json_error('Insufficient permissions');
         }
         

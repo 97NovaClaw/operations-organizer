@@ -374,6 +374,7 @@ if (file_exists(OO_PLUGIN_DIR . 'features/job-details/index.php')) {
     OO_Job_Details_Feature::init();
 } else {
     error_log('Job Details feature file not found: ' . OO_PLUGIN_DIR . 'features/job-details/index.php');
+    oo_log('Job Details feature not found. Plugin will continue without this feature.', 'operations-organizer');
 }
 
 /**
