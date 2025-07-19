@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.1.42
+ * Version:           1.5.2.0
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.1.42' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.2.0' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -70,6 +70,16 @@ if (file_exists($operational_tools_path) && is_readable($operational_tools_path)
     // Log the missing file for debugging
     error_log("Operations Organizer: Operational tools feature set not found at: " . $operational_tools_path);
     error_log("Operations Organizer: Plugin will continue without operational tools feature set.");
+}
+
+// Include Kanban Board feature
+$kanban_path = OO_PLUGIN_DIR . 'features/kanban/index.php';
+if (file_exists($kanban_path) && is_readable($kanban_path)) {
+    require_once $kanban_path; // Kanban board feature
+} else {
+    // Log the missing file for debugging
+    error_log("Operations Organizer: Kanban feature not found at: " . $kanban_path);
+    error_log("Operations Organizer: Plugin will continue without Kanban feature.");
 }
 
 // Include Stream Dashboard feature files

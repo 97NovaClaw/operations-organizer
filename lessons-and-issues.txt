@@ -424,14 +424,27 @@ Making multiple changes simultaneously and then trying to figure out which chang
 
 **LESSON:** Resist the urge to fix multiple things at once. Incremental progress is faster than debugging complex interactions.
 
-FUTURE RECOMMENDATIONS:
-======================
+FUTURE IDEAS & ARCHITECTURE
+=========================================================
 
-1. Implement automated testing for AJAX endpoints
-2. Create a standardized debugging framework
-3. Document all inter-module dependencies
-4. Establish coding standards for nonce handling
-5. Create migration guides for future refactoring
+## 1. High-Level Job Overview Dashboard (Kanban & Gantt)
+
+**CONCEPT:**
+A high-level dashboard to visualize the status of all streams for a single job. This would serve as a "macro" view for project managers.
+
+**KANBAN VIEW:**
+- **Board:** Represents one `oo_jobs` record.
+- **Columns:** Generic, static statuses (e.g., 'Pending', 'In Progress', 'Completed').
+- **Cards:** Each stream assigned to the job (records from `oo_job_streams_link`). A job with 3 streams would have 3 cards on this board.
+- **Logic:** The card's position in a column would be determined by the **existing** `status_in_stream` column in the `oo_job_streams_link` table. No database changes would be needed for this view.
+
+**GANTT VIEW:**
+- **Chart:** A timeline visualization for one `oo_jobs` record.
+- **Rows:** Each stream assigned to the job.
+- **Timeline Bars:** The start and end points of the bars would be determined by the **existing** `start_date_stream` and `due_date_stream` columns in the `oo_job_streams_link` table. No database changes would be needed.
+
+**IMPLEMENTATION NOTE:**
+This would likely be a new feature module (`features/job-overview/`) and would provide an alternative view to the detailed, single-stream Phase Kanban. This is a future goal after the core Phase Kanban is implemented.
 
 VERSION HISTORY:
 ===============
