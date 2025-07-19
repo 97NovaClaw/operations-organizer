@@ -7,9 +7,15 @@ The stream feature sets were not showing on streams other than Storage because o
 
 ## New Debug Log System
 A dedicated debug logging system has been added to track stream feature issues:
-- **View Debug Log**: Visit `https://your-site.com/debug/view-stream-debug-log.php`
+
+### Access Methods:
+1. **Via Admin Menu**: Go to WordPress Admin → Stream Management → Debug Log
+2. **Direct URL**: Visit `https://your-site.com/debug/view-stream-debug-log.php`
+
+### Features:
 - **Auto-refresh**: Enable auto-refresh to monitor logs in real-time
 - **Clear Log**: Clear the log when troubleshooting is complete
+- **Filter**: View last 50, 100, 500 lines or all entries
 
 ## The Solution
 1. **Upload the fix files** to your WordPress root directory:
