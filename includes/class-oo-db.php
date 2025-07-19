@@ -1182,12 +1182,56 @@ class OO_DB { // Renamed class
         if (empty($stream_name)) {
             return new WP_Error('missing_field', 'Stream Name is required.');
         }
+        
+        // Get current stream data to check if name is changing
+        $current_stream = $wpdb->get_row( $wpdb->prepare("SELECT stream_name, stream_slug FROM " . self::$streams_table . " WHERE stream_id = %d", $stream_id) );
+        if (!$current_stream) {
+            return new WP_Error('stream_not_found', 'Stream not found.');
+        }
+        
+        // Check if name already exists on another stream
         $existing_stream = $wpdb->get_row( $wpdb->prepare("SELECT stream_id FROM " . self::$streams_table . " WHERE stream_name = %s AND stream_id != %d", $stream_name, $stream_id) );
         if ($existing_stream) {
             return new WP_Error('stream_name_exists', 'This stream name is already in use.');
         }
+        
         $data = array('stream_name' => sanitize_text_field($stream_name), 'updated_at' => current_time('mysql', 1));
         $formats = array('%s', '%s'); // name, updated_at
+        
+        // Regenerate slug if name changed OR if current slug is empty
+        if ($current_stream->stream_name !== $stream_name || empty($current_stream->stream_slug)) {
+            oo_log('Stream name changed or slug is empty, regenerating slug', __METHOD__);
+            
+            // Use the slug regeneration utility if available
+            if (class_exists('OO_Stream_Slug_Regeneration')) {
+                $new_slug = OO_Stream_Slug_Regeneration::regenerate_slug_for_stream($stream_id, $stream_name);
+                if (is_wp_error($new_slug)) {
+                    oo_log('Failed to regenerate slug: ' . $new_slug->get_error_message(), __METHOD__);
+                    // Don't fail the update, just log the error
+                } else {
+                    $data['stream_slug'] = $new_slug;
+                    $formats[] = '%s';
+                    oo_log('Generated new slug: ' . $new_slug, __METHOD__);
+                }
+            } else {
+                // Fallback to simple slug generation
+                $slug = sanitize_key($stream_name);
+                if (!empty($slug)) {
+                    // Check uniqueness
+                    $counter = 1;
+                    $base_slug = $slug;
+                    while ($wpdb->get_var($wpdb->prepare("SELECT stream_id FROM " . self::$streams_table . " WHERE stream_slug = %s AND stream_id != %d", $slug, $stream_id))) {
+                        $slug = $base_slug . '_' . $counter;
+                        $counter++;
+                        if ($counter > 100) break; // Safety limit
+                    }
+                    $data['stream_slug'] = $slug;
+                    $formats[] = '%s';
+                    oo_log('Generated new slug (fallback): ' . $slug, __METHOD__);
+                }
+            }
+        }
+        
         if ( !is_null($stream_description) ) { $data['stream_description'] = sanitize_textarea_field($stream_description); $formats[] = '%s'; }
         if ( !is_null($is_active) ) { $data['is_active'] = intval($is_active); $formats[] = '%d'; }
         
@@ -5757,23 +5801,52 @@ class OO_DB { // Renamed class
             return new WP_Error('missing_field', 'Feature set name is required.');
         }
         
+        // Get current feature set data to check if name is changing
+        $current_feature_set = $wpdb->get_row($wpdb->prepare("SELECT name, slug FROM " . self::$feature_sets_table . " WHERE feature_set_id = %d", $feature_set_id));
+        if (!$current_feature_set) {
+            return new WP_Error('feature_set_not_found', 'Feature set not found.');
+        }
+        
         // Check for duplicate name (excluding current feature set)
         $exists = $wpdb->get_var($wpdb->prepare("SELECT feature_set_id FROM " . self::$feature_sets_table . " WHERE name = %s AND feature_set_id != %d", $name, $feature_set_id));
         if ($exists) {
             return new WP_Error('feature_set_exists', 'Feature set name already exists.');
         }
         
+        $data = array(
+            'name' => sanitize_text_field($name),
+            'description' => sanitize_textarea_field($description),
+            'is_active' => intval($is_active),
+            'sort_order' => intval($sort_order),
+            'updated_at' => current_time('mysql', 1)
+        );
+        $formats = array('%s', '%s', '%d', '%d', '%s');
+        
+        // Regenerate slug if name changed OR if current slug is empty
+        if ($current_feature_set->name !== $name || empty($current_feature_set->slug)) {
+            oo_log('Feature set name changed or slug is empty, regenerating slug', __METHOD__);
+            
+            $slug = sanitize_key($name);
+            if (!empty($slug)) {
+                // Check uniqueness
+                $counter = 1;
+                $base_slug = $slug;
+                while ($wpdb->get_var($wpdb->prepare("SELECT feature_set_id FROM " . self::$feature_sets_table . " WHERE slug = %s AND feature_set_id != %d", $slug, $feature_set_id))) {
+                    $slug = $base_slug . '_' . $counter;
+                    $counter++;
+                    if ($counter > 100) break; // Safety limit
+                }
+                $data['slug'] = $slug;
+                $formats[] = '%s';
+                oo_log('Generated new slug for feature set: ' . $slug, __METHOD__);
+            }
+        }
+        
         $result = $wpdb->update(
             self::$feature_sets_table,
-            array(
-                'name' => sanitize_text_field($name),
-                'description' => sanitize_textarea_field($description),
-                'is_active' => intval($is_active),
-                'sort_order' => intval($sort_order),
-                'updated_at' => current_time('mysql', 1)
-            ),
+            $data,
             array('feature_set_id' => $feature_set_id),
-            array('%s', '%s', '%d', '%d', '%s'),
+            $formats,
             array('%d')
         );
         

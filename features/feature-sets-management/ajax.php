@@ -36,7 +36,9 @@ class OO_Feature_Sets_Management_AJAX {
             return;
         }
         
-        $result = OO_DB::add_feature_set($name, '', $description, 1, $sort_order);
+        // Generate slug from name if not provided
+        $slug = sanitize_key($name);
+        $result = OO_DB::add_feature_set($name, $slug, $description, 1, $sort_order);
         
         if (is_wp_error($result)) {
             wp_send_json_error(array('message' => $result->get_error_message()));

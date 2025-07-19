@@ -17,6 +17,7 @@ class OO_Stream_Management_AJAX {
         add_action('wp_ajax_oo_migrate_stream_slugs', array(__CLASS__, 'ajax_migrate_stream_slugs'));
         add_action('wp_ajax_oo_get_stream_feature_sets', array(__CLASS__, 'ajax_get_stream_feature_sets'));
         add_action('wp_ajax_oo_update_stream_feature_sets', array(__CLASS__, 'ajax_update_stream_feature_sets'));
+        add_action('wp_ajax_oo_fix_missing_slugs', array(__CLASS__, 'ajax_fix_missing_slugs'));
     }
     
     public static function ajax_add_stream() {
@@ -291,5 +292,52 @@ class OO_Stream_Management_AJAX {
         
         oo_log('AJAX_DEBUG: Feature set update completed successfully', __METHOD__);
         wp_send_json_success(array('message' => __('Feature sets updated successfully.', 'operations-organizer')));
+    }
+    
+    /**
+     * Handle AJAX request to fix missing stream slugs
+     */
+    public static function ajax_fix_missing_slugs() {
+        check_ajax_referer('oo_fix_missing_slugs_nonce', 'nonce');
+        
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'operations-organizer')), 403);
+            return;
+        }
+        
+        // Use the slug regeneration utility
+        if (!class_exists('OO_Stream_Slug_Regeneration')) {
+            wp_send_json_error(array('message' => __('Slug regeneration utility not available.', 'operations-organizer')));
+            return;
+        }
+        
+        $results = OO_Stream_Slug_Regeneration::fix_missing_slugs();
+        
+        if ($results['fixed'] > 0) {
+            $message = sprintf(
+                __('Successfully fixed %d stream slug(s) out of %d that needed fixing.', 'operations-organizer'),
+                $results['fixed'],
+                $results['total_found']
+            );
+            
+            if (!empty($results['errors'])) {
+                $message .= ' ' . __('Some errors occurred:', 'operations-organizer') . ' ' . implode('; ', $results['errors']);
+            }
+            
+            wp_send_json_success(array(
+                'message' => $message,
+                'results' => $results
+            ));
+        } else if ($results['total_found'] === 0) {
+            wp_send_json_success(array(
+                'message' => __('All streams already have valid slugs. No fixes needed.', 'operations-organizer'),
+                'results' => $results
+            ));
+        } else {
+            wp_send_json_error(array(
+                'message' => __('Failed to fix stream slugs.', 'operations-organizer') . ' ' . implode('; ', $results['errors']),
+                'results' => $results
+            ));
+        }
     }
 } 

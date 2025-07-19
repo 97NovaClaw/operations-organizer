@@ -131,12 +131,22 @@ $feature_sets = OO_DB::get_feature_sets(array('is_active' => 1));
         
         <!-- Database Migration Section -->
         <div class="oo-migration-section" style="background: #f0f8ff; border: 2px solid #007cba; padding: 20px; margin-top: 20px;">
-            <h3 style="margin-top: 0;">Database Migration</h3>
-            <p>If you're having trouble creating new streams, click the button below to update your database schema:</p>
-            <button type="button" id="oo-migrate-stream-slugs" class="button button-secondary" style="margin-right: 10px;">
-                <?php esc_html_e('Migrate Stream Database', 'operations-organizer'); ?>
-            </button>
-            <span class="migration-description"><?php esc_html_e('Run this if you have issues creating new streams', 'operations-organizer'); ?></span>
+            <h3 style="margin-top: 0;">Database Maintenance</h3>
+            <p>Use these tools to maintain your stream database:</p>
+            
+            <div style="margin-bottom: 15px;">
+                <button type="button" id="oo-migrate-stream-slugs" class="button button-secondary" style="margin-right: 10px;">
+                    <?php esc_html_e('Migrate Stream Database', 'operations-organizer'); ?>
+                </button>
+                <span class="migration-description"><?php esc_html_e('Run this if you have issues creating new streams', 'operations-organizer'); ?></span>
+            </div>
+            
+            <div>
+                <button type="button" id="oo-fix-missing-slugs" class="button button-secondary" style="margin-right: 10px;">
+                    <?php esc_html_e('Fix Missing Slugs', 'operations-organizer'); ?>
+                </button>
+                <span class="migration-description"><?php esc_html_e('Fixes streams with empty or missing slugs (like "Soft Content")', 'operations-organizer'); ?></span>
+            </div>
         </div>
     </div>
 </div>
@@ -591,6 +601,38 @@ jQuery(document).ready(function($) {
         if (e.target.id === 'oo-feature-set-modal') {
             $('#oo-feature-set-modal').hide();
         }
+    });
+    
+    // Fix Missing Slugs Button Handler
+    $('#oo-fix-missing-slugs').on('click', function() {
+        var $button = $(this);
+        var originalText = $button.text();
+        
+        // Confirm before running fix
+        if (!confirm('This will fix any streams with missing or empty slugs. Continue?')) {
+            return;
+        }
+        
+        // Disable button and show loading state
+        $button.prop('disabled', true).text('Fixing Slugs...');
+        
+        $.post(ajaxurl, {
+            action: 'oo_fix_missing_slugs',
+            nonce: '<?php echo wp_create_nonce('oo_fix_missing_slugs_nonce'); ?>'
+        }, function(response) {
+            if (response.success) {
+                alert(response.data.message);
+                // Reload to show updated slugs
+                location.reload();
+            } else {
+                alert('Error: ' + response.data.message);
+            }
+        }).fail(function() {
+            alert('Request failed. Please check your connection and try again.');
+        }).always(function() {
+            // Re-enable button
+            $button.prop('disabled', false).text(originalText);
+        });
     });
 });
 </script> 

@@ -20,6 +20,7 @@ class OO_Stream_Management {
         // Include required files
         require_once __DIR__ . '/ajax.php';
         require_once __DIR__ . '/form-handler.php';
+        require_once __DIR__ . '/slug-regeneration.php';
         
         // Register admin menu
         add_action('admin_menu', array(__CLASS__, 'add_admin_menu'));
