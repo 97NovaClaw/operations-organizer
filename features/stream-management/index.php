@@ -48,6 +48,26 @@ class OO_Stream_Management {
             'oo_stream_debug_log',
             array(__CLASS__, 'display_debug_log_page')
         );
+        
+        // Add debug stream slugs submenu
+        add_submenu_page(
+            'oo_stream_management',
+            __('Debug Stream Slugs', 'operations-organizer'),
+            __('Debug Slugs', 'operations-organizer'),
+            oo_get_capability(),
+            'oo_debug_stream_slugs',
+            array(__CLASS__, 'display_debug_stream_slugs_page')
+        );
+        
+        // Add fix stream slugs submenu (hidden by default)
+        add_submenu_page(
+            null, // Hidden from menu
+            __('Fix Stream Slugs', 'operations-organizer'),
+            __('Fix Slugs', 'operations-organizer'),
+            oo_get_capability(),
+            'oo_fix_stream_slugs',
+            array(__CLASS__, 'display_fix_stream_slugs_page')
+        );
     }
     
     public static function display_management_page() {
@@ -72,6 +92,40 @@ class OO_Stream_Management {
             echo '<div class="wrap">';
             echo '<h1>' . __('Stream Debug Log', 'operations-organizer') . '</h1>';
             echo '<div class="notice notice-error"><p>' . __('Debug log viewer not found.', 'operations-organizer') . '</p></div>';
+            echo '</div>';
+        }
+    }
+    
+    public static function display_debug_stream_slugs_page() {
+        if (!current_user_can(oo_get_capability())) {
+            wp_die(__('You do not have sufficient permissions to access this page.', 'operations-organizer'));
+        }
+        
+        // Include the debug stream slugs page
+        $debug_slugs_path = plugin_dir_path(dirname(dirname(__FILE__))) . 'admin/debug-stream-slugs.php';
+        if (file_exists($debug_slugs_path)) {
+            include_once $debug_slugs_path;
+        } else {
+            echo '<div class="wrap">';
+            echo '<h1>' . __('Debug Stream Slugs', 'operations-organizer') . '</h1>';
+            echo '<div class="notice notice-error"><p>' . __('Debug stream slugs page not found.', 'operations-organizer') . '</p></div>';
+            echo '</div>';
+        }
+    }
+    
+    public static function display_fix_stream_slugs_page() {
+        if (!current_user_can(oo_get_capability())) {
+            wp_die(__('You do not have sufficient permissions to access this page.', 'operations-organizer'));
+        }
+        
+        // Include the fix stream slugs page
+        $fix_slugs_path = plugin_dir_path(dirname(dirname(__FILE__))) . 'admin/fix-stream-slugs.php';
+        if (file_exists($fix_slugs_path)) {
+            include_once $fix_slugs_path;
+        } else {
+            echo '<div class="wrap">';
+            echo '<h1>' . __('Fix Stream Slugs', 'operations-organizer') . '</h1>';
+            echo '<div class="notice notice-error"><p>' . __('Fix stream slugs page not found.', 'operations-organizer') . '</p></div>';
             echo '</div>';
         }
     }
