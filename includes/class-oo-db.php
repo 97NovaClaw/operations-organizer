@@ -259,7 +259,7 @@ class OO_DB { // Renamed class
                             continue;
                         }
                         
-                        $slug = sanitize_key(strtolower(str_replace(' ', '_', $stream->stream_name)));
+                        $slug = sanitize_key($stream->stream_name);
                         
                         // Ensure unique slug with safety limit
                         $original_slug = $slug;
@@ -5596,9 +5596,9 @@ class OO_DB { // Renamed class
             return new WP_Error('missing_field', 'Feature set name is required.');
         }
         
-        // Generate slug if not provided
+        // Generate slug if not provided (using sanitize_key for consistency)
         if (empty($slug)) {
-            $slug = sanitize_key(strtolower(str_replace(' ', '_', $name)));
+            $slug = sanitize_key($name);
         }
         
         // Check for duplicate name

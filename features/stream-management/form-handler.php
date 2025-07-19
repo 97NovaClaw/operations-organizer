@@ -77,8 +77,8 @@ class OO_Stream_Management_Form_Handler {
     private static function generate_stream_slug($stream_name) {
         global $wpdb;
         
-        // Create base slug
-        $base_slug = sanitize_key(strtolower(str_replace(' ', '_', $stream_name)));
+        // Create base slug using sanitize_key directly (converts spaces to dashes)
+        $base_slug = sanitize_key($stream_name);
         
         if (empty($base_slug)) {
             return new WP_Error('invalid_slug', __('Cannot generate valid slug from stream name.', 'operations-organizer'));
