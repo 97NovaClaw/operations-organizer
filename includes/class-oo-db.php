@@ -1149,7 +1149,15 @@ class OO_DB { // Renamed class
             // Log all existing stream slugs for comparison
             $all_streams = $wpdb->get_results("SELECT stream_id, stream_name, stream_slug FROM " . self::$streams_table);
             oo_stream_debug_log('get_stream_by_slug - Searching for slug: ' . $stream_slug);
-            oo_stream_debug_log('All existing stream slugs in database:', $all_streams);
+            
+            // Log each stream individually for clarity
+            if (!empty($all_streams)) {
+                foreach ($all_streams as $stream) {
+                    oo_stream_debug_log("Database has: ID={$stream->stream_id}, Name='{$stream->stream_name}', Slug='{$stream->stream_slug}'");
+                }
+            } else {
+                oo_stream_debug_log('WARNING: No streams found in database!', null, 'WARNING');
+            }
         }
         
         $result = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$streams_table . " WHERE stream_slug = %s", $stream_slug ) );

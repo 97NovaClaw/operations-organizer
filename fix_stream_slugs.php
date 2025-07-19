@@ -20,11 +20,17 @@ $streams_table = $wpdb->prefix . 'oo_streams';
 // Get all streams
 $streams = $wpdb->get_results("SELECT * FROM {$streams_table} ORDER BY stream_id");
 
-echo "=== FIXING STREAM SLUGS ===\n\n";
+echo "=== CURRENT STREAM SLUGS IN DATABASE ===\n\n";
+foreach ($streams as $stream) {
+    echo "ID: {$stream->stream_id} | Name: {$stream->stream_name} | Current Slug: {$stream->stream_slug}\n";
+}
+
+echo "\n=== FIXING STREAM SLUGS ===\n\n";
 
 $fixed_count = 0;
 foreach ($streams as $stream) {
     // Generate the correct slug using sanitize_key directly
+    // This matches what the system expects
     $correct_slug = sanitize_key($stream->stream_name);
     
     echo "Stream: {$stream->stream_name}\n";
