@@ -441,9 +441,26 @@ function oo_render_feature_set_content($stream_slug, $feature_set_slug) {
 function oo_get_feature_set_sub_tabs($stream_slug) {
     oo_log('[FEATURE_SET_DEBUG] oo_get_feature_set_sub_tabs called with stream_slug: ' . $stream_slug);
     
+    // Add dedicated debug logging
+    if (function_exists('oo_stream_debug_log')) {
+        oo_stream_debug_log('oo_get_feature_set_sub_tabs called', array(
+            'stream_slug' => $stream_slug,
+            'function' => 'oo_get_feature_set_sub_tabs'
+        ));
+    }
+    
     $stream = oo_get_stream_by_slug($stream_slug);
     if (!$stream) {
         oo_log('[FEATURE_SET_DEBUG] oo_get_feature_set_sub_tabs: Stream not found for slug: ' . $stream_slug);
+        
+        // Log the failure
+        if (function_exists('oo_stream_debug_log')) {
+            oo_stream_debug_log('STREAM NOT FOUND BY SLUG', array(
+                'requested_slug' => $stream_slug,
+                'error' => 'No stream found with this slug'
+            ), 'ERROR');
+        }
+        
         return array();
     }
     

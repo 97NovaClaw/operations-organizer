@@ -1143,7 +1143,26 @@ class OO_DB { // Renamed class
         oo_log('Attempting to get stream by slug: ' . $stream_slug, __METHOD__);
         self::init();
         global $wpdb;
-        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$streams_table . " WHERE stream_slug = %s", $stream_slug ) );
+        
+        // Add dedicated debug logging
+        if (function_exists('oo_stream_debug_log')) {
+            // Log all existing stream slugs for comparison
+            $all_streams = $wpdb->get_results("SELECT stream_id, stream_name, stream_slug FROM " . self::$streams_table);
+            oo_stream_debug_log('get_stream_by_slug - Searching for slug: ' . $stream_slug);
+            oo_stream_debug_log('All existing stream slugs in database:', $all_streams);
+        }
+        
+        $result = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::$streams_table . " WHERE stream_slug = %s", $stream_slug ) );
+        
+        if (function_exists('oo_stream_debug_log')) {
+            if ($result) {
+                oo_stream_debug_log('Stream found by slug', $result);
+            } else {
+                oo_stream_debug_log('NO STREAM FOUND for slug: ' . $stream_slug, null, 'ERROR');
+            }
+        }
+        
+        return $result;
     }
 
     public static function update_stream($stream_id, $stream_name, $stream_description = null, $is_active = null) {

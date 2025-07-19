@@ -10,6 +10,12 @@
  * @package Operations_Organizer
  */
 
+// Include the dedicated debug logger
+require_once plugin_dir_path(dirname(dirname(__FILE__))) . 'debug/stream-feature-debug.php';
+
+// Log initialization
+oo_stream_debug_log('========== STREAM DASHBOARD INITIALIZATION ==========');
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
@@ -35,8 +41,8 @@ stream-dashboard/
         └── ... (other modals)
 */
 
-// Include feature dependencies
-require_once __DIR__ . '/database.php';
+// Initialize the database class right away
+require_once plugin_dir_path( __FILE__ ) . 'database.php';
 require_once __DIR__ . '/ajax.php';
 
 // Initialize feature components
@@ -62,8 +68,19 @@ oo_log('[FEATURE_SET_DEBUG] Current stream name: ' . $current_stream_name);
 oo_log('[FEATURE_SET_DEBUG] Current stream tab slug: ' . $current_stream_tab_slug);
 
 // Get feature set sub-tabs for this stream
-$feature_set_tabs = oo_get_feature_set_sub_tabs($current_stream_tab_slug);
-oo_log('[FEATURE_SET_DEBUG] Feature set tabs returned: ', $feature_set_tabs);
+if (isset($current_stream_tab_slug)) {
+	oo_log('[FEATURE_SET_DEBUG] oo_get_feature_set_sub_tabs called with stream_slug: ' . $current_stream_tab_slug);
+	
+	// Add dedicated debug logging
+	oo_stream_debug_log('Getting feature sets for stream', [
+		'stream_slug' => $current_stream_tab_slug,
+		'stream_id' => $current_stream_id,
+		'stream_name' => $current_stream_name
+	]);
+	
+	$feature_set_tabs = oo_get_feature_set_sub_tabs($current_stream_tab_slug);
+	oo_log('[FEATURE_SET_DEBUG] Feature set tabs returned: ', $feature_set_tabs);
+}
 
 // Check if stream has Operational Tools feature set
 $has_operational_tools = false;

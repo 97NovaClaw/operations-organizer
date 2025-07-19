@@ -5,6 +5,12 @@ The stream feature sets were not showing on streams other than Storage because o
 - Database slugs were generated with underscores: `soft_content`
 - System expected slugs with dashes: `soft-content`
 
+## New Debug Log System
+A dedicated debug logging system has been added to track stream feature issues:
+- **View Debug Log**: Visit `https://your-site.com/debug/view-stream-debug-log.php`
+- **Auto-refresh**: Enable auto-refresh to monitor logs in real-time
+- **Clear Log**: Clear the log when troubleshooting is complete
+
 ## The Solution
 1. **Upload the fix files** to your WordPress root directory:
    - `debug_stream_slugs.php` - Shows current vs expected slugs
