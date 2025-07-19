@@ -9,6 +9,11 @@
     padding: 20px 0;
 }
 
+/* Stream dashboard integration */
+.oo-kanban-wrapper {
+    margin-top: 20px;
+}
+
 .oo-kanban-header {
     margin-bottom: 20px;
 }
@@ -83,6 +88,16 @@
 .kanban-block-drop-zone {
     min-height: 40px;
     margin-top: 10px;
+}
+
+/* Unassigned column styling */
+.kanban-block-unassigned {
+    background: #f9f9f9;
+    border: 2px dashed #ccc;
+}
+
+.kanban-block-unassigned .kanban-block-header {
+    border-bottom-color: #ccc;
 }
 
 /* Kanban Task Cards */

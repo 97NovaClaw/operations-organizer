@@ -36,10 +36,15 @@ if (isset($current_stream_id) && !empty($phases)) {
 			<button id="stream_page_kanban_apply_filter" class="button button-secondary"><?php esc_html_e('Apply', 'operations-organizer'); ?></button>
 		</div>
 		
-		<div class="oo-placeholder-kanban">
-			<p class="oo-notice oo-info">
-				<?php esc_html_e('The Kanban board for this stream will be implemented here. It will display jobs in columns representing their current checkpoint in the workflow.', 'operations-organizer'); ?>
-			</p>
+		<div class="oo-kanban-wrapper">
+			<?php 
+			// Render the Kanban board from the Kanban feature
+			if (has_action('oo_render_stream_kanban')) {
+				do_action('oo_render_stream_kanban', $current_stream_id, $current_stream_tab_slug);
+			} else {
+				echo '<p class="oo-notice oo-info">' . esc_html__('The Kanban board feature is not activated.', 'operations-organizer') . '</p>';
+			}
+			?>
 		</div>
 	</div>
 

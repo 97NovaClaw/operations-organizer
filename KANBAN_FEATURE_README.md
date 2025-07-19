@@ -20,14 +20,16 @@ The feature adds:
 
 ### Accessing the Kanban Board
 
+The Kanban board is integrated directly into the Stream Dashboard:
+
 1. **From WordPress Admin**:
-   - Go to Jobs → Phase Kanban
-   - Select a job and stream
-   - Click "View Kanban Board"
+   - Go to any Stream page (e.g., Electronics, Art, Content, etc.)
+   - Click on the "Phase Dashboard" tab
+   - The Kanban board appears in the "Checkpoint Progress" section
 
 2. **Direct Link**:
-   - Use URL: `/wp-admin/admin.php?page=oo_kanban_board&job_id=X&stream=SLUG`
-   - Replace X with job ID and SLUG with stream slug
+   - Use URL: `/wp-admin/admin.php?page=oo_stream_STREAMSLUG&sub_tab=phase_dashboard`
+   - Replace STREAMSLUG with the stream slug (e.g., electronics, art, content)
 
 ### Using the Board
 
