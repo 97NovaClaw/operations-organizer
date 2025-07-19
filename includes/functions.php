@@ -238,7 +238,7 @@ function oo_get_stream_data_for_job($job_id, $stream_id) {
     $table_name = oo_get_stream_table_name($stream_id);
     
     if (empty($table_name)) {
-        return null;
+            return null;
     }
     
     // Use generic database method for any stream
@@ -288,7 +288,7 @@ function oo_update_stream_data($data_id, $stream_id, $data) {
     $table_name = oo_get_stream_table_name($stream_id);
     
     if (empty($table_name)) {
-        return new WP_Error('invalid_stream', 'Invalid stream ID.');
+            return new WP_Error('invalid_stream', 'Invalid stream ID.');
     }
     
     // Use generic database method for any stream
@@ -310,7 +310,7 @@ function oo_get_stream_name($stream_id) {
     $stream = OO_DB::get_stream($stream_id);
     
     if ($stream && !empty($stream->stream_name)) {
-        return $stream->stream_name;
+            return $stream->stream_name;
     }
     
     return 'Unknown Stream';
@@ -333,7 +333,7 @@ function oo_get_stream_table_name($stream_id) {
     $stream = OO_DB::get_stream($stream_id);
     
     if (!$stream || empty($stream->stream_slug)) {
-        return '';
+            return '';
     }
     
     return $wpdb->prefix . 'oo_stream_data_' . $stream->stream_slug;

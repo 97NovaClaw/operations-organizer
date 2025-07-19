@@ -1107,7 +1107,7 @@ class OO_DB { // Renamed class
         $result = $wpdb->insert(
             self::$streams_table, 
             array(
-                'stream_name' => sanitize_text_field($stream_name),
+                'stream_name' => sanitize_text_field($stream_name), 
                 'stream_slug' => sanitize_key($stream_slug),
                 'stream_description' => sanitize_textarea_field($stream_description), 
                 'is_active' => intval($is_active),
@@ -5810,18 +5810,28 @@ class OO_DB { // Renamed class
      * Assign feature set to stream
      */
     public static function assign_feature_set_to_stream($stream_id, $feature_set_id) {
-        oo_log('Assigning feature set ' . $feature_set_id . ' to stream ' . $stream_id, __METHOD__);
+        oo_log('ASSIGNMENT_DEBUG: Starting assign_feature_set_to_stream - stream_id: ' . $stream_id . ', feature_set_id: ' . $feature_set_id, __METHOD__);
         self::init();
         global $wpdb;
         
         // Check if link already exists
-        $exists = $wpdb->get_var($wpdb->prepare(
-            "SELECT link_id FROM " . self::$stream_feature_set_link_table . " WHERE stream_id = %d AND feature_set_id = %d",
-            $stream_id, $feature_set_id
-        ));
+        $existing_sql = "SELECT link_id, is_active FROM " . self::$stream_feature_set_link_table . " WHERE stream_id = %d AND feature_set_id = %d";
+        $existing_query = $wpdb->prepare($existing_sql, $stream_id, $feature_set_id);
+        oo_log('ASSIGNMENT_DEBUG: Checking for existing assignment with SQL: ' . $existing_query, __METHOD__);
+        
+        $exists = $wpdb->get_row($existing_query);
+        oo_log('ASSIGNMENT_DEBUG: Existing assignment result: ' . json_encode($exists), __METHOD__);
         
         if ($exists) {
+            oo_log('ASSIGNMENT_DEBUG: Assignment already exists with link_id: ' . $exists->link_id . ', is_active: ' . $exists->is_active, __METHOD__);
+            
+            if ($exists->is_active == 1) {
+                oo_log('ASSIGNMENT_DEBUG: Assignment already active, returning existing link_id: ' . $exists->link_id, __METHOD__);
+                return $exists->link_id;
+            }
+            
             // Reactivate if it exists but is inactive
+            oo_log('ASSIGNMENT_DEBUG: Reactivating existing inactive assignment', __METHOD__);
             $result = $wpdb->update(
                 self::$stream_feature_set_link_table,
                 array('is_active' => 1, 'updated_at' => current_time('mysql', 1)),
@@ -5829,36 +5839,72 @@ class OO_DB { // Renamed class
                 array('%d', '%s'),
                 array('%d', '%d')
             );
-            return $result !== false;
+            
+            oo_log('ASSIGNMENT_DEBUG: Reactivation update result: ' . ($result !== false ? 'SUCCESS' : 'FAILED'), __METHOD__);
+            if ($result === false) {
+                oo_log('ASSIGNMENT_DEBUG: Reactivation update error: ' . $wpdb->last_error, __METHOD__);
+            }
+            
+            return $result !== false ? $exists->link_id : new WP_Error('reactivation_failed', 'Failed to reactivate assignment');
         }
+        
+        // Create new assignment
+        oo_log('ASSIGNMENT_DEBUG: Creating new assignment', __METHOD__);
+        $insert_data = array(
+            'stream_id' => intval($stream_id),
+            'feature_set_id' => intval($feature_set_id),
+            'is_active' => 1,
+            'created_at' => current_time('mysql', 1),
+            'updated_at' => current_time('mysql', 1)
+        );
+        oo_log('ASSIGNMENT_DEBUG: Insert data: ' . json_encode($insert_data), __METHOD__);
         
         $result = $wpdb->insert(
             self::$stream_feature_set_link_table,
-            array(
-                'stream_id' => intval($stream_id),
-                'feature_set_id' => intval($feature_set_id),
-                'is_active' => 1,
-                'created_at' => current_time('mysql', 1),
-                'updated_at' => current_time('mysql', 1)
-            ),
+            $insert_data,
             array('%d', '%d', '%d', '%s', '%s')
         );
         
+        oo_log('ASSIGNMENT_DEBUG: Insert result: ' . ($result !== false ? 'SUCCESS' : 'FAILED'), __METHOD__);
         if ($result === false) {
+            oo_log('ASSIGNMENT_DEBUG: Insert error: ' . $wpdb->last_error, __METHOD__);
             return new WP_Error('db_error', 'Could not assign feature set to stream. Error: ' . $wpdb->last_error);
         }
         
-        return $wpdb->insert_id;
+        $insert_id = $wpdb->insert_id;
+        oo_log('ASSIGNMENT_DEBUG: New assignment created with link_id: ' . $insert_id, __METHOD__);
+        
+        return $insert_id;
     }
     
     /**
      * Remove feature set from stream
      */
     public static function remove_feature_set_from_stream($stream_id, $feature_set_id) {
-        oo_log('Removing feature set ' . $feature_set_id . ' from stream ' . $stream_id, __METHOD__);
+        oo_log('REMOVAL_DEBUG: Starting remove_feature_set_from_stream - stream_id: ' . $stream_id . ', feature_set_id: ' . $feature_set_id, __METHOD__);
         self::init();
         global $wpdb;
         
+        // Check current status first
+        $check_sql = "SELECT link_id, is_active FROM " . self::$stream_feature_set_link_table . " WHERE stream_id = %d AND feature_set_id = %d";
+        $check_query = $wpdb->prepare($check_sql, $stream_id, $feature_set_id);
+        oo_log('REMOVAL_DEBUG: Checking current status with SQL: ' . $check_query, __METHOD__);
+        
+        $current = $wpdb->get_row($check_query);
+        oo_log('REMOVAL_DEBUG: Current assignment status: ' . json_encode($current), __METHOD__);
+        
+        if (!$current) {
+            oo_log('REMOVAL_DEBUG: No assignment found to remove', __METHOD__);
+            return true; // Already removed
+        }
+        
+        if ($current->is_active == 0) {
+            oo_log('REMOVAL_DEBUG: Assignment already inactive', __METHOD__);
+            return true; // Already inactive
+        }
+        
+        // Deactivate the assignment
+        oo_log('REMOVAL_DEBUG: Deactivating assignment with link_id: ' . $current->link_id, __METHOD__);
         $result = $wpdb->update(
             self::$stream_feature_set_link_table,
             array('is_active' => 0, 'updated_at' => current_time('mysql', 1)),
@@ -5867,10 +5913,13 @@ class OO_DB { // Renamed class
             array('%d', '%d')
         );
         
+        oo_log('REMOVAL_DEBUG: Deactivation update result: ' . ($result !== false ? 'SUCCESS' : 'FAILED'), __METHOD__);
         if ($result === false) {
+            oo_log('REMOVAL_DEBUG: Deactivation update error: ' . $wpdb->last_error, __METHOD__);
             return new WP_Error('db_error', 'Could not remove feature set from stream. Error: ' . $wpdb->last_error);
         }
         
+        oo_log('REMOVAL_DEBUG: Assignment successfully deactivated', __METHOD__);
         return true;
     }
     

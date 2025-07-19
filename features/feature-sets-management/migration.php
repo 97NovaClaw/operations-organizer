@@ -70,11 +70,14 @@ class OO_Feature_Sets_Migration {
     }
     
     private static function assign_operational_tools_to_streams($feature_set_id) {
+        oo_log('MIGRATION_DEBUG: Starting assign_operational_tools_to_streams with feature_set_id: ' . $feature_set_id, __METHOD__);
+        
         // Get all active streams
         $streams = oo_get_streams(array('is_active' => 1));
+        oo_log('MIGRATION_DEBUG: Found ' . count($streams) . ' active streams', __METHOD__);
         
         if (empty($streams)) {
-            oo_log('No active streams found to assign operational tools to', __METHOD__);
+            oo_log('MIGRATION_DEBUG: No active streams found to assign operational tools to', __METHOD__);
             return 0;
         }
         
@@ -82,24 +85,30 @@ class OO_Feature_Sets_Migration {
         $errors = array();
         
         foreach ($streams as $stream) {
+            oo_log('MIGRATION_DEBUG: Processing stream: ' . $stream->stream_name . ' (ID: ' . $stream->stream_id . ')', __METHOD__);
+            
             // Check if already assigned
             $existing_assignment = OO_DB::get_feature_sets_for_stream($stream->stream_id, 1);
             $already_assigned = false;
             
+            oo_log('MIGRATION_DEBUG: Found ' . count($existing_assignment) . ' existing assignments for stream ' . $stream->stream_id, __METHOD__);
+            
             foreach ($existing_assignment as $assigned_fs) {
+                oo_log('MIGRATION_DEBUG: Existing assignment - Feature Set ID: ' . $assigned_fs->feature_set_id . ', Name: ' . $assigned_fs->name, __METHOD__);
                 if ($assigned_fs->feature_set_id == $feature_set_id) {
                     $already_assigned = true;
+                    oo_log('MIGRATION_DEBUG: Operational tools already assigned to stream: ' . $stream->stream_name, __METHOD__);
                     break;
                 }
             }
             
             if ($already_assigned) {
-                oo_log('Operational tools already assigned to stream: ' . $stream->stream_name, __METHOD__);
                 $assigned_count++;
                 continue;
             }
             
             // Assign operational tools to this stream
+            oo_log('MIGRATION_DEBUG: Assigning operational tools to stream: ' . $stream->stream_name, __METHOD__);
             $result = OO_DB::assign_feature_set_to_stream($stream->stream_id, $feature_set_id);
             
             if (is_wp_error($result)) {
@@ -108,15 +117,18 @@ class OO_Feature_Sets_Migration {
                     $stream->stream_name,
                     $result->get_error_message()
                 );
-                oo_log($error_msg, __METHOD__);
+                oo_log('MIGRATION_DEBUG: ERROR - ' . $error_msg, __METHOD__);
                 $errors[] = $error_msg;
             } else {
-                oo_log('Assigned operational tools to stream: ' . $stream->stream_name, __METHOD__);
+                oo_log('MIGRATION_DEBUG: SUCCESS - Assigned operational tools to stream: ' . $stream->stream_name . ', result: ' . $result, __METHOD__);
                 $assigned_count++;
             }
         }
         
+        oo_log('MIGRATION_DEBUG: Migration completed - assigned to ' . $assigned_count . ' streams, ' . count($errors) . ' errors', __METHOD__);
+        
         if (!empty($errors)) {
+            oo_log('MIGRATION_DEBUG: Migration errors: ' . json_encode($errors), __METHOD__);
             return new WP_Error('assignment_errors', 'Some assignments failed: ' . implode('; ', $errors));
         }
         

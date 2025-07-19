@@ -36,7 +36,7 @@ $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'overview';
     // Display the appropriate tab content
     if ($active_tab == 'overview') {
         // Overview tab (special case)
-        include_once OO_PLUGIN_DIR . 'admin/views/dashboard-tabs/overview-tab.php';
+            include_once OO_PLUGIN_DIR . 'admin/views/dashboard-tabs/overview-tab.php';
     } else {
         // Check if this is a dynamic stream tab
         $current_stream = null;
@@ -45,7 +45,7 @@ $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'overview';
                 $stream_tab_slug = sanitize_key(strtolower(str_replace(' ', '-', $stream->stream_name)));
                 if ($active_tab == $stream_tab_slug) {
                     $current_stream = $stream;
-                    break;
+            break;
                 }
             }
         }

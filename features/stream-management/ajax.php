@@ -20,9 +20,12 @@ class OO_Stream_Management_AJAX {
     }
     
     public static function ajax_add_stream() {
+        oo_log('NEW_STREAM_DEBUG: Starting ajax_add_stream', __METHOD__);
+        
         check_ajax_referer('oo_add_stream_nonce', 'nonce');
         
         if (!current_user_can(oo_get_capability())) {
+            oo_log('NEW_STREAM_DEBUG: Permission denied for user', __METHOD__);
             wp_send_json_error(array('message' => __('Permission denied.', 'operations-organizer')), 403);
             return;
         }
@@ -30,22 +33,49 @@ class OO_Stream_Management_AJAX {
         $stream_name = isset($_POST['stream_name']) ? sanitize_text_field($_POST['stream_name']) : '';
         $stream_description = isset($_POST['stream_description']) ? sanitize_textarea_field($_POST['stream_description']) : '';
         
+        oo_log('NEW_STREAM_DEBUG: Received data - stream_name: ' . $stream_name . ', stream_description: ' . $stream_description, __METHOD__);
+        
         if (empty($stream_name)) {
+            oo_log('NEW_STREAM_DEBUG: Stream name is required', __METHOD__);
             wp_send_json_error(array('message' => __('Stream name is required.', 'operations-organizer')));
             return;
         }
         
         // Use the form handler to create the stream and its table
+        oo_log('NEW_STREAM_DEBUG: Creating new stream via form handler', __METHOD__);
         $result = OO_Stream_Management_Form_Handler::create_new_stream($stream_name, $stream_description);
         
         if (is_wp_error($result)) {
+            oo_log('NEW_STREAM_DEBUG: Error creating stream: ' . $result->get_error_message(), __METHOD__);
             wp_send_json_error(array('message' => $result->get_error_message()));
             return;
         }
         
+        $stream_id = $result;
+        oo_log('NEW_STREAM_DEBUG: Stream created successfully with ID: ' . $stream_id, __METHOD__);
+        
+        // Automatically assign the "Operational Tools" feature set to the new stream
+        oo_log('NEW_STREAM_DEBUG: Looking for Operational Tools feature set to assign automatically', __METHOD__);
+        $operational_tools = OO_DB::get_feature_set_by_slug('operational_tools');
+        
+        if ($operational_tools && $operational_tools->is_active) {
+            oo_log('NEW_STREAM_DEBUG: Found Operational Tools feature set (ID: ' . $operational_tools->feature_set_id . '), assigning to new stream', __METHOD__);
+            $assignment_result = OO_DB::assign_feature_set_to_stream($stream_id, $operational_tools->feature_set_id);
+            
+            if (is_wp_error($assignment_result)) {
+                oo_log('NEW_STREAM_DEBUG: Error assigning Operational Tools to new stream: ' . $assignment_result->get_error_message(), __METHOD__);
+                // Don't fail the stream creation, just log the error
+            } else {
+                oo_log('NEW_STREAM_DEBUG: Successfully assigned Operational Tools to new stream, assignment ID: ' . $assignment_result, __METHOD__);
+            }
+        } else {
+            oo_log('NEW_STREAM_DEBUG: Operational Tools feature set not found or inactive, skipping automatic assignment', __METHOD__);
+        }
+        
+        oo_log('NEW_STREAM_DEBUG: Stream creation process completed successfully', __METHOD__);
         wp_send_json_success(array(
             'message' => __('Stream created successfully.', 'operations-organizer'),
-            'stream_id' => $result
+            'stream_id' => $stream_id
         ));
     }
     
@@ -200,9 +230,12 @@ class OO_Stream_Management_AJAX {
     }
     
     public static function ajax_update_stream_feature_sets() {
+        oo_log('AJAX_DEBUG: Starting ajax_update_stream_feature_sets', __METHOD__);
+        
         check_ajax_referer('oo_update_stream_feature_sets_nonce', 'nonce');
         
         if (!current_user_can(oo_get_capability())) {
+            oo_log('AJAX_DEBUG: Permission denied for user', __METHOD__);
             wp_send_json_error(array('message' => __('Permission denied.', 'operations-organizer')), 403);
             return;
         }
@@ -210,37 +243,53 @@ class OO_Stream_Management_AJAX {
         $stream_id = isset($_POST['stream_id']) ? intval($_POST['stream_id']) : 0;
         $feature_sets = isset($_POST['feature_sets']) ? array_map('intval', $_POST['feature_sets']) : array();
         
+        oo_log('AJAX_DEBUG: Received data - stream_id: ' . $stream_id . ', feature_sets: ' . json_encode($feature_sets), __METHOD__);
+        
         if ($stream_id <= 0) {
+            oo_log('AJAX_DEBUG: Invalid stream ID: ' . $stream_id, __METHOD__);
             wp_send_json_error(array('message' => __('Invalid stream ID.', 'operations-organizer')));
             return;
         }
         
         // Get currently assigned feature sets
+        oo_log('AJAX_DEBUG: Getting current feature sets for stream ' . $stream_id, __METHOD__);
         $current_feature_sets = OO_DB::get_feature_sets_for_stream($stream_id, 1);
         $current_ids = array_map(function($fs) { return $fs->feature_set_id; }, $current_feature_sets);
         
+        oo_log('AJAX_DEBUG: Current feature set IDs: ' . json_encode($current_ids), __METHOD__);
+        oo_log('AJAX_DEBUG: New feature set IDs: ' . json_encode($feature_sets), __METHOD__);
+        
         // Remove feature sets that are no longer selected
-        foreach ($current_ids as $current_id) {
-            if (!in_array($current_id, $feature_sets)) {
-                $result = OO_DB::remove_feature_set_from_stream($stream_id, $current_id);
-                if (is_wp_error($result)) {
-                    wp_send_json_error(array('message' => $result->get_error_message()));
-                    return;
-                }
+        $to_remove = array_diff($current_ids, $feature_sets);
+        oo_log('AJAX_DEBUG: Feature sets to remove: ' . json_encode($to_remove), __METHOD__);
+        
+        foreach ($to_remove as $remove_id) {
+            oo_log('AJAX_DEBUG: Removing feature set ID: ' . $remove_id, __METHOD__);
+            $result = OO_DB::remove_feature_set_from_stream($stream_id, $remove_id);
+            if (is_wp_error($result)) {
+                oo_log('AJAX_DEBUG: Error removing feature set ' . $remove_id . ': ' . $result->get_error_message(), __METHOD__);
+                wp_send_json_error(array('message' => $result->get_error_message()));
+                return;
             }
+            oo_log('AJAX_DEBUG: Successfully removed feature set ID: ' . $remove_id, __METHOD__);
         }
         
         // Add new feature sets
-        foreach ($feature_sets as $feature_set_id) {
-            if (!in_array($feature_set_id, $current_ids)) {
-                $result = OO_DB::assign_feature_set_to_stream($stream_id, $feature_set_id);
-                if (is_wp_error($result)) {
-                    wp_send_json_error(array('message' => $result->get_error_message()));
-                    return;
-                }
+        $to_add = array_diff($feature_sets, $current_ids);
+        oo_log('AJAX_DEBUG: Feature sets to add: ' . json_encode($to_add), __METHOD__);
+        
+        foreach ($to_add as $add_id) {
+            oo_log('AJAX_DEBUG: Adding feature set ID: ' . $add_id, __METHOD__);
+            $result = OO_DB::assign_feature_set_to_stream($stream_id, $add_id);
+            if (is_wp_error($result)) {
+                oo_log('AJAX_DEBUG: Error adding feature set ' . $add_id . ': ' . $result->get_error_message(), __METHOD__);
+                wp_send_json_error(array('message' => $result->get_error_message()));
+                return;
             }
+            oo_log('AJAX_DEBUG: Successfully added feature set ID: ' . $add_id . ', result: ' . $result, __METHOD__);
         }
         
+        oo_log('AJAX_DEBUG: Feature set update completed successfully', __METHOD__);
         wp_send_json_success(array('message' => __('Feature sets updated successfully.', 'operations-organizer')));
     }
 } 
