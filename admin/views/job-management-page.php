@@ -201,6 +201,7 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                         <td><?php echo $job->start_date ? esc_html( $job->start_date ) : '—'; ?></td>
                         <td><?php echo !empty($stream_names) ? implode(', ', $stream_names) : '—'; ?></td>
                         <td>
+                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=oo_job_details&job_id=' . $job->job_id ) ); ?>" class="button button-primary"><?php esc_html_e( 'View Details', 'operations-organizer' ); ?></a>
                             <a href="<?php echo esc_url( admin_url( 'admin.php?page=oo_dashboard&filter_job_number=' . urlencode( $job->job_number ) ) ); ?>" class="button button-secondary"><?php esc_html_e( 'View Logs', 'operations-organizer' ); ?></a>
                             <button class="button button-secondary oo-edit-job-button" data-job-id="<?php echo esc_attr( $job->job_id ); ?>"><?php esc_html_e( 'Edit', 'operations-organizer' ); ?></button>
                         </td>

@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.2.0' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.2.1' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -367,6 +367,14 @@ add_action('wp_ajax_oo_get_json_derived_kpi_definitions', array('OO_Stream_Dashb
 
 // Register AJAX handler for stream statistics
 add_action('wp_ajax_oo_get_stream_statistics', array('OO_Dashboard', 'ajax_get_stream_statistics'));
+
+// Load Job Details feature
+if (file_exists(OO_PLUGIN_DIR . 'features/job-details/index.php')) {
+    require_once OO_PLUGIN_DIR . 'features/job-details/index.php';
+    OO_Job_Details_Feature::init();
+} else {
+    error_log('Job Details feature file not found: ' . OO_PLUGIN_DIR . 'features/job-details/index.php');
+}
 
 /**
  * Initialize default streams in the database.

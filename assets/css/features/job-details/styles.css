@@ -1,0 +1,366 @@
+/**
+ * Job Details Styles
+ */
+
+/* Main wrapper */
+.oo-job-details-wrap {
+    max-width: 1200px;
+}
+
+/* Job Information Section */
+.oo-job-info-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    margin: 20px 0;
+    padding: 20px;
+}
+
+.oo-job-info-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #23282d;
+}
+
+.oo-info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.oo-info-row {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.oo-info-item {
+    flex: 1;
+    min-width: 250px;
+}
+
+.oo-info-item label {
+    font-weight: 600;
+    color: #23282d;
+    margin-right: 10px;
+}
+
+.oo-info-full-width {
+    width: 100%;
+}
+
+.oo-notes-content {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border: 1px solid #e5e5e5;
+    border-radius: 3px;
+}
+
+/* Status Badges */
+.oo-status-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.oo-status-active,
+.oo-status-completed {
+    background: #7ad03a;
+    color: #fff;
+}
+
+.oo-status-pending {
+    background: #ffba00;
+    color: #fff;
+}
+
+.oo-status-inactive,
+.oo-status-cancelled {
+    background: #dc3232;
+    color: #fff;
+}
+
+/* Stream Tabs Section */
+.oo-stream-tabs-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    margin: 20px 0;
+    padding: 20px;
+}
+
+.oo-stream-tabs-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #23282d;
+}
+
+/* Tab Navigation */
+.oo-tabs-nav {
+    display: flex;
+    border-bottom: 2px solid #e5e5e5;
+    margin-bottom: 20px;
+}
+
+.oo-tab-button {
+    background: none;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.3s ease;
+}
+
+.oo-tab-button:hover {
+    color: #0073aa;
+}
+
+.oo-tab-button.active {
+    color: #0073aa;
+    border-bottom-color: #0073aa;
+}
+
+/* Tab Content */
+.oo-tab-panel {
+    display: none;
+}
+
+.oo-tab-panel.active {
+    display: block;
+}
+
+/* Stream Info Bar */
+.oo-stream-info-bar {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 15px;
+    background: #f8f9fa;
+    border: 1px solid #e5e5e5;
+    border-radius: 3px;
+    margin-bottom: 20px;
+}
+
+.oo-stream-info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.oo-stream-info-item label {
+    font-weight: 600;
+    color: #555;
+}
+
+.oo-phase-selector {
+    min-width: 200px;
+}
+
+/* Stream Dates */
+.oo-stream-dates {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 20px;
+    padding: 10px 15px;
+    background: #f0f0f1;
+    border-radius: 3px;
+}
+
+.oo-date-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.oo-date-item label {
+    font-weight: 600;
+    color: #555;
+}
+
+.oo-date-item .overdue {
+    color: #dc3232;
+    font-weight: 600;
+}
+
+/* Job Logs Section */
+.oo-job-logs-section {
+    margin-top: 30px;
+}
+
+.oo-job-logs-section h3 {
+    margin-bottom: 20px;
+    color: #23282d;
+}
+
+/* Log Filters */
+.oo-logs-filters {
+    background: #f8f9fa;
+    border: 1px solid #e5e5e5;
+    border-radius: 3px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.oo-filter-row {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.oo-filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.oo-filter-item label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+}
+
+.oo-filter-item select,
+.oo-filter-item input {
+    min-width: 150px;
+}
+
+/* Logs Table */
+.oo-logs-table-wrapper {
+    overflow-x: auto;
+}
+
+.oo-logs-table {
+    margin-top: 0;
+}
+
+.oo-loading-message,
+.oo-no-logs,
+.oo-error-message {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+.oo-error-message {
+    color: #dc3232;
+}
+
+/* Modal Styles */
+.oo-modal {
+    display: none;
+    position: fixed;
+    z-index: 100000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.oo-modal-content {
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.oo-close-modal {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 20px;
+}
+
+.oo-close-modal:hover,
+.oo-close-modal:focus {
+    color: #000;
+}
+
+/* Activity Log Styles */
+.activity-log-container {
+    margin-top: 20px;
+}
+
+.activity-log-loading {
+    text-align: center;
+    padding: 40px;
+}
+
+.activity-log-content .activity-entry {
+    padding: 15px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.activity-log-content .activity-entry:last-child {
+    border-bottom: none;
+}
+
+/* Notifications */
+.oo-notification {
+    position: fixed;
+    top: 50px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 3px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 100001;
+    display: none;
+}
+
+.oo-notification-success {
+    background: #7ad03a;
+    color: #fff;
+}
+
+.oo-notification-error {
+    background: #dc3232;
+    color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .oo-info-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .oo-info-item {
+        min-width: 100%;
+    }
+    
+    .oo-stream-info-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .oo-filter-row {
+        flex-direction: column;
+    }
+    
+    .oo-filter-item {
+        width: 100%;
+    }
+    
+    .oo-filter-item select,
+    .oo-filter-item input {
+        width: 100%;
+    }
+} 

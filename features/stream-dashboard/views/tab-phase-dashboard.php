@@ -40,8 +40,10 @@ if (isset($current_stream_id) && !empty($phases)) {
 			<?php 
 			// Render the Kanban board from the Kanban feature
 			if (has_action('oo_render_stream_kanban')) {
+				error_log('KANBAN DEBUG: The oo_render_stream_kanban action EXISTS. Rendering board.');
 				do_action('oo_render_stream_kanban', $current_stream_id, $current_stream_tab_slug);
 			} else {
+				error_log('KANBAN DEBUG: The oo_render_stream_kanban action DOES NOT EXIST. Showing "not activated" message.');
 				echo '<p class="oo-notice oo-info">' . esc_html__('The Kanban board feature is not activated.', 'operations-organizer') . '</p>';
 			}
 			?>
