@@ -9,6 +9,9 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
+// Include the database class
+require_once dirname(__FILE__) . '/database.php';
+
 class OO_Kanban_AJAX {
     
     /**
