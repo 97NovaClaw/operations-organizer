@@ -348,6 +348,14 @@ oo_log('[EXTREME_DEBUG] ========== INITIALIZING STREAM DASHBOARD AJAX GLOBALLY =
 OO_Stream_Dashboard_AJAX::init();
 oo_log('[EXTREME_DEBUG] ========== STREAM DASHBOARD AJAX INITIALIZED GLOBALLY ==========');
 
+// Initialize Job Details AJAX handlers
+if (file_exists(OO_PLUGIN_DIR . 'features/job-details/ajax.php')) {
+    require_once OO_PLUGIN_DIR . 'features/job-details/ajax.php';
+    oo_log('[EXTREME_DEBUG] ========== INITIALIZING JOB DETAILS AJAX GLOBALLY ==========');
+    OO_Job_Details_AJAX::init();
+    oo_log('[EXTREME_DEBUG] ========== JOB DETAILS AJAX INITIALIZED GLOBALLY ==========');
+}
+
 // Register KPI Management AJAX handlers for Stream Dashboard
 add_action('wp_ajax_oo_add_kpi_measure', array('OO_Stream_Dashboard_AJAX', 'ajax_add_kpi_measure'));
 add_action('wp_ajax_oo_get_kpi_measure_details', array('OO_Stream_Dashboard_AJAX', 'ajax_get_kpi_measure_details'));

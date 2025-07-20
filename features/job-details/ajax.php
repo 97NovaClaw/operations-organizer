@@ -46,8 +46,8 @@ class OO_Job_Details_AJAX {
             wp_send_json_error('Invalid job stream ID');
         }
         
-        // Get the job stream link to find current phase
-        $job_stream = OO_DB::get_job_stream_link($job_stream_id);
+        // Get the job stream to find current phase
+        $job_stream = OO_DB::get_job_stream($job_stream_id);
         if (!$job_stream) {
             wp_send_json_error('Job stream not found');
         }
