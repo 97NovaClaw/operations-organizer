@@ -43,7 +43,7 @@ class OO_Kanban_Feature {
         OO_Kanban_AJAX::init();
         
         // Hook into stream dashboard to render Kanban in Phase Dashboard tab
-        add_action('oo_render_stream_kanban', array(__CLASS__, 'render_stream_kanban'));
+        add_action('oo_render_stream_kanban', array(__CLASS__, 'render_stream_kanban'), 10, 2);
         
         // Enqueue scripts and styles
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue_assets'));
@@ -125,7 +125,8 @@ class OO_Kanban_Feature {
      * Run database migration
      */
     private static function run_migration() {
-        // Implementation of run_migration method
+        // Check and run migration if needed
+        OO_Kanban_Migration::check_and_run_migration();
     }
 }
 

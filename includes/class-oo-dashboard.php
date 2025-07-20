@@ -77,9 +77,19 @@ class OO_Dashboard { // Renamed class
     }
 
     public static function ajax_get_dashboard_data() {
+        error_log('[DASHBOARD_DEBUG] ajax_get_dashboard_data() called');
         oo_log('AJAX call received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
-        check_ajax_referer('oo_dashboard_nonce', 'nonce');
+        
+        error_log('[DASHBOARD_DEBUG] About to check nonce');
+        try {
+            check_ajax_referer('oo_dashboard_nonce', 'nonce');
+            error_log('[DASHBOARD_DEBUG] Nonce check passed');
+        } catch (Exception $e) {
+            error_log('[DASHBOARD_DEBUG] Nonce check failed: ' . $e->getMessage());
+            wp_send_json_error(['message' => 'Nonce verification failed'], 403);
+            return;
+        }
 
         if (!current_user_can(oo_get_capability())) {
             oo_log('AJAX Error: Permission denied for dashboard data.', __METHOD__);
@@ -161,8 +171,16 @@ class OO_Dashboard { // Renamed class
             'status'         => $filter_status,
         );
         oo_log($args, 'Dashboard data query args: ');
+        error_log('[DASHBOARD_DEBUG] About to call OO_DB::get_job_logs with args: ' . print_r($args, true));
 
-        $logs = OO_DB::get_job_logs($args);
+        try {
+            $logs = OO_DB::get_job_logs($args);
+            error_log('[DASHBOARD_DEBUG] get_job_logs returned ' . count($logs) . ' logs');
+        } catch (Exception $e) {
+            error_log('[DASHBOARD_DEBUG] get_job_logs threw exception: ' . $e->getMessage());
+            wp_send_json_error(['message' => 'Database error: ' . $e->getMessage()], 500);
+            return;
+        }
         $count_args = $args; unset($count_args['number']); unset($count_args['offset']); unset($count_args['orderby']); unset($count_args['order']);
         $total_filtered_records = OO_DB::get_job_logs_count($count_args);
         $total_records = OO_DB::get_job_logs_count(array('job_number' => null)); // Simpler count for all
