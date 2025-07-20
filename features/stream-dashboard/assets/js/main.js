@@ -1488,8 +1488,15 @@ jQuery(document).ready(function($) {
     
     // Initialize Kanban drag and drop if Kanban board exists
     if ($('.oo-kanban-board').length > 0) {
-        console.log('[KANBAN_DEBUG] Initializing Kanban drag and drop');
-        initializeKanbanDragDrop();
+        console.log('[KANBAN_DEBUG] Checking if Kanban JavaScript is loaded...');
+        
+        // Only initialize if the Kanban feature JavaScript isn't loaded
+        if (typeof oo_kanban_data === 'undefined') {
+            console.log('[KANBAN_DEBUG] Kanban feature JS not loaded, initializing drag and drop in stream dashboard');
+            initializeKanbanDragDrop();
+        } else {
+            console.log('[KANBAN_DEBUG] Kanban feature JS is loaded, skipping stream dashboard initialization');
+        }
     }
     
     // Handle phase change form submission for Kanban modal
