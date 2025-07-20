@@ -54,6 +54,15 @@ jQuery(document).ready(function($) {
         // Disable selector during update
         $this.prop('disabled', true);
         
+        // Debugging
+        console.log('[JOB_DETAILS_DEBUG] Phase change AJAX data:', {
+            action: 'oo_job_details_change_phase',
+            nonce: oo_job_details_data.nonce,
+            job_stream_id: jobStreamId,
+            new_phase_id: newPhaseId,
+            ajax_url: oo_job_details_data.ajax_url
+        });
+        
         // Make AJAX request
         $.ajax({
             url: oo_job_details_data.ajax_url,
@@ -65,15 +74,23 @@ jQuery(document).ready(function($) {
                 new_phase_id: newPhaseId
             },
             success: function(response) {
+                console.log('[JOB_DETAILS_DEBUG] AJAX Success response:', response);
                 if (response.success) {
                     showNotification(response.data.message, 'success');
                 } else {
+                    console.log('[JOB_DETAILS_DEBUG] AJAX Success but response.success = false');
                     showNotification(response.data || oo_job_details_data.strings.error_updating, 'error');
                     // Reset to previous value on error
                     $this.val($this.data('previous-value') || '');
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                console.log('[JOB_DETAILS_DEBUG] AJAX Error:', {
+                    xhr: xhr,
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText
+                });
                 showNotification(oo_job_details_data.strings.error_updating, 'error');
                 // Reset to previous value on error
                 $this.val($this.data('previous-value') || '');

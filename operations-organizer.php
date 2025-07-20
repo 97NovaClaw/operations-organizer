@@ -353,7 +353,10 @@ if (file_exists(OO_PLUGIN_DIR . 'features/job-details/ajax.php')) {
     require_once OO_PLUGIN_DIR . 'features/job-details/ajax.php';
     oo_log('[EXTREME_DEBUG] ========== INITIALIZING JOB DETAILS AJAX GLOBALLY ==========');
     OO_Job_Details_AJAX::init();
+    oo_log('[EXTREME_DEBUG] JOB DETAILS AJAX HANDLERS REGISTERED');
     oo_log('[EXTREME_DEBUG] ========== JOB DETAILS AJAX INITIALIZED GLOBALLY ==========');
+} else {
+    oo_log('[EXTREME_DEBUG] JOB DETAILS AJAX FILE NOT FOUND: ' . OO_PLUGIN_DIR . 'features/job-details/ajax.php');
 }
 
 // Register KPI Management AJAX handlers for Stream Dashboard

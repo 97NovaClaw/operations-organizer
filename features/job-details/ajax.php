@@ -27,40 +27,69 @@ class OO_Job_Details_AJAX {
      * Handle phase change for a job stream
      */
     public static function handle_change_phase() {
+        error_log('[JOB_DETAILS_DEBUG] handle_change_phase() called');
+        error_log('[JOB_DETAILS_DEBUG] POST data: ' . print_r($_POST, true));
+        
         // Verify nonce
         if (!wp_verify_nonce($_POST['nonce'], 'oo_job_details_nonce')) {
+            error_log('[JOB_DETAILS_DEBUG] Nonce verification FAILED');
             wp_send_json_error('Nonce verification failed');
         }
+        error_log('[JOB_DETAILS_DEBUG] Nonce verification PASSED');
         
         // Check capabilities
         $capability = function_exists('oo_get_capability') ? oo_get_capability() : 'manage_options';
+        error_log('[JOB_DETAILS_DEBUG] Required capability: ' . $capability);
+        error_log('[JOB_DETAILS_DEBUG] User can: ' . (current_user_can($capability) ? 'YES' : 'NO'));
         if (!current_user_can($capability)) {
+            error_log('[JOB_DETAILS_DEBUG] Capability check FAILED');
             wp_send_json_error('Insufficient permissions');
         }
+        error_log('[JOB_DETAILS_DEBUG] Capability check PASSED');
         
         // Get and validate data
         $job_stream_id = isset($_POST['job_stream_id']) ? intval($_POST['job_stream_id']) : 0;
         $new_phase_id = isset($_POST['new_phase_id']) ? intval($_POST['new_phase_id']) : 0;
         
+        error_log('[JOB_DETAILS_DEBUG] job_stream_id: ' . $job_stream_id);
+        error_log('[JOB_DETAILS_DEBUG] new_phase_id: ' . $new_phase_id);
+        
         if (!$job_stream_id) {
+            error_log('[JOB_DETAILS_DEBUG] INVALID job_stream_id');
             wp_send_json_error('Invalid job stream ID');
         }
         
+        if (!$new_phase_id) {
+            error_log('[JOB_DETAILS_DEBUG] INVALID new_phase_id');
+            wp_send_json_error('Invalid phase ID');
+        }
+        
         // Get the job stream to find current phase
+        error_log('[JOB_DETAILS_DEBUG] Getting job stream...');
         $job_stream = OO_DB::get_job_stream($job_stream_id);
+        error_log('[JOB_DETAILS_DEBUG] Job stream result: ' . print_r($job_stream, true));
         if (!$job_stream) {
+            error_log('[JOB_DETAILS_DEBUG] Job stream NOT FOUND');
             wp_send_json_error('Job stream not found');
         }
         
         // Get the new phase details
+        error_log('[JOB_DETAILS_DEBUG] Getting new phase...');
         $new_phase = OO_DB::get_phase($new_phase_id);
+        error_log('[JOB_DETAILS_DEBUG] New phase result: ' . print_r($new_phase, true));
         if (!$new_phase) {
+            error_log('[JOB_DETAILS_DEBUG] Phase NOT FOUND');
             wp_send_json_error('Phase not found');
         }
         
         // Update the job stream status to the new phase name
         global $wpdb;
         $job_streams_table = $wpdb->prefix . 'oo_job_streams_link';
+        
+        error_log('[JOB_DETAILS_DEBUG] Updating database...');
+        error_log('[JOB_DETAILS_DEBUG] Table: ' . $job_streams_table);
+        error_log('[JOB_DETAILS_DEBUG] New status: ' . $new_phase->phase_name);
+        error_log('[JOB_DETAILS_DEBUG] Current status: ' . $job_stream->status_in_stream);
         
         $result = $wpdb->update(
             $job_streams_table,
@@ -69,6 +98,11 @@ class OO_Job_Details_AJAX {
             array('%s'),
             array('%d')
         );
+        
+        error_log('[JOB_DETAILS_DEBUG] Update result: ' . $result);
+        if ($result === false) {
+            error_log('[JOB_DETAILS_DEBUG] Database ERROR: ' . $wpdb->last_error);
+        }
         
         if ($result !== false) {
             // Optionally record this change in activity log if Kanban feature is available
