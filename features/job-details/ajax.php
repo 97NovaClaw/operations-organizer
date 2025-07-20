@@ -110,7 +110,7 @@ class OO_Job_Details_AJAX {
                 require_once OO_PLUGIN_DIR . 'features/kanban/database.php';
                 // Try to find the current phase ID by matching phase name
                 $current_phase_id = null;
-                $phases = OO_DB::get_phases_by_stream_id($job_stream->stream_id);
+                $phases = OO_DB::get_phases(array('stream_id' => $job_stream->stream_id));
                 foreach ($phases as $phase) {
                     if ($phase->phase_name === $job_stream->status_in_stream) {
                         $current_phase_id = $phase->phase_id;
