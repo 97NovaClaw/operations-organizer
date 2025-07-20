@@ -3,6 +3,8 @@ wp-content/
 wp-includes/
 wp-admin/
 index.php
+# Allow index.php files in features directory
+!features/**/index.php
 license.txt
 readme.html
 wp-activate.php

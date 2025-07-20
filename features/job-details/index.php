@@ -1,0 +1,149 @@
+<?php
+/**
+ * Job Details Feature
+ * 
+ * Provides a comprehensive single job view with all streams and details
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit; // Exit if accessed directly.
+}
+
+/*
+Feature Tree: Job Details
+
+job-details/
+├── index.php          # Entry point
+├── ajax.php           # AJAX handlers
+├── views/
+│   ├── main-view.php         # Main job details page
+│   └── tab-content-view.php  # Stream tab content template
+*/
+
+class OO_Job_Details_Feature {
+    
+    /**
+     * Initialize the feature
+     */
+    public static function init() {
+        // Include dependencies
+        require_once __DIR__ . '/ajax.php';
+        
+        // Register AJAX handlers
+        OO_Job_Details_AJAX::init();
+        
+        // Add admin menu
+        add_action('admin_menu', array(__CLASS__, 'add_admin_menu'), 20);
+        
+        // Enqueue scripts and styles
+        add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue_assets'));
+    }
+    
+    /**
+     * Add admin menu for job details
+     */
+    public static function add_admin_menu() {
+        // Check if oo_get_capability function exists
+        $capability = function_exists('oo_get_capability') ? oo_get_capability() : 'manage_options';
+        
+        // Add as a submenu under Jobs
+        add_submenu_page(
+            'oo_jobs', // Parent slug - Jobs page
+            __('Job Details', 'operations-organizer'),
+            __('Job Details', 'operations-organizer'),
+            $capability,
+            'oo_job_details',
+            array(__CLASS__, 'render_job_details_page')
+        );
+    }
+    
+    /**
+     * Render job details page
+     */
+    public static function render_job_details_page() {
+        // Check permissions
+        $capability = function_exists('oo_get_capability') ? oo_get_capability() : 'manage_options';
+        if (!current_user_can($capability)) {
+            wp_die(__('You do not have sufficient permissions to access this page.', 'operations-organizer'));
+        }
+        
+        // Get job ID from URL
+        $job_id = isset($_GET['job_id']) ? intval($_GET['job_id']) : 0;
+        
+        if (!$job_id) {
+            echo '<div class="wrap">';
+            echo '<h1>' . __('Job Details', 'operations-organizer') . '</h1>';
+            echo '<div class="notice notice-error"><p>' . __('No job ID provided. Please select a job from the jobs list.', 'operations-organizer') . '</p></div>';
+            echo '<p><a href="' . esc_url(admin_url('admin.php?page=oo_jobs')) . '" class="button button-primary">' . __('Go to Jobs', 'operations-organizer') . '</a></p>';
+            echo '</div>';
+            return;
+        }
+        
+        // Get job data
+        $job = OO_DB::get_job($job_id);
+        
+        if (!$job) {
+            echo '<div class="wrap">';
+            echo '<h1>' . __('Job Details', 'operations-organizer') . '</h1>';
+            echo '<div class="notice notice-error"><p>' . sprintf(__('Job #%d not found.', 'operations-organizer'), $job_id) . '</p></div>';
+            echo '<p><a href="' . esc_url(admin_url('admin.php?page=oo_jobs')) . '" class="button button-primary">' . __('Go to Jobs', 'operations-organizer') . '</a></p>';
+            echo '</div>';
+            return;
+        }
+        
+        // Get all streams for this job
+        global $wpdb;
+        $job_streams_table = $wpdb->prefix . 'oo_job_streams_link';
+        $streams_table = $wpdb->prefix . 'oo_streams';
+        
+        $job_streams = $wpdb->get_results($wpdb->prepare("
+            SELECT js.*, s.stream_name, s.stream_slug
+            FROM {$job_streams_table} js
+            INNER JOIN {$streams_table} s ON js.stream_id = s.stream_id
+            WHERE js.job_id = %d
+            ORDER BY s.stream_name ASC
+        ", $job_id));
+        
+        // Include the main view
+        include __DIR__ . '/views/main-view.php';
+    }
+    
+    /**
+     * Enqueue JavaScript and CSS assets
+     */
+    public static function enqueue_assets($hook) {
+        // Only load on job details page
+        if (!isset($_GET['page']) || $_GET['page'] !== 'oo_job_details') {
+            return;
+        }
+        
+        // Enqueue CSS
+        wp_enqueue_style(
+            'oo-job-details-styles',
+            OO_PLUGIN_URL . 'assets/css/features/job-details/styles.css',
+            array(),
+            OO_PLUGIN_VERSION
+        );
+        
+        // Enqueue JavaScript
+        wp_enqueue_script(
+            'oo-job-details-script',
+            OO_PLUGIN_URL . 'assets/js/features/job-details/main.js',
+            array('jquery'),
+            OO_PLUGIN_VERSION,
+            true
+        );
+        
+        // Localize script with necessary data
+        wp_localize_script('oo-job-details-script', 'oo_job_details_data', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('oo_job_details_nonce'),
+            'job_id' => isset($_GET['job_id']) ? intval($_GET['job_id']) : 0,
+            'strings' => array(
+                'error_updating' => __('Error: Could not update phase.', 'operations-organizer'),
+                'phase_updated' => __('Phase updated successfully.', 'operations-organizer'),
+                'confirm_phase_change' => __('Are you sure you want to change the phase to {phase}?', 'operations-organizer')
+            )
+        ));
+    }
+} 
