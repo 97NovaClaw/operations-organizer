@@ -168,11 +168,11 @@ foreach ($job_streams as $job_stream) {
         <form id="kanban-phase-change-form">
             <p class="phase-change-info">
                 <?php esc_html_e('Moving job to phase:', 'operations-organizer'); ?> 
-                <strong id="phase-change-target"></strong>
+                <strong id="kanban-phase-change-target"></strong>
             </p>
             <div class="form-field">
-                <label for="phase-change-note"><?php esc_html_e('Note (required):', 'operations-organizer'); ?></label>
-                <textarea id="phase-change-note" rows="4" required placeholder="<?php esc_attr_e('Please describe the reason for this phase change...', 'operations-organizer'); ?>"></textarea>
+                <label for="kanban-phase-change-note"><?php esc_html_e('Note', 'operations-organizer'); ?> <span class="required-asterisk">*</span>:</label>
+                <textarea id="kanban-phase-change-note" rows="4" required placeholder="<?php esc_attr_e('Please describe the reason for this phase change...', 'operations-organizer'); ?>"></textarea>
             </div>
             <div class="modal-buttons">
                 <button type="submit" class="button button-primary"><?php esc_html_e('Confirm Change', 'operations-organizer'); ?></button>

@@ -304,7 +304,13 @@
     font-weight: 600;
 }
 
-#job-details-phase-change-form textarea {
+#job-details-phase-change-form .required-asterisk {
+    color: #dc3232;
+    font-weight: bold;
+}
+
+#job-details-phase-change-form textarea,
+#job-details-phase-change-note {
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;

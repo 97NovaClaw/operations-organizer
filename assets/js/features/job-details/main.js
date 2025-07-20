@@ -244,10 +244,10 @@ jQuery(document).ready(function($) {
         var data = window.pendingPhaseChange;
         
         // Set the target phase name
-        $('#phase-change-target').text(data.phaseName);
+        $('#job-details-phase-change-target').text(data.phaseName);
         
         // Clear the note field
-        $('#phase-change-note').val('').focus();
+        $('#job-details-phase-change-note').val('').focus();
         
         // Show the modal
         $modal.fadeIn();
@@ -257,7 +257,7 @@ jQuery(document).ready(function($) {
     $('#job-details-phase-change-form').on('submit', function(e) {
         e.preventDefault();
         
-        var note = $('#phase-change-note').val().trim();
+        var note = $('#job-details-phase-change-note').val().trim();
         if (!note) {
             alert('Please enter a note for this phase change.');
             return;

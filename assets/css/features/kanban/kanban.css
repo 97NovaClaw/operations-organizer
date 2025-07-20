@@ -272,7 +272,13 @@
     font-weight: 600;
 }
 
-#kanban-phase-change-form textarea {
+#kanban-phase-change-form .required-asterisk {
+    color: #dc3232;
+    font-weight: bold;
+}
+
+#kanban-phase-change-form textarea,
+#kanban-phase-change-note {
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;

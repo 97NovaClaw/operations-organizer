@@ -131,6 +131,10 @@
             const $task = $(this.draggedTask);
             const jobStreamId = $task.data('job-stream-id');
             
+            console.log('[KANBAN_DEBUG] Preparing to show modal for phase change');
+            console.log('[KANBAN_DEBUG] From phase:', this.fromPhaseId, 'To phase:', toPhaseId);
+            console.log('[KANBAN_DEBUG] Phase name:', toPhaseName);
+            
             // Store data for the modal
             this.pendingPhaseChange = {
                 jobStreamId: jobStreamId,
@@ -231,7 +235,7 @@
             });
             
             // Close modal buttons
-            $('.oo-close-modal, .cancel-note').on('click', function() {
+            $('.oo-close-modal, .cancel-note, .cancel-phase-change').on('click', function() {
                 $(this).closest('.oo-modal').hide();
                 // Clear pending phase change if closing phase change modal
                 if ($(this).closest('#kanban-phase-change-modal').length) {
@@ -243,6 +247,10 @@
             $('.oo-modal').on('click', function(e) {
                 if ($(e.target).hasClass('oo-modal')) {
                     $(this).hide();
+                    // Clear pending phase change if closing phase change modal
+                    if ($(this).attr('id') === 'kanban-phase-change-modal') {
+                        self.pendingPhaseChange = null;
+                    }
                 }
             });
         },
@@ -251,17 +259,22 @@
          * Show phase change modal
          */
         showPhaseChangeModal: function() {
+            console.log('[KANBAN_DEBUG] showPhaseChangeModal called');
             const $modal = $('#kanban-phase-change-modal');
             const data = this.pendingPhaseChange;
             
+            console.log('[KANBAN_DEBUG] Modal data:', data);
+            console.log('[KANBAN_DEBUG] Modal element found:', $modal.length);
+            
             // Set the target phase name
-            $('#phase-change-target').text(data.toPhaseName);
+            $('#kanban-phase-change-target').text(data.toPhaseName);
             
             // Clear the note field
-            $('#phase-change-note').val('').focus();
+            $('#kanban-phase-change-note').val('').focus();
             
             // Show the modal
             $modal.fadeIn();
+            console.log('[KANBAN_DEBUG] Modal should be visible now');
         },
         
         /**
@@ -371,16 +384,18 @@
             const self = this;
             
             // Phase change form submission
-            $('#kanban-phase-change-form').on('submit', function(e) {
+            $(document).on('submit', '#kanban-phase-change-form', function(e) {
                 e.preventDefault();
+                console.log('[KANBAN_DEBUG] Form submitted');
                 
-                const note = $('#phase-change-note').val().trim();
+                const note = $('#kanban-phase-change-note').val().trim();
                 if (!note) {
                     alert('Please enter a note for this phase change.');
                     return;
                 }
                 
                 const data = self.pendingPhaseChange;
+                console.log('[KANBAN_DEBUG] Form data:', data);
                 
                 // Hide modal
                 $('#kanban-phase-change-modal').hide();
@@ -396,7 +411,8 @@
             });
             
             // Cancel phase change
-            $('.cancel-phase-change').on('click', function() {
+            $(document).on('click', '.cancel-phase-change', function() {
+                console.log('[KANBAN_DEBUG] Phase change cancelled');
                 $('#kanban-phase-change-modal').hide();
                 self.pendingPhaseChange = null;
             });
