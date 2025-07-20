@@ -53,7 +53,7 @@ if (!empty($job->company_id)) {
                 </div>
                 <div class="oo-info-item">
                     <label><?php esc_html_e('Client Address:', 'operations-organizer'); ?></label>
-                    <span><?php echo esc_html($job->client_address ?: __('Not specified', 'operations-organizer')); ?></span>
+                    <span><?php echo esc_html($job->address ?: __('Not specified', 'operations-organizer')); ?></span>
                 </div>
             </div>
             

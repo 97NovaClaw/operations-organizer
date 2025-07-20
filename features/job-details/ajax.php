@@ -46,14 +46,56 @@ class OO_Job_Details_AJAX {
             wp_send_json_error('Invalid job stream ID');
         }
         
-        // Use the Kanban database class to handle the phase change
-        require_once OO_PLUGIN_DIR . 'features/kanban/database.php';
+        // Get the job stream link to find current phase
+        $job_stream = OO_DB::get_job_stream_link($job_stream_id);
+        if (!$job_stream) {
+            wp_send_json_error('Job stream not found');
+        }
         
-        $result = OO_Kanban_Database::change_job_phase($job_stream_id, $new_phase_id);
+        // Get the new phase details
+        $new_phase = OO_DB::get_phase($new_phase_id);
+        if (!$new_phase) {
+            wp_send_json_error('Phase not found');
+        }
         
-        if ($result) {
+        // Update the job stream status to the new phase name
+        global $wpdb;
+        $job_streams_table = $wpdb->prefix . 'oo_job_streams_link';
+        
+        $result = $wpdb->update(
+            $job_streams_table,
+            array('status_in_stream' => $new_phase->phase_name),
+            array('job_stream_id' => $job_stream_id),
+            array('%s'),
+            array('%d')
+        );
+        
+        if ($result !== false) {
+            // Optionally record this change in activity log if Kanban feature is available
+            if (class_exists('OO_Kanban_Database')) {
+                require_once OO_PLUGIN_DIR . 'features/kanban/database.php';
+                // Try to find the current phase ID by matching phase name
+                $current_phase_id = null;
+                $phases = OO_DB::get_phases_by_stream_id($job_stream->stream_id);
+                foreach ($phases as $phase) {
+                    if ($phase->phase_name === $job_stream->status_in_stream) {
+                        $current_phase_id = $phase->phase_id;
+                        break;
+                    }
+                }
+                
+                OO_Kanban_Database::record_phase_change(
+                    $job_stream_id,
+                    $current_phase_id,
+                    $new_phase_id,
+                    get_current_user_id(),
+                    'Phase changed via Job Details page'
+                );
+            }
+            
             wp_send_json_success(array(
-                'message' => __('Phase updated successfully.', 'operations-organizer')
+                'message' => __('Phase updated successfully.', 'operations-organizer'),
+                'new_phase_name' => $new_phase->phase_name
             ));
         } else {
             wp_send_json_error(__('Failed to update phase.', 'operations-organizer'));

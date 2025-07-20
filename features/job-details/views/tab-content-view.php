@@ -15,6 +15,15 @@ $phases = OO_DB::get_phases(array(
     'order' => 'ASC'
 ));
 
+// Find current phase ID based on status_in_stream
+$current_phase_id = null;
+foreach ($phases as $phase) {
+    if ($phase->phase_name === $job_stream->status_in_stream) {
+        $current_phase_id = $phase->phase_id;
+        break;
+    }
+}
+
 // Get employees for the filter
 $employees = OO_Employee::get_employees();
 ?>
@@ -28,7 +37,7 @@ $employees = OO_Employee::get_employees();
                 <option value=""><?php esc_html_e('Select phase...', 'operations-organizer'); ?></option>
                 <?php foreach ($phases as $phase): ?>
                     <option value="<?php echo esc_attr($phase->phase_id); ?>" 
-                            <?php selected($job_stream->current_phase_id, $phase->phase_id); ?>>
+                            <?php selected($current_phase_id, $phase->phase_id); ?>>
                         <?php echo esc_html($phase->phase_name); ?>
                     </option>
                 <?php endforeach; ?>
@@ -94,8 +103,8 @@ $employees = OO_Employee::get_employees();
                     <select id="filter-employee-<?php echo esc_attr($stream_id); ?>" class="oo-log-filter" data-filter="employee">
                         <option value=""><?php esc_html_e('All Employees', 'operations-organizer'); ?></option>
                         <?php foreach ($employees as $employee): ?>
-                            <option value="<?php echo esc_attr($employee->ID); ?>">
-                                <?php echo esc_html($employee->display_name); ?>
+                            <option value="<?php echo esc_attr($employee->employee_id); ?>">
+                                <?php echo esc_html($employee->first_name . ' ' . $employee->last_name); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
