@@ -287,6 +287,11 @@
     resize: vertical;
 }
 
+#kanban-phase-change-note.error {
+    border-color: #dc3232;
+    box-shadow: 0 0 3px rgba(220, 50, 50, 0.3);
+}
+
 #kanban-phase-change-form .modal-buttons {
     display: flex;
     gap: 10px;
