@@ -108,16 +108,21 @@ class OO_Job_Details_AJAX {
         }
         
         if ($result !== false) {
-            // Optionally record this change in activity log if Kanban feature is available
+            // Record this change in activity log if Kanban feature is available
             if (class_exists('OO_Kanban_Database')) {
                 require_once OO_PLUGIN_DIR . 'features/kanban/database.php';
-                // Try to find the current phase ID by matching phase name
-                $current_phase_id = null;
-                $phases = OO_DB::get_phases(array('stream_id' => $job_stream->stream_id));
-                foreach ($phases as $phase) {
-                    if ($phase->phase_name === $job_stream->status_in_stream) {
-                        $current_phase_id = $phase->phase_id;
-                        break;
+                
+                // Use current_phase_id if available, otherwise try to find it by phase name
+                $current_phase_id = $job_stream->current_phase_id;
+                
+                if (!$current_phase_id && !empty($job_stream->status_in_stream)) {
+                    // Try to find the current phase ID by matching phase name
+                    $phases = OO_DB::get_phases(array('stream_id' => $job_stream->stream_id));
+                    foreach ($phases as $phase) {
+                        if ($phase->phase_name === $job_stream->status_in_stream) {
+                            $current_phase_id = $phase->phase_id;
+                            break;
+                        }
                     }
                 }
                 
@@ -248,8 +253,94 @@ class OO_Job_Details_AJAX {
         // Use the Kanban database class to get the activity log
         require_once OO_PLUGIN_DIR . 'features/kanban/database.php';
         
-        $activity_log_html = OO_Kanban_Database::get_activity_log($job_stream_id);
+        // Get activity log data
+        $activity_log_entries = OO_Kanban_Database::get_activity_log($job_stream_id);
+        
+        // Format as HTML
+        $activity_log_html = self::format_activity_log_html($activity_log_entries);
         
         wp_send_json_success(array('html' => $activity_log_html));
+    }
+    
+    /**
+     * Format activity log entries as HTML
+     * 
+     * @param array $entries Activity log entries
+     * @return string HTML formatted activity log
+     */
+    private static function format_activity_log_html($entries) {
+        if (empty($entries)) {
+            return '<p class="no-activity">' . __('No activity recorded for this job stream yet.', 'operations-organizer') . '</p>';
+        }
+        
+        $html = '<div class="activity-log-entries">';
+        
+        foreach ($entries as $entry) {
+            $html .= '<div class="activity-entry">';
+            
+            // Activity header
+            $html .= '<div class="activity-header">';
+            
+            // Activity type icon and description
+            switch ($entry->activity_type) {
+                case 'PHASE_CHANGE':
+                    $icon = 'dashicons-randomize';
+                    $description = sprintf(
+                        __('Phase changed from <strong>%s</strong> to <strong>%s</strong>', 'operations-organizer'),
+                        esc_html($entry->from_phase_name ?: __('(unassigned)', 'operations-organizer')),
+                        esc_html($entry->to_phase_name ?: __('(unassigned)', 'operations-organizer'))
+                    );
+                    break;
+                    
+                case 'JOB_CREATED':
+                    $icon = 'dashicons-plus-alt';
+                    $description = sprintf(
+                        __('Job assigned to stream with initial phase <strong>%s</strong>', 'operations-organizer'),
+                        esc_html($entry->to_phase_name ?: __('(unassigned)', 'operations-organizer'))
+                    );
+                    break;
+                    
+                case 'NOTE_ADDED':
+                    $icon = 'dashicons-edit';
+                    $description = __('Note added', 'operations-organizer');
+                    break;
+                    
+                default:
+                    $icon = 'dashicons-info';
+                    $description = esc_html($entry->activity_type);
+            }
+            
+            $html .= '<span class="dashicons ' . $icon . '"></span>';
+            $html .= '<span class="activity-description">' . $description . '</span>';
+            $html .= '</div>'; // .activity-header
+            
+            // Activity metadata
+            $html .= '<div class="activity-meta">';
+            
+            // User info
+            $user_name = $entry->user_name ?: __('System', 'operations-organizer');
+            if ($entry->user_id == 0) {
+                $user_name = __('System', 'operations-organizer');
+            }
+            $html .= '<span class="activity-user">' . esc_html($user_name) . '</span>';
+            
+            // Date/time
+            $html .= '<span class="activity-date">' . esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry->created_at))) . '</span>';
+            
+            $html .= '</div>'; // .activity-meta
+            
+            // Notes if any
+            if (!empty($entry->notes)) {
+                $html .= '<div class="activity-notes">';
+                $html .= '<em>' . esc_html($entry->notes) . '</em>';
+                $html .= '</div>';
+            }
+            
+            $html .= '</div>'; // .activity-entry
+        }
+        
+        $html .= '</div>'; // .activity-log-entries
+        
+        return $html;
     }
 } 

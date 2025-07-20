@@ -304,6 +304,13 @@
     padding: 40px;
 }
 
+.activity-log-content .no-activity {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 40px;
+}
+
 .activity-log-content .activity-entry {
     padding: 15px;
     border-bottom: 1px solid #e5e5e5;
@@ -311,6 +318,48 @@
 
 .activity-log-content .activity-entry:last-child {
     border-bottom: none;
+}
+
+.activity-entry .activity-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.activity-entry .activity-header .dashicons {
+    color: #0073aa;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.activity-entry .activity-description {
+    font-size: 14px;
+    color: #23282d;
+}
+
+.activity-entry .activity-meta {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: #666;
+    margin-left: 28px;
+}
+
+.activity-entry .activity-user {
+    font-weight: 600;
+}
+
+.activity-entry .activity-date {
+    color: #999;
+}
+
+.activity-entry .activity-notes {
+    margin-top: 8px;
+    margin-left: 28px;
+    font-size: 13px;
+    color: #555;
 }
 
 /* Notifications */
