@@ -280,6 +280,45 @@
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
+.oo-modal-content.oo-modal-small {
+    max-width: 450px;
+}
+
+/* Phase Change Modal Styles */
+#job-details-phase-change-form .phase-change-info {
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+#job-details-phase-change-form .phase-change-info strong {
+    color: #0073aa;
+}
+
+#job-details-phase-change-form .form-field {
+    margin-bottom: 20px;
+}
+
+#job-details-phase-change-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+#job-details-phase-change-form textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    resize: vertical;
+}
+
+#job-details-phase-change-form .modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
 .oo-close-modal {
     color: #aaa;
     float: right;

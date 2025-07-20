@@ -50,9 +50,11 @@ class OO_Job_Details_AJAX {
         // Get and validate data
         $job_stream_id = isset($_POST['job_stream_id']) ? intval($_POST['job_stream_id']) : 0;
         $new_phase_id = isset($_POST['new_phase_id']) ? intval($_POST['new_phase_id']) : 0;
+        $note = isset($_POST['note']) ? sanitize_textarea_field($_POST['note']) : '';
         
         error_log('[JOB_DETAILS_DEBUG] job_stream_id: ' . $job_stream_id);
         error_log('[JOB_DETAILS_DEBUG] new_phase_id: ' . $new_phase_id);
+        error_log('[JOB_DETAILS_DEBUG] note: ' . $note);
         
         if (!$job_stream_id) {
             error_log('[JOB_DETAILS_DEBUG] INVALID job_stream_id');
@@ -62,6 +64,11 @@ class OO_Job_Details_AJAX {
         if (!$new_phase_id) {
             error_log('[JOB_DETAILS_DEBUG] INVALID new_phase_id');
             wp_send_json_error('Invalid phase ID');
+        }
+        
+        if (empty(trim($note))) {
+            error_log('[JOB_DETAILS_DEBUG] EMPTY note');
+            wp_send_json_error('A note is required for phase changes');
         }
         
         // Get the job stream to find current phase
@@ -131,7 +138,7 @@ class OO_Job_Details_AJAX {
                     $current_phase_id,
                     $new_phase_id,
                     get_current_user_id(),
-                    'Phase changed via Job Details page'
+                    $note
                 );
             }
             

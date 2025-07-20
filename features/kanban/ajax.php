@@ -54,6 +54,13 @@ class OO_Kanban_AJAX {
             return;
         }
         
+        // Validate that notes are provided
+        if (empty(trim($notes))) {
+            oo_log('[KANBAN_AJAX] Missing required notes field', __METHOD__);
+            wp_send_json_error(array('message' => __('A note is required for phase changes.', 'operations-organizer')));
+            return;
+        }
+        
         // Don't process if moving to same phase
         if ($from_phase_id == $to_phase_id) {
             oo_log('[KANBAN_AJAX] Attempted to move to same phase, ignoring', __METHOD__);

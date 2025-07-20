@@ -131,22 +131,18 @@
             const $task = $(this.draggedTask);
             const jobStreamId = $task.data('job-stream-id');
             
-            // Confirm the move
-            if (oo_kanban_data.strings.confirm_move) {
-                const confirmMessage = oo_kanban_data.strings.confirm_move.replace('{phase}', toPhaseName);
-                if (!confirm(confirmMessage)) {
-                    return false;
-                }
-            }
+            // Store data for the modal
+            this.pendingPhaseChange = {
+                jobStreamId: jobStreamId,
+                fromPhaseId: this.fromPhaseId,
+                toPhaseId: toPhaseId,
+                toPhaseName: toPhaseName,
+                $task: $(this.draggedTask),
+                $dropZone: $dropZone
+            };
             
-            // Move the card visually (optimistic update)
-            $dropZone.find('.kanban-block-body').append(this.draggedTask);
-            
-            // Update phase counts
-            this.updatePhaseCounts(this.fromPhaseId, toPhaseId);
-            
-            // Send AJAX request
-            this.sendPhaseChangeRequest(jobStreamId, this.fromPhaseId, toPhaseId);
+            // Show the modal
+            this.showPhaseChangeModal();
             
             return false;
         },
@@ -154,7 +150,7 @@
         /**
          * Send phase change AJAX request
          */
-        sendPhaseChangeRequest: function(jobStreamId, fromPhaseId, toPhaseId) {
+        sendPhaseChangeRequest: function(jobStreamId, fromPhaseId, toPhaseId, note) {
             const self = this;
             
             $.ajax({
@@ -165,7 +161,8 @@
                     nonce: oo_kanban_data.nonce,
                     job_stream_id: jobStreamId,
                     from_phase_id: fromPhaseId,
-                    to_phase_id: toPhaseId
+                    to_phase_id: toPhaseId,
+                    notes: note
                 },
                 success: function(response) {
                     if (!response.success) {
@@ -236,6 +233,10 @@
             // Close modal buttons
             $('.oo-close-modal, .cancel-note').on('click', function() {
                 $(this).closest('.oo-modal').hide();
+                // Clear pending phase change if closing phase change modal
+                if ($(this).closest('#kanban-phase-change-modal').length) {
+                    self.pendingPhaseChange = null;
+                }
             });
             
             // Close modal on outside click
@@ -244,6 +245,23 @@
                     $(this).hide();
                 }
             });
+        },
+        
+        /**
+         * Show phase change modal
+         */
+        showPhaseChangeModal: function() {
+            const $modal = $('#kanban-phase-change-modal');
+            const data = this.pendingPhaseChange;
+            
+            // Set the target phase name
+            $('#phase-change-target').text(data.toPhaseName);
+            
+            // Clear the note field
+            $('#phase-change-note').val('').focus();
+            
+            // Show the modal
+            $modal.fadeIn();
         },
         
         /**
@@ -351,6 +369,37 @@
          */
         bindFormEvents: function() {
             const self = this;
+            
+            // Phase change form submission
+            $('#kanban-phase-change-form').on('submit', function(e) {
+                e.preventDefault();
+                
+                const note = $('#phase-change-note').val().trim();
+                if (!note) {
+                    alert('Please enter a note for this phase change.');
+                    return;
+                }
+                
+                const data = self.pendingPhaseChange;
+                
+                // Hide modal
+                $('#kanban-phase-change-modal').hide();
+                
+                // Move the card visually (optimistic update)
+                data.$dropZone.find('.kanban-block-body').append(data.$task);
+                
+                // Update phase counts
+                self.updatePhaseCounts(data.fromPhaseId, data.toPhaseId);
+                
+                // Send AJAX request
+                self.sendPhaseChangeRequest(data.jobStreamId, data.fromPhaseId, data.toPhaseId, note);
+            });
+            
+            // Cancel phase change
+            $('.cancel-phase-change').on('click', function() {
+                $('#kanban-phase-change-modal').hide();
+                self.pendingPhaseChange = null;
+            });
             
             // Add note form
             $('#kanban-add-note-form').on('submit', function(e) {

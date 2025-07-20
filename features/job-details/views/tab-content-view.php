@@ -176,6 +176,28 @@ $employees = OO_Employee::get_employees();
     </div>
 </div>
 
+<!-- Phase Change Note Modal -->
+<div id="job-details-phase-change-modal" class="oo-modal" style="display:none;">
+    <div class="oo-modal-content oo-modal-small">
+        <span class="oo-close-modal">&times;</span>
+        <h2><?php esc_html_e('Phase Change Note', 'operations-organizer'); ?></h2>
+        <form id="job-details-phase-change-form">
+            <p class="phase-change-info">
+                <?php esc_html_e('Changing phase to:', 'operations-organizer'); ?> 
+                <strong id="phase-change-target"></strong>
+            </p>
+            <div class="form-field">
+                <label for="phase-change-note"><?php esc_html_e('Note (required):', 'operations-organizer'); ?></label>
+                <textarea id="phase-change-note" rows="4" required placeholder="<?php esc_attr_e('Please describe the reason for this phase change...', 'operations-organizer'); ?>"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button type="submit" class="button button-primary"><?php esc_html_e('Confirm Change', 'operations-organizer'); ?></button>
+                <button type="button" class="button cancel-phase-change"><?php esc_html_e('Cancel', 'operations-organizer'); ?></button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Activity Log Modal (shared across all tabs) -->
 <div id="job-details-activity-log-modal" class="oo-modal" style="display:none;">
     <div class="oo-modal-content">

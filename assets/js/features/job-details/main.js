@@ -40,65 +40,16 @@ jQuery(document).ready(function($) {
             return;
         }
         
-        // Confirm the change
-        var confirmMessage = oo_job_details_data.strings.confirm_phase_change.replace('{phase}', phaseName);
-        if (!confirm(confirmMessage)) {
-            // Reset to previous value
-            $this.val($this.data('previous-value') || '');
-            return;
-        }
+        // Store data for modal
+        window.pendingPhaseChange = {
+            $selector: $this,
+            jobStreamId: jobStreamId,
+            newPhaseId: newPhaseId,
+            phaseName: phaseName
+        };
         
-        // Store current value
-        $this.data('previous-value', newPhaseId);
-        
-        // Disable selector during update
-        $this.prop('disabled', true);
-        
-        // Debugging
-        console.log('[JOB_DETAILS_DEBUG] Phase change AJAX data:', {
-            action: 'oo_job_details_change_phase',
-            nonce: oo_job_details_data.nonce,
-            job_stream_id: jobStreamId,
-            new_phase_id: newPhaseId,
-            ajax_url: oo_job_details_data.ajax_url
-        });
-        
-        // Make AJAX request
-        $.ajax({
-            url: oo_job_details_data.ajax_url,
-            type: 'POST',
-            data: {
-                action: 'oo_job_details_change_phase',
-                nonce: oo_job_details_data.nonce,
-                job_stream_id: jobStreamId,
-                new_phase_id: newPhaseId
-            },
-            success: function(response) {
-                console.log('[JOB_DETAILS_DEBUG] AJAX Success response:', response);
-                if (response.success) {
-                    showNotification(response.data.message, 'success');
-                } else {
-                    console.log('[JOB_DETAILS_DEBUG] AJAX Success but response.success = false');
-                    showNotification(response.data || oo_job_details_data.strings.error_updating, 'error');
-                    // Reset to previous value on error
-                    $this.val($this.data('previous-value') || '');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.log('[JOB_DETAILS_DEBUG] AJAX Error:', {
-                    xhr: xhr,
-                    status: status,
-                    error: error,
-                    responseText: xhr.responseText
-                });
-                showNotification(oo_job_details_data.strings.error_updating, 'error');
-                // Reset to previous value on error
-                $this.val($this.data('previous-value') || '');
-            },
-            complete: function() {
-                $this.prop('disabled', false);
-            }
-        });
+        // Show modal
+        showPhaseChangeModal();
     });
     
     // Store initial phase values
@@ -284,6 +235,84 @@ jQuery(document).ready(function($) {
         
         return date.toLocaleDateString(undefined, options);
     }
+    
+    /**
+     * Show phase change modal
+     */
+    function showPhaseChangeModal() {
+        var $modal = $('#job-details-phase-change-modal');
+        var data = window.pendingPhaseChange;
+        
+        // Set the target phase name
+        $('#phase-change-target').text(data.phaseName);
+        
+        // Clear the note field
+        $('#phase-change-note').val('').focus();
+        
+        // Show the modal
+        $modal.fadeIn();
+    }
+    
+    // Phase change form submission
+    $('#job-details-phase-change-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        var note = $('#phase-change-note').val().trim();
+        if (!note) {
+            alert('Please enter a note for this phase change.');
+            return;
+        }
+        
+        var data = window.pendingPhaseChange;
+        
+        // Hide modal
+        $('#job-details-phase-change-modal').hide();
+        
+        // Re-enable selector
+        data.$selector.prop('disabled', false);
+        
+        // Make AJAX request
+        $.ajax({
+            url: oo_job_details_data.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'oo_job_details_change_phase',
+                nonce: oo_job_details_data.nonce,
+                job_stream_id: data.jobStreamId,
+                new_phase_id: data.newPhaseId,
+                note: note
+            },
+            success: function(response) {
+                if (response.success) {
+                    showNotification(response.data.message, 'success');
+                    // Update the stored previous value
+                    data.$selector.data('previous-value', data.newPhaseId);
+                } else {
+                    showNotification(response.data || oo_job_details_data.strings.error_updating, 'error');
+                    // Reset to previous value on error
+                    data.$selector.val(data.$selector.data('previous-value') || '');
+                }
+            },
+            error: function(xhr, status, error) {
+                showNotification(oo_job_details_data.strings.error_updating, 'error');
+                // Reset to previous value on error
+                data.$selector.val(data.$selector.data('previous-value') || '');
+            }
+        });
+    });
+    
+    // Cancel phase change
+    $('.cancel-phase-change').on('click', function() {
+        $('#job-details-phase-change-modal').hide();
+        
+        if (window.pendingPhaseChange) {
+            // Reset selector to previous value
+            var data = window.pendingPhaseChange;
+            data.$selector.val(data.$selector.data('previous-value') || '');
+            data.$selector.prop('disabled', false);
+            window.pendingPhaseChange = null;
+        }
+    });
     
     /**
      * Escape HTML
