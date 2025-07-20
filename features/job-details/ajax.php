@@ -93,9 +93,12 @@ class OO_Job_Details_AJAX {
         
         $result = $wpdb->update(
             $job_streams_table,
-            array('status_in_stream' => $new_phase->phase_name),
+            array(
+                'status_in_stream' => $new_phase->phase_name,
+                'current_phase_id' => $new_phase_id
+            ),
             array('job_stream_id' => $job_stream_id),
-            array('%s'),
+            array('%s', '%d'),
             array('%d')
         );
         

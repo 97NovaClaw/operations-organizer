@@ -61,15 +61,27 @@ class OO_Kanban_Database {
             
             oo_log('[KANBAN_DB] Activity log entry created with ID: ' . $wpdb->insert_id, __METHOD__);
             
-            // Step 2: Update current phase in job streams table
+            // Step 2: Get the phase name for status_in_stream
+            $phases_table = $wpdb->prefix . 'oo_phases';
+            $to_phase = $wpdb->get_row($wpdb->prepare(
+                "SELECT phase_name FROM {$phases_table} WHERE phase_id = %d",
+                $to_phase_id
+            ));
+            
+            if (!$to_phase) {
+                throw new Exception('Failed to get phase name for phase_id: ' . $to_phase_id);
+            }
+            
+            // Step 3: Update current phase in job streams table (both fields for compatibility)
             $update_result = $wpdb->update(
                 $job_streams_table,
                 array(
                     'current_phase_id' => intval($to_phase_id),
+                    'status_in_stream' => $to_phase->phase_name,
                     'updated_at' => current_time('mysql', 1)
                 ),
                 array('job_stream_id' => intval($job_stream_id)),
-                array('%d', '%s'),
+                array('%d', '%s', '%s'),
                 array('%d')
             );
             

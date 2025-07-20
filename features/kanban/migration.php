@@ -17,7 +17,7 @@ class OO_Kanban_Migration {
     public static function check_and_run_migration() {
         // Check if we've already run this migration
         $migration_version = get_option('oo_kanban_migration_version', '0');
-        $current_version = '1.0.0'; // Increment this when schema changes
+        $current_version = '1.1.0'; // Increment this when schema changes
         
         if (version_compare($migration_version, $current_version, '<')) {
             self::run_migration();
@@ -100,9 +100,9 @@ class OO_Kanban_Migration {
         
         // Get all job streams without a current phase
         $job_streams_without_phase = $wpdb->get_results("
-            SELECT job_stream_id, job_id, stream_id 
-            FROM {$job_streams_table} 
-            WHERE current_phase_id IS NULL
+            SELECT js.job_stream_id, js.job_id, js.stream_id, js.status_in_stream 
+            FROM {$job_streams_table} js
+            WHERE js.current_phase_id IS NULL
         ");
         
         if (empty($job_streams_without_phase)) {
@@ -116,19 +116,44 @@ class OO_Kanban_Migration {
         $system_user_id = 0; // System user for automated actions
         
         foreach ($job_streams_without_phase as $job_stream) {
-            // Get the first phase for this stream
-            $first_phase = $wpdb->get_row($wpdb->prepare("
-                SELECT phase_id, phase_name 
-                FROM {$phases_table} 
-                WHERE stream_id = %d 
-                AND is_active = 1
-                ORDER BY order_in_stream ASC 
-                LIMIT 1
-            ", $job_stream->stream_id));
+            $phase_to_set = null;
             
-            if (!$first_phase) {
-                oo_log('[KANBAN_MIGRATION] WARNING: No active phases found for stream_id: ' . $job_stream->stream_id, __METHOD__);
-                continue;
+            // First, try to match the existing status_in_stream to a phase
+            if (!empty($job_stream->status_in_stream)) {
+                $matching_phase = $wpdb->get_row($wpdb->prepare("
+                    SELECT phase_id, phase_name 
+                    FROM {$phases_table} 
+                    WHERE stream_id = %d 
+                    AND phase_name = %s
+                    AND is_active = 1
+                    LIMIT 1
+                ", $job_stream->stream_id, $job_stream->status_in_stream));
+                
+                if ($matching_phase) {
+                    $phase_to_set = $matching_phase;
+                    oo_log('[KANBAN_MIGRATION] Found matching phase for status_in_stream "' . $job_stream->status_in_stream . '": phase_id ' . $matching_phase->phase_id, __METHOD__);
+                } else {
+                    oo_log('[KANBAN_MIGRATION] No matching phase found for status_in_stream: ' . $job_stream->status_in_stream, __METHOD__);
+                }
+            }
+            
+            // If no matching phase found, get the first phase for this stream
+            if (!$phase_to_set) {
+                $first_phase = $wpdb->get_row($wpdb->prepare("
+                    SELECT phase_id, phase_name 
+                    FROM {$phases_table} 
+                    WHERE stream_id = %d 
+                    AND is_active = 1
+                    ORDER BY order_in_stream ASC 
+                    LIMIT 1
+                ", $job_stream->stream_id));
+                
+                if (!$first_phase) {
+                    oo_log('[KANBAN_MIGRATION] WARNING: No active phases found for stream_id: ' . $job_stream->stream_id, __METHOD__);
+                    continue;
+                }
+                
+                $phase_to_set = $first_phase;
             }
             
             // Start transaction for data integrity
@@ -138,7 +163,7 @@ class OO_Kanban_Migration {
                 // Update the current phase
                 $update_result = $wpdb->update(
                     $job_streams_table,
-                    array('current_phase_id' => $first_phase->phase_id),
+                    array('current_phase_id' => $phase_to_set->phase_id),
                     array('job_stream_id' => $job_stream->job_stream_id),
                     array('%d'),
                     array('%d')
@@ -156,8 +181,8 @@ class OO_Kanban_Migration {
                         'user_id' => $system_user_id,
                         'activity_type' => $activity_types['JOB_CREATED'],
                         'from_phase_id' => null,
-                        'to_phase_id' => $first_phase->phase_id,
-                        'notes' => 'Initial phase assignment during migration',
+                        'to_phase_id' => $phase_to_set->phase_id,
+                        'notes' => 'Initial phase assignment during migration' . (!empty($job_stream->status_in_stream) ? ' (from status: ' . $job_stream->status_in_stream . ')' : ''),
                         'metadata' => json_encode(array(
                             'migration' => true,
                             'phase_name' => $first_phase->phase_name
