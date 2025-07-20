@@ -199,6 +199,9 @@ if ( is_admin() ) {
                 'nonce_delete_derived_kpi' => wp_create_nonce('oo_delete_derived_kpi_nonce'),
                 'nonce_get_derived_kpis_for_stream_html' => wp_create_nonce('oo_get_derived_kpis_for_stream_html_nonce'),
                 
+                // Kanban Phase Change Nonce
+                'nonce_kanban_phase_change' => wp_create_nonce('oo_kanban_phase_change_nonce'),
+                
                 // Column Preferences Nonce
                 'nonce_save_user_meta' => wp_create_nonce('oo_save_user_meta_nonce'),
                 'nonce_get_user_meta' => wp_create_nonce('oo_get_user_meta_nonce'),
