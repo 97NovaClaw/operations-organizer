@@ -1486,23 +1486,30 @@ jQuery(document).ready(function($) {
 
     // ===== KANBAN PHASE CHANGE MODAL HANDLING =====
     
-    // Initialize Kanban drag and drop if Kanban board exists
+    // Check if Kanban feature is loaded - if so, let it handle everything
     if ($('.oo-kanban-board').length > 0) {
         console.log('[KANBAN_DEBUG] Checking if Kanban JavaScript is loaded...');
         
-        // Only initialize if the Kanban feature JavaScript isn't loaded
-        if (typeof oo_kanban_data === 'undefined') {
-            console.log('[KANBAN_DEBUG] Kanban feature JS not loaded, initializing drag and drop in stream dashboard');
-            initializeKanbanDragDrop();
-        } else {
-            console.log('[KANBAN_DEBUG] Kanban feature JS is loaded, skipping stream dashboard initialization');
+        if (typeof oo_kanban_data !== 'undefined') {
+            console.log('[KANBAN_DEBUG] Kanban feature JS is loaded, skipping all stream dashboard Kanban handlers');
+            // Don't initialize any Kanban handlers - let the Kanban feature JS handle everything
+            return;
         }
+        
+        console.log('[KANBAN_DEBUG] Kanban feature JS not loaded, initializing drag and drop in stream dashboard');
+        initializeKanbanDragDrop();
     }
     
-    // Handle phase change form submission for Kanban modal
+    // Handle phase change form submission for Kanban modal (only if Kanban JS not loaded)
     $(document).on('submit', '#kanban-phase-change-form', function(e) {
+        // Check if Kanban feature JS is handling this
+        if (typeof oo_kanban_data !== 'undefined') {
+            console.log('[KANBAN_DEBUG] Kanban feature JS is loaded, not handling in stream dashboard');
+            return; // Let the Kanban feature JS handle it
+        }
+        
         e.preventDefault();
-        console.log('[KANBAN_DEBUG] Phase change form submitted');
+        console.log('[KANBAN_DEBUG] Phase change form submitted in stream dashboard');
         
         var note = $('#kanban-phase-change-note').val().trim();
         if (!note) {
@@ -1540,6 +1547,10 @@ jQuery(document).ready(function($) {
     
     // Handle cancel phase change
     $(document).on('click', '.cancel-phase-change', function() {
+        // Check if Kanban feature JS is handling this
+        if (typeof oo_kanban_data !== 'undefined') {
+            return; // Let the Kanban feature JS handle it
+        }
         console.log('[KANBAN_DEBUG] Phase change cancelled');
         $('#kanban-phase-change-modal').hide();
         window.pendingPhaseChange = null;
@@ -1713,7 +1724,7 @@ jQuery(document).ready(function($) {
              $modal.fadeIn();
              $('#kanban-phase-change-note').focus();
              console.log('[KANBAN_DEBUG] Modal should be visible now');
-         }, 50);
-     }
+                 }, 50);
+         }
 
 }); 
