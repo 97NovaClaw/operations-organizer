@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.3.00
+ * Version:           1.5.3.01
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.3.00' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.3.01' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -371,6 +371,17 @@ if (file_exists(OO_PLUGIN_DIR . 'features/kanban/ajax.php')) {
     oo_log('[EXTREME_DEBUG] ========== KANBAN AJAX INITIALIZED GLOBALLY ==========');
 } else {
     oo_log('[EXTREME_DEBUG] KANBAN AJAX FILE NOT FOUND: ' . OO_PLUGIN_DIR . 'features/kanban/ajax.php');
+}
+
+// Initialize Master Log AJAX handlers
+if (file_exists(OO_PLUGIN_DIR . 'features/master-log/ajax.php')) {
+    require_once OO_PLUGIN_DIR . 'features/master-log/ajax.php';
+    oo_log('[EXTREME_DEBUG] ========== INITIALIZING MASTER LOG AJAX GLOBALLY ==========');
+    OO_Master_Log_AJAX::init();
+    oo_log('[EXTREME_DEBUG] MASTER LOG AJAX HANDLERS REGISTERED');
+    oo_log('[EXTREME_DEBUG] ========== MASTER LOG AJAX INITIALIZED GLOBALLY ==========');
+} else {
+    oo_log('[EXTREME_DEBUG] MASTER LOG AJAX FILE NOT FOUND: ' . OO_PLUGIN_DIR . 'features/master-log/ajax.php');
 }
 
 // Register KPI Management AJAX handlers for Stream Dashboard
