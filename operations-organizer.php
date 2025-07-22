@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.2.03
+ * Version:           1.5.3.00
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.2.03' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.3.00' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -392,6 +392,14 @@ add_action('wp_ajax_oo_get_json_derived_kpi_definitions', array('OO_Stream_Dashb
 
 // Register AJAX handler for stream statistics
 add_action('wp_ajax_oo_get_stream_statistics', array('OO_Dashboard', 'ajax_get_stream_statistics'));
+
+// Load Master Log feature
+if (file_exists(OO_PLUGIN_DIR . 'features/master-log/index.php')) {
+    require_once OO_PLUGIN_DIR . 'features/master-log/index.php';
+    // Feature will initialize itself via add_action('init', ...)
+} else {
+    oo_log('[MASTER_LOG] Master Log feature not found at: ' . OO_PLUGIN_DIR . 'features/master-log/index.php');
+}
 
 // Load Job Details feature
 if (file_exists(OO_PLUGIN_DIR . 'features/job-details/index.php')) {

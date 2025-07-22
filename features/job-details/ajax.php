@@ -140,6 +140,9 @@ class OO_Job_Details_AJAX {
                     get_current_user_id(),
                     $note
                 );
+                
+                // Fire action hook for job details phase changes
+                do_action('oo_job_details_phase_changed', $job_stream_id, $current_phase_id, $new_phase_id, get_current_user_id());
             }
             
             wp_send_json_success(array(
