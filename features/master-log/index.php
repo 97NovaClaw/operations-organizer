@@ -91,7 +91,7 @@ class OO_Master_Log_Feature {
      */
     public static function maybe_run_migration() {
         $current_version = get_option('oo_master_log_version', '0');
-        $target_version = '1.0.0';
+        $target_version = '1.1.0'; // Bump version for multiple streams support
         
         if (version_compare($current_version, $target_version, '<')) {
             oo_log('[MASTER_LOG] Running migration from version ' . $current_version . ' to ' . $target_version, __METHOD__);

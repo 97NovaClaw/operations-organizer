@@ -55,6 +55,16 @@ class OO_Master_Log_Migration {
             return false;
         }
         
+        // Check if stream_ids column exists, add it if not (for upgrades)
+        global $wpdb;
+        $table_name = OO_Master_Log_Database::get_table_name();
+        $column_exists = $wpdb->get_var("SHOW COLUMNS FROM {$table_name} LIKE 'stream_ids'");
+        
+        if (!$column_exists) {
+            $wpdb->query("ALTER TABLE {$table_name} ADD COLUMN stream_ids JSON NULL AFTER job_stream_id");
+            oo_log('[MASTER_LOG_MIGRATION] Added stream_ids column for multiple stream support', __METHOD__);
+        }
+        
         oo_log('[MASTER_LOG_MIGRATION] Master log table created successfully', __METHOD__);
         return true;
     }

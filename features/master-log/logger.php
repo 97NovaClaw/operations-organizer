@@ -97,6 +97,33 @@ class OO_Master_Log {
             }
         }
         
+        // For job-level events, automatically populate all associated streams
+        if ($args['activity_level'] === 'job' && empty($args['stream_ids'])) {
+            global $wpdb;
+            $stream_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT stream_id 
+                 FROM {$wpdb->prefix}oo_job_streams_link 
+                 WHERE job_id = %d",
+                $args['job_id']
+            ));
+            if (!empty($stream_ids)) {
+                $args['stream_ids'] = $stream_ids;
+                
+                // Get stream names for metadata
+                $streams = $wpdb->get_results($wpdb->prepare(
+                    "SELECT stream_id, stream_name 
+                     FROM {$wpdb->prefix}oo_streams 
+                     WHERE stream_id IN (" . implode(',', array_fill(0, count($stream_ids), '%d')) . ")",
+                    ...$stream_ids
+                ));
+                
+                $args['metadata']['stream_names'] = array();
+                foreach ($streams as $stream) {
+                    $args['metadata']['stream_names'][$stream->stream_id] = $stream->stream_name;
+                }
+            }
+        }
+        
         // Log the activity
         oo_log('[MASTER_LOG] Logging activity: ' . $args['activity_type'] . ' for job ' . $args['job_id'], __METHOD__);
         

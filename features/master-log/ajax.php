@@ -163,7 +163,7 @@ class OO_Master_Log_AJAX {
                 ),
                 'user' => esc_html($log->user_display_name),
                 'description' => OO_Master_Log_Formatters::format_activity($log),
-                'stream' => $log->stream_name ? esc_html($log->stream_name) : '-',
+                'stream' => self::format_streams_display($log),
                 'actions' => sprintf(
                     '<button class="button button-small view-details" data-log-id="%d">View Details</button>',
                     $log->log_id
@@ -333,5 +333,38 @@ class OO_Master_Log_AJAX {
         
         fclose($output);
         exit;
+    }
+    
+    /**
+     * Format streams display for DataTable
+     * 
+     * @param object $log Log entry
+     * @return string Formatted stream display
+     */
+    private static function format_streams_display($log) {
+        // Check for multiple streams in metadata
+        if ($log->metadata) {
+            $metadata = is_array($log->metadata) ? $log->metadata : json_decode($log->metadata, true);
+            
+            if (!empty($metadata['stream_names']) && count($metadata['stream_names']) > 1) {
+                $streams = array_values($metadata['stream_names']);
+                if (count($streams) > 2) {
+                    // Show first two and count of others
+                    return sprintf(
+                        '<span title="%s">%s, %s +%d</span>',
+                        esc_attr(implode(', ', $streams)),
+                        esc_html($streams[0]),
+                        esc_html($streams[1]),
+                        count($streams) - 2
+                    );
+                } else {
+                    // Show all if only 2
+                    return esc_html(implode(', ', $streams));
+                }
+            }
+        }
+        
+        // Fallback to single stream
+        return $log->stream_name ? esc_html($log->stream_name) : '-';
     }
 } 

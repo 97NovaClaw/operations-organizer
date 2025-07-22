@@ -106,6 +106,17 @@ class OO_Master_Log_Formatters {
     private static function format_stream_assigned_to_job($log) {
         $metadata = is_array($log->metadata) ? $log->metadata : json_decode($log->metadata, true);
         
+        // Check if multiple streams are involved
+        if (!empty($metadata['stream_names']) && count($metadata['stream_names']) > 1) {
+            $stream_list = array_values($metadata['stream_names']);
+            $last = array_pop($stream_list);
+            return sprintf(
+                'assigned streams <strong>%s</strong> and <strong>%s</strong> to job',
+                esc_html(implode(', ', $stream_list)),
+                esc_html($last)
+            );
+        }
+        
         return sprintf(
             'assigned <strong>%s</strong> stream to job',
             esc_html($metadata['stream_name'] ?? 'Unknown')

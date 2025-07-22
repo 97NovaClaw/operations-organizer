@@ -32,8 +32,9 @@ class OO_Master_Log_Database {
             
             -- Core identifiers
             job_id BIGINT UNSIGNED NOT NULL,
-            stream_id BIGINT UNSIGNED NULL,
+            stream_id BIGINT UNSIGNED NULL, -- Primary stream (for backward compatibility)
             job_stream_id BIGINT UNSIGNED NULL,
+            stream_ids JSON NULL, -- Multiple streams (array of stream IDs)
             
             -- Event details
             activity_type VARCHAR(50) NOT NULL,
@@ -95,6 +96,7 @@ class OO_Master_Log_Database {
             'job_id' => intval($data['job_id']),
             'stream_id' => isset($data['stream_id']) ? intval($data['stream_id']) : null,
             'job_stream_id' => isset($data['job_stream_id']) ? intval($data['job_stream_id']) : null,
+            'stream_ids' => isset($data['stream_ids']) ? json_encode(array_map('intval', (array)$data['stream_ids'])) : null,
             'activity_type' => sanitize_text_field($data['activity_type']),
             'activity_level' => in_array($data['activity_level'], ['job', 'stream']) ? $data['activity_level'] : 'stream',
             'activity_category' => isset($data['activity_category']) ? sanitize_text_field($data['activity_category']) : null,
