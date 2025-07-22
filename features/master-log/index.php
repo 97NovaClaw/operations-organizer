@@ -38,6 +38,7 @@ class OO_Master_Log_Feature {
      */
     public static function init() {
         oo_log('[MASTER_LOG] Initializing Master Log feature', __METHOD__);
+        error_log('[MASTER_LOG_DEBUG] Master Log init() called');
         
         // Run migration on activation or when needed
         add_action('admin_init', array(__CLASS__, 'maybe_run_migration'));
@@ -108,6 +109,7 @@ class OO_Master_Log_Feature {
      * Add admin menu item
      */
     public static function add_admin_menu() {
+        error_log('[MASTER_LOG_DEBUG] add_admin_menu() called');
         add_menu_page(
             __('Activity Log', 'operations-organizer'),
             __('Activity Log', 'operations-organizer'),
@@ -242,5 +244,4 @@ class OO_Master_Log_Feature {
     }
 }
 
-// Initialize the feature
-add_action('init', array('OO_Master_Log_Feature', 'init')); 
+// Feature is initialized directly from operations-organizer.php to ensure proper menu registration 
