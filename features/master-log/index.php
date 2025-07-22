@@ -108,13 +108,14 @@ class OO_Master_Log_Feature {
      * Add admin menu item
      */
     public static function add_admin_menu() {
-        add_submenu_page(
-            'oo_dashboard',
+        add_menu_page(
             __('Activity Log', 'operations-organizer'),
             __('Activity Log', 'operations-organizer'),
             oo_get_capability(),
             'oo_activity_log',
-            array(__CLASS__, 'render_admin_page')
+            array(__CLASS__, 'render_admin_page'),
+            'dashicons-list-view',
+            30
         );
     }
     
