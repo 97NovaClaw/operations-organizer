@@ -1134,5 +1134,4 @@ class OO_Stream_Dashboard_AJAX {
         
         wp_send_json_success(['html' => $html]);
     }
-}
 } 
