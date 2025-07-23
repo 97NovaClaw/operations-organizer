@@ -454,12 +454,18 @@ class OO_Job {
             } else {
                 $job_id = $result;
                 
-                // Associate streams with the job based on checkboxes
+                // Associate streams with the job based on checkboxes - DYNAMIC VERSION
                 $selected_streams = array();
-                if (isset($_POST['stream_1'])) $selected_streams[] = 1; // Soft Content
-                if (isset($_POST['stream_2'])) $selected_streams[] = 2; // Electronics
-                if (isset($_POST['stream_3'])) $selected_streams[] = 3; // Art
-                if (isset($_POST['stream_4'])) $selected_streams[] = 4; // Content
+                
+                // Get all available streams dynamically
+                $all_streams = OO_DB::get_streams(array('is_active' => 1));
+                
+                foreach ($all_streams as $stream) {
+                    $checkbox_name = 'stream_' . $stream->stream_id;
+                    if (isset($_POST[$checkbox_name])) {
+                        $selected_streams[] = intval($stream->stream_id);
+                    }
+                }
                 
                 foreach ($selected_streams as $stream_id) {
                     // Create job_stream_link association
