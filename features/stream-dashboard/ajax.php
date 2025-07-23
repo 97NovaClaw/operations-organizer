@@ -39,6 +39,7 @@ class OO_Stream_Dashboard_AJAX {
 			'get_phase_links_for_kpi_in_stream',
 			'get_stream_job_logs',
 			'update_phase_order_from_stream',
+			'stream_dashboard_get_activity_log',
 		];
 		foreach ( $actions as $action ) {
 			$hook_name = 'wp_ajax_oo_' . $action;
@@ -1039,7 +1040,98 @@ class OO_Stream_Dashboard_AJAX {
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => 'Error: ' . $result->get_error_message() ) );
         } else {
-            wp_send_json_success( array( 'message' => 'Phase order updated successfully.' ) );
-        }
+                    wp_send_json_success( array( 'message' => 'Phase order updated successfully.' ) );
     }
+
+    /**
+     * AJAX handler for getting activity log for a job stream
+     */
+    public static function ajax_stream_dashboard_get_activity_log() {
+        oo_log('AJAX Request Received: ' . __FUNCTION__, $_POST);
+        
+        // Verify nonce
+        if (!check_ajax_referer('oo_activity_log_nonce', 'nonce', false)) {
+            wp_send_json_error(['message' => 'Invalid nonce']);
+            return;
+        }
+
+        // Check permissions
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        $job_stream_id = isset($_POST['job_stream_id']) ? intval($_POST['job_stream_id']) : 0;
+        
+        if ($job_stream_id <= 0) {
+            wp_send_json_error(['message' => 'Invalid job stream ID.']);
+            return;
+        }
+
+        // Get the job stream to find the job ID
+        $job_stream = OO_DB::get_job_stream($job_stream_id);
+        if (!$job_stream) {
+            wp_send_json_error(['message' => 'Job stream not found.']);
+            return;
+        }
+
+        // Get activity log entries using the Master Log feature
+        if (class_exists('OO_Master_Log_Database')) {
+            $logs = OO_Master_Log_Database::get_logs_for_job($job_stream->job_id, [
+                'limit' => 50,
+                'stream_id' => $job_stream->stream_id,
+                'order_by' => 'created_at',
+                'order' => 'DESC'
+            ]);
+        } else {
+            // Fallback to legacy stream activity log if Master Log not available
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'oo_stream_activity_log';
+            $logs = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$table_name} WHERE job_stream_id = %d ORDER BY created_at DESC LIMIT 50",
+                $job_stream_id
+            ));
+        }
+
+        // Generate HTML for the activity log
+        ob_start();
+        if (!empty($logs)) {
+            echo '<div class="activity-log-entries">';
+            foreach ($logs as $log) {
+                $user = get_user_by('id', $log->user_id);
+                $user_name = $user ? $user->display_name : 'Unknown User';
+                
+                echo '<div class="activity-log-entry">';
+                echo '<div class="activity-header">';
+                echo '<strong>' . esc_html($log->activity_type) . '</strong>';
+                echo '<span class="activity-date">' . esc_html($log->created_at) . '</span>';
+                echo '</div>';
+                echo '<div class="activity-user">By: ' . esc_html($user_name) . '</div>';
+                
+                if (!empty($log->user_notes)) {
+                    echo '<div class="activity-notes">' . esc_html($log->user_notes) . '</div>';
+                }
+                
+                if (!empty($log->metadata)) {
+                    $metadata = is_string($log->metadata) ? json_decode($log->metadata, true) : $log->metadata;
+                    if (is_array($metadata) && !empty($metadata)) {
+                        echo '<div class="activity-metadata">';
+                        if (isset($metadata['from_phase_name'], $metadata['to_phase_name'])) {
+                            echo '<em>Changed from ' . esc_html($metadata['from_phase_name']) . ' to ' . esc_html($metadata['to_phase_name']) . '</em>';
+                        }
+                        echo '</div>';
+                    }
+                }
+                echo '</div>';
+            }
+            echo '</div>';
+        } else {
+            echo '<p>No activity found for this job stream.</p>';
+        }
+        
+        $html = ob_get_clean();
+        
+        wp_send_json_success(['html' => $html]);
+    }
+}
 } 

@@ -255,4 +255,63 @@ if (isset($current_stream_id) && !empty($phases)) {
 			</div>
 		</div>
 	</div>
+
+	<!-- Add modal dialog for activity log -->
+	<div id="stream-activity-log-modal" class="oo-modal">
+		<div class="oo-modal-content">
+			<span class="oo-modal-close">&times;</span>
+			<h2><?php esc_html_e('Activity Log', 'operations-organizer'); ?></h2>
+			<div class="activity-log-loading">
+				<p><?php esc_html_e('Loading activity log...', 'operations-organizer'); ?></p>
+			</div>
+			<div class="activity-log-content" style="display:none;">
+				<!-- Activity log content will be loaded here -->
+			</div>
+		</div>
+	</div>
+
+	<style>
+	.activity-log-entries {
+		max-height: 400px;
+		overflow-y: auto;
+	}
+	.activity-log-entry {
+		border-bottom: 1px solid #eee;
+		padding: 10px 0;
+		margin-bottom: 10px;
+	}
+	.activity-log-entry:last-child {
+		border-bottom: none;
+	}
+	.activity-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 5px;
+	}
+	.activity-date {
+		font-size: 12px;
+		color: #666;
+	}
+	.activity-user {
+		font-size: 12px;
+		color: #666;
+		margin-bottom: 5px;
+	}
+	.activity-notes {
+		background: #f9f9f9;
+		padding: 8px;
+		border-radius: 3px;
+		margin: 5px 0;
+		font-style: italic;
+	}
+	.activity-metadata {
+		font-size: 12px;
+		color: #666;
+	}
+	.oo-error {
+		color: #d63638;
+		font-style: italic;
+	}
+	</style>
 </div> 

@@ -1005,7 +1005,11 @@ jQuery(document).ready(function($) {
                     actionButtons += '<span class="edit"><a href="#" class="oo-edit-log-action" data-log-id="' + 
                         row.log_id + '">Edit</a> | </span>';
                     actionButtons += '<span class="trash"><a href="#" class="oo-delete-log-action" data-log-id="' + 
-                        row.log_id + '">Delete</a></span>';
+                        row.log_id + '">Delete</a> | </span>';
+                    if (row.job_stream_id) {
+                        actionButtons += '<span class="view"><a href="#" class="oo-view-activity-log" data-job-stream-id="' + 
+                            row.job_stream_id + '">Activity Log</a></span>';
+                    }
                     actionButtons += '</div>';
                     return actionButtons;
                 }
@@ -1280,6 +1284,14 @@ jQuery(document).ready(function($) {
             });
         });
 
+        // Activity log modal functionality
+        $(document).on('click', '.oo-view-activity-log', function(e) {
+            e.preventDefault();
+            var jobStreamId = $(this).data('job-stream-id');
+            console.log('[DEBUG] Activity log clicked for job stream ID:', jobStreamId);
+            showActivityLog(jobStreamId);
+        });
+
         // Modal close functionality
         $('.oo-modal-close, .oo-modal-cancel').on('click', function() { 
             $('.oo-modal').css('display', 'none'); 
@@ -1290,6 +1302,44 @@ jQuery(document).ready(function($) {
                 $('.oo-modal').css('display', 'none'); 
             } 
         });
+
+        /**
+         * Show activity log modal for a job stream
+         */
+        function showActivityLog(jobStreamId) {
+            var $modal = $('#stream-activity-log-modal');
+            var $loading = $modal.find('.activity-log-loading');
+            var $content = $modal.find('.activity-log-content');
+            
+            // Show modal with loading state
+            $modal.fadeIn();
+            $loading.show();
+            $content.hide();
+            
+            // Load activity log
+            $.ajax({
+                url: oo_data.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'oo_stream_dashboard_get_activity_log',
+                    nonce: oo_data.nonce_activity_log,
+                    job_stream_id: jobStreamId
+                },
+                success: function(response) {
+                    if (response.success && response.data.html) {
+                        $content.html(response.data.html).show();
+                        $loading.hide();
+                    } else {
+                        $content.html('<p class="oo-error">Error loading activity log.</p>').show();
+                        $loading.hide();
+                    }
+                },
+                error: function() {
+                    $content.html('<p class="oo-error">Error loading activity log.</p>').show();
+                    $loading.hide();
+                }
+            });
+        }
 
         // Export functionality
         $('#content_export_csv_button').on('click', function(e) {

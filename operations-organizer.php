@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.3.08
+ * Version:           1.5.3.09
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.3.08' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.3.09' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -222,7 +222,8 @@ if ( is_admin() ) {
                 'all_kpi_measures' => $all_kpis,
                 'user_content_default_columns' => get_user_meta(get_current_user_id(), 'oo_content_dashboard_columns', true) ?: array(),
                 'user_stream_default_columns' => array(), // Default to empty, will be populated below for specific stream pages
-                'nonce_get_phases' => wp_create_nonce('oo_get_phases_nonce'), // Nonce for getting phases for a stream
+                			'nonce_get_phases' => wp_create_nonce('oo_get_phases_nonce'), // Nonce for getting phases for a stream
+			'nonce_activity_log' => wp_create_nonce('oo_activity_log_nonce'), // Nonce for activity log
                 'current_stream_tab_slug' => '', // Placeholder for current stream tab slug
                 
                 // Internationalization strings for Stream Dashboard
