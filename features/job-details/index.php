@@ -154,7 +154,7 @@ class OO_Job_Details_Feature {
             true
         );
         
-        // Localize script with necessary data
+        // Localize script with necessary data for job details
         wp_localize_script('oo-job-details-script', 'oo_job_details_data', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('oo_job_details_nonce'),
@@ -164,6 +164,13 @@ class OO_Job_Details_Feature {
                 'phase_updated' => __('Phase updated successfully.', 'operations-organizer'),
                 'confirm_phase_change' => __('Are you sure you want to change the phase to {phase}?', 'operations-organizer')
             )
+        ));
+        
+        // Also provide stream dashboard nonces for activity log compatibility
+        wp_localize_script('oo-job-details-script', 'oo_data', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce_activity_log' => wp_create_nonce('oo_activity_log_nonce'),
+            'admin_url' => admin_url()
         ));
     }
 } 

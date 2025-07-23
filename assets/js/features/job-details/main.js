@@ -77,7 +77,7 @@ jQuery(document).ready(function($) {
     });
     
     // Close modal
-    $('.oo-close-modal').on('click', function() {
+    $('.oo-close-modal, .oo-modal-close').on('click', function() {
         $(this).closest('.oo-modal').fadeOut();
     });
     
@@ -170,7 +170,18 @@ jQuery(document).ready(function($) {
      * Show activity log modal
      */
     function showActivityLog(jobStreamId) {
-        var $modal = $('#job-details-activity-log-modal');
+        // Determine which system to use based on available nonces
+        var useStreamDashboard = typeof oo_data !== 'undefined' && oo_data.nonce_activity_log;
+        
+        var modalId = useStreamDashboard ? '#stream-activity-log-modal' : '#job-details-activity-log-modal';
+        var action = useStreamDashboard ? 'oo_stream_dashboard_get_activity_log' : 'oo_job_details_get_activity_log';
+        var nonce = useStreamDashboard ? oo_data.nonce_activity_log : oo_job_details_data.nonce;
+        
+        console.log('[DEBUG] Activity log - Using:', useStreamDashboard ? 'Stream Dashboard' : 'Job Details', 'system');
+        console.log('[DEBUG] Modal ID:', modalId);
+        console.log('[DEBUG] Action:', action);
+        
+        var $modal = $(modalId);
         var $loading = $modal.find('.activity-log-loading');
         var $content = $modal.find('.activity-log-content');
         
@@ -184,8 +195,8 @@ jQuery(document).ready(function($) {
             url: oo_job_details_data.ajax_url,
             type: 'POST',
             data: {
-                action: 'oo_job_details_get_activity_log',
-                nonce: oo_job_details_data.nonce,
+                action: action,
+                nonce: nonce,
                 job_stream_id: jobStreamId
             },
             success: function(response) {
