@@ -64,8 +64,8 @@ class OO_Master_Log_Feature {
      */
     private static function register_event_hooks() {
         // ===== Phase Change Events =====
-        add_action('oo_kanban_phase_changed', array(__CLASS__, 'handle_phase_change'), 10, 4);
-        add_action('oo_job_details_phase_changed', array(__CLASS__, 'handle_phase_change'), 10, 4);
+        add_action('oo_kanban_phase_changed', array(__CLASS__, 'handle_phase_change'), 10, 5);
+        add_action('oo_job_details_phase_changed', array(__CLASS__, 'handle_phase_change'), 10, 5);
         
         // ===== Job Management Events =====
         add_action('oo_job_created', array(__CLASS__, 'handle_job_created'), 10, 2);
@@ -133,7 +133,7 @@ class OO_Master_Log_Feature {
     /**
      * Handle phase change from Kanban or Job Details
      */
-    public static function handle_phase_change($job_stream_id, $from_phase_id, $to_phase_id, $user_id) {
+    public static function handle_phase_change($job_stream_id, $from_phase_id, $to_phase_id, $user_id, $notes = '') {
         // Get job stream data for context
         $job_stream = OO_DB::get_job_stream($job_stream_id);
         if (!$job_stream) {
@@ -152,6 +152,7 @@ class OO_Master_Log_Feature {
             'job_stream_id' => $job_stream_id,
             'related_id' => $to_phase_id,
             'related_type' => 'phase',
+            'user_notes' => $notes,
             'metadata' => array(
                 'from_phase_id' => $from_phase_id,
                 'to_phase_id' => $to_phase_id,
