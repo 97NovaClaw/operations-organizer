@@ -95,7 +95,7 @@ class OO_Kanban_Database {
             oo_log('[KANBAN_DB] Phase change recorded successfully', __METHOD__);
             
             // Fire action hook for other features to respond to phase changes
-            do_action('oo_kanban_phase_changed', $job_stream_id, $from_phase_id, $to_phase_id, $user_id);
+            do_action('oo_kanban_phase_changed', $job_stream_id, $from_phase_id, $to_phase_id, $user_id, $notes);
             
             return true;
             
