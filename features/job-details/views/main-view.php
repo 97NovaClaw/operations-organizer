@@ -144,12 +144,6 @@ if (!empty($job->company_id)) {
                         $stream_feature_sets = function_exists('oo_get_feature_sets_for_stream') ? 
                             oo_get_feature_sets_for_stream($stream_id, 1) : array();
                         
-                        error_log('[JOB_DETAILS_DEBUG] Stream: ' . $job_stream->stream_name . ' (ID: ' . $stream_id . ')');
-                        error_log('[JOB_DETAILS_DEBUG] Feature sets found: ' . count($stream_feature_sets));
-                        foreach ($stream_feature_sets as $fs) {
-                            error_log('[JOB_DETAILS_DEBUG] Feature set: ' . $fs->name . ' (slug: ' . $fs->slug . ')');
-                        }
-                        
                         // Check if stream has operational tools feature set
                         $has_operational_tools = false;
                         foreach ($stream_feature_sets as $fs) {
