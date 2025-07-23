@@ -1040,7 +1040,8 @@ class OO_Stream_Dashboard_AJAX {
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => 'Error: ' . $result->get_error_message() ) );
         } else {
-                    wp_send_json_success( array( 'message' => 'Phase order updated successfully.' ) );
+            wp_send_json_success( array( 'message' => 'Phase order updated successfully.' ) );
+        }
     }
 
     /**
