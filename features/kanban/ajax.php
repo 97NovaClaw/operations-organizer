@@ -32,20 +32,21 @@ class OO_Kanban_AJAX {
      * Handle phase change requests
      */
     public static function handle_phase_change() {
-        oo_log('[KANBAN_AJAX] Phase change request received', __METHOD__);
+        error_log('DMITRY DEBUG: Kanban AJAX handler called!');
+        error_log('[' . gmdate('d-M-Y H:i:s') . ' UTC] [KANBAN_AJAX] Phase change request received');
         
         // Verify nonce
         check_ajax_referer('oo_kanban_phase_change_nonce', 'nonce');
         
         // Check permissions
         if (!current_user_can(oo_get_capability())) {
-            oo_log('[KANBAN_AJAX] Permission denied for user', __METHOD__);
+            error_log('[' . gmdate('d-M-Y H:i:s') . ' UTC] [KANBAN_AJAX] Permission denied for user');
             wp_send_json_error(array('message' => __('Permission denied.', 'operations-organizer')), 403);
             return;
         }
         
-        // Log all received POST data for debugging
-        oo_log('[KANBAN_AJAX] Raw POST data: ' . print_r($_POST, true), __METHOD__);
+        // Log all received POST data for debugging (using error_log for consistency)
+        error_log('[' . gmdate('d-M-Y H:i:s') . ' UTC] [KANBAN_AJAX] Raw POST data: ' . print_r($_POST, true));
         
         // Sanitize input
         $job_stream_id = isset($_POST['job_stream_id']) ? intval($_POST['job_stream_id']) : 0;
@@ -53,26 +54,26 @@ class OO_Kanban_AJAX {
         $to_phase_id = isset($_POST['to_phase_id']) ? intval($_POST['to_phase_id']) : 0;
         $notes = isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : '';
         
-        oo_log('[KANBAN_AJAX] Parsed values - job_stream_id: ' . $job_stream_id . ', from_phase_id: ' . ($from_phase_id ?: 'NULL') . ', to_phase_id: ' . $to_phase_id . ', notes: "' . $notes . '"', __METHOD__);
-        oo_log('[KANBAN_AJAX] Notes length: ' . strlen($notes), __METHOD__);
+        error_log('[' . gmdate('d-M-Y H:i:s') . ' UTC] [KANBAN_AJAX] Parsed values - job_stream_id: ' . $job_stream_id . ', from_phase_id: ' . ($from_phase_id ?: 'NULL') . ', to_phase_id: ' . $to_phase_id . ', notes: "' . $notes . '"');
+        error_log('[' . gmdate('d-M-Y H:i:s') . ' UTC] [KANBAN_AJAX] Notes length: ' . strlen($notes));
         
         // Validate required fields
         if (empty($job_stream_id) || empty($to_phase_id)) {
-            oo_log('[KANBAN_AJAX] Missing required fields - job_stream_id: ' . $job_stream_id . ', to_phase_id: ' . $to_phase_id, __METHOD__);
+            error_log('[' . gmdate('d-M-Y H:i:s') . ' UTC] [KANBAN_AJAX] Missing required fields - job_stream_id: ' . $job_stream_id . ', to_phase_id: ' . $to_phase_id);
             wp_send_json_error(array('message' => __('Missing required fields.', 'operations-organizer')));
             return;
         }
         
         // Validate that notes are provided
         if (empty(trim($notes))) {
-            oo_log('[KANBAN_AJAX] Missing required notes field - received: "' . $notes . '"', __METHOD__);
+            error_log('[' . gmdate('d-M-Y H:i:s') . ' UTC] [KANBAN_AJAX] Missing required notes field - received: "' . $notes . '"');
             wp_send_json_error(array('message' => __('A note is required for phase changes.', 'operations-organizer')));
             return;
         }
         
         // Don't process if moving to same phase
         if ($from_phase_id == $to_phase_id) {
-            oo_log('[KANBAN_AJAX] Attempted to move to same phase, ignoring', __METHOD__);
+            error_log('[' . gmdate('d-M-Y H:i:s') . ' UTC] [KANBAN_AJAX] Attempted to move to same phase, ignoring');
             wp_send_json_error(array('message' => __('Cannot move to the same phase.', 'operations-organizer')));
             return;
         }
@@ -98,7 +99,7 @@ class OO_Kanban_AJAX {
         );
         
         if (is_wp_error($result)) {
-            oo_log('[KANBAN_AJAX] Phase change failed: ' . $result->get_error_message(), __METHOD__);
+            error_log('[' . gmdate('d-M-Y H:i:s') . ' UTC] [KANBAN_AJAX] Phase change failed: ' . $result->get_error_message());
             wp_send_json_error(array(
                 'message' => __('Failed to update phase: ', 'operations-organizer') . $result->get_error_message()
             ));
@@ -108,7 +109,7 @@ class OO_Kanban_AJAX {
         // Get updated phase information
         $current_phase = OO_Kanban_Database::get_current_phase($job_stream_id);
         
-        oo_log('[KANBAN_AJAX] Phase change successful', __METHOD__);
+        error_log('[' . gmdate('d-M-Y H:i:s') . ' UTC] [KANBAN_AJAX] Phase change successful');
         
         wp_send_json_success(array(
             'message' => __('Phase updated successfully.', 'operations-organizer'),
