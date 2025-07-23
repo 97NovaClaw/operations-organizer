@@ -174,31 +174,53 @@
         sendPhaseChangeRequest: function(jobStreamId, fromPhaseId, toPhaseId, note) {
             const self = this;
             
+            console.log('[KANBAN_DEBUG] Sending phase change request');
+            console.log('[KANBAN_DEBUG] Job Stream ID:', jobStreamId);
+            console.log('[KANBAN_DEBUG] From Phase ID:', fromPhaseId);
+            console.log('[KANBAN_DEBUG] To Phase ID:', toPhaseId);
+            console.log('[KANBAN_DEBUG] Notes:', note);
+            console.log('[KANBAN_DEBUG] Notes length:', note ? note.length : 0);
+            
+            const ajaxData = {
+                action: 'oo_kanban_phase_change',
+                nonce: oo_kanban_data.nonce,
+                job_stream_id: jobStreamId,
+                from_phase_id: fromPhaseId,
+                to_phase_id: toPhaseId,
+                notes: note
+            };
+            
+            console.log('[KANBAN_DEBUG] Full AJAX data:', ajaxData);
+            
             $.ajax({
                 url: oo_kanban_data.ajax_url,
                 type: 'POST',
-                data: {
-                    action: 'oo_kanban_phase_change',
-                    nonce: oo_kanban_data.nonce,
-                    job_stream_id: jobStreamId,
-                    from_phase_id: fromPhaseId,
-                    to_phase_id: toPhaseId,
-                    notes: note
-                },
+                data: ajaxData,
                 success: function(response) {
+                    console.log('[KANBAN_DEBUG] AJAX Success Response:', response);
+                    
                     if (!response.success) {
+                        console.log('[KANBAN_DEBUG] Response indicates failure:', response.data);
                         // Revert the visual change
                         self.revertPhaseChange(jobStreamId, fromPhaseId, toPhaseId);
                         alert(response.data.message || oo_kanban_data.strings.error_updating);
                     } else {
+                        console.log('[KANBAN_DEBUG] Phase change successful');
                         // Show success feedback
                         self.showSuccessNotification(response.data.message);
                     }
                 },
-                error: function() {
+                error: function(xhr, status, error) {
+                    console.log('[KANBAN_DEBUG] AJAX Error:', {
+                        xhr: xhr,
+                        status: status,
+                        error: error,
+                        responseText: xhr.responseText
+                    });
+                    
                     // Revert the visual change
                     self.revertPhaseChange(jobStreamId, fromPhaseId, toPhaseId);
-                    alert(oo_kanban_data.strings.server_error);
+                    alert(oo_kanban_data.strings.server_error + ' Details: ' + error);
                 }
             });
         },
@@ -424,7 +446,12 @@
                 console.log('[KANBAN_DEBUG] Form submitted');
                 
                 const note = $('#kanban-phase-change-note').val().trim();
+                console.log('[KANBAN_DEBUG] Note from form:', note);
+                console.log('[KANBAN_DEBUG] Note length:', note ? note.length : 0);
+                console.log('[KANBAN_DEBUG] Raw form value:', $('#kanban-phase-change-note').val());
+                
                 if (!note) {
+                    console.log('[KANBAN_DEBUG] Note validation failed - empty note');
                     alert('Please enter a note for this phase change.');
                     $('#kanban-phase-change-note').addClass('error').focus();
                     return;
@@ -440,6 +467,8 @@
                     return;
                 }
                 
+                console.log('[KANBAN_DEBUG] About to hide modal and send request');
+                
                 // Hide modal
                 $('#kanban-phase-change-modal').hide();
                 
@@ -450,6 +479,7 @@
                 self.updatePhaseCounts(data.fromPhaseId, data.toPhaseId);
                 
                 // Send AJAX request
+                console.log('[KANBAN_DEBUG] Calling sendPhaseChangeRequest with note:', note);
                 self.sendPhaseChangeRequest(data.jobStreamId, data.fromPhaseId, data.toPhaseId, note);
                 
                 // Clear the pending change data

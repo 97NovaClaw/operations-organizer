@@ -44,11 +44,17 @@ class OO_Kanban_AJAX {
             return;
         }
         
+        // Log all received POST data for debugging
+        oo_log('[KANBAN_AJAX] Raw POST data: ' . print_r($_POST, true), __METHOD__);
+        
         // Sanitize input
         $job_stream_id = isset($_POST['job_stream_id']) ? intval($_POST['job_stream_id']) : 0;
         $from_phase_id = isset($_POST['from_phase_id']) ? intval($_POST['from_phase_id']) : null;
         $to_phase_id = isset($_POST['to_phase_id']) ? intval($_POST['to_phase_id']) : 0;
         $notes = isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : '';
+        
+        oo_log('[KANBAN_AJAX] Parsed values - job_stream_id: ' . $job_stream_id . ', from_phase_id: ' . ($from_phase_id ?: 'NULL') . ', to_phase_id: ' . $to_phase_id . ', notes: "' . $notes . '"', __METHOD__);
+        oo_log('[KANBAN_AJAX] Notes length: ' . strlen($notes), __METHOD__);
         
         // Validate required fields
         if (empty($job_stream_id) || empty($to_phase_id)) {
@@ -59,7 +65,7 @@ class OO_Kanban_AJAX {
         
         // Validate that notes are provided
         if (empty(trim($notes))) {
-            oo_log('[KANBAN_AJAX] Missing required notes field', __METHOD__);
+            oo_log('[KANBAN_AJAX] Missing required notes field - received: "' . $notes . '"', __METHOD__);
             wp_send_json_error(array('message' => __('A note is required for phase changes.', 'operations-organizer')));
             return;
         }
