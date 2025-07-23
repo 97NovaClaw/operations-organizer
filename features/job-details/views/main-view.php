@@ -136,28 +136,78 @@ if (!empty($job->company_id)) {
                          data-stream-id="<?php echo esc_attr($job_stream->stream_id); ?>"
                          data-job-stream-id="<?php echo esc_attr($job_stream->job_stream_id); ?>">
                         <?php 
-                        // Use stream-specific template if it exists, otherwise use generic template
+                        // Set up variables for the tab content
                         $stream_id = $job_stream->stream_id;
                         $stream_slug = $job_stream->stream_slug;
                         
-                        // Check for stream-specific template
-                        $stream_template_path = __DIR__ . '/stream-templates/' . $stream_slug . '-tab.php';
+                        // Get feature sets for this stream
+                        $stream_feature_sets = function_exists('oo_get_feature_sets_for_stream') ? 
+                            oo_get_feature_sets_for_stream($stream_id, 1) : array();
                         
-                        if (file_exists($stream_template_path)) {
-                            // Use stream-specific template
-                            include $stream_template_path;
-                        } else {
-                            // Check if there's a hook for this stream
-                            $hook_name = 'oo_job_details_stream_tab_' . str_replace('-', '_', $stream_slug);
-                            if (has_action($hook_name)) {
-                                // Use hook-based content
-                                do_action($hook_name, $job, $job_stream, $stream_id);
-                            } else {
-                                // Use generic template
-                                include __DIR__ . '/tab-content-view.php';
+                        // Check if stream has operational tools feature set
+                        $has_operational_tools = false;
+                        foreach ($stream_feature_sets as $fs) {
+                            if ($fs->feature_set_slug === 'operational_tools') {
+                                $has_operational_tools = true;
+                                break;
                             }
                         }
                         ?>
+                        
+                        <div class="oo-stream-tab-wrapper" data-stream-slug="<?php echo esc_attr($stream_slug); ?>">
+                            <?php 
+                            // Allow features to add content at the very beginning
+                            do_action('oo_job_details_tab_start_' . $stream_slug, $job, $job_stream, $stream_id);
+                            
+                            // If stream has operational tools, show the standard job management interface
+                            if ($has_operational_tools) {
+                                include __DIR__ . '/tab-content-view.php';
+                            } else {
+                                // No operational tools - show a message
+                                ?>
+                                <div class="oo-notice oo-info">
+                                    <p><?php echo sprintf(
+                                        __('The %s stream does not have operational tools enabled. Job tracking features are not available for this stream.', 'operations-organizer'),
+                                        esc_html($job_stream->stream_name)
+                                    ); ?></p>
+                                </div>
+                                <?php
+                            }
+                            
+                            // Render feature set content for this stream
+                            if (!empty($stream_feature_sets)) {
+                                ?>
+                                <div class="oo-feature-sets-content">
+                                    <?php
+                                    foreach ($stream_feature_sets as $feature_set) {
+                                        if ($feature_set->feature_set_slug !== 'operational_tools') {
+                                            // Render non-operational feature sets
+                                            echo '<div class="oo-feature-set-section" data-feature-set="' . esc_attr($feature_set->feature_set_slug) . '">';
+                                            
+                                            // Use the feature set rendering function if available
+                                            if (function_exists('oo_render_feature_set_content')) {
+                                                echo oo_render_feature_set_content($stream_slug, $feature_set->feature_set_slug, array(
+                                                    'context' => 'job_details',
+                                                    'job' => $job,
+                                                    'job_stream' => $job_stream
+                                                ));
+                                            } else {
+                                                // Fallback hook for feature sets
+                                                do_action('oo_job_details_feature_set_' . $feature_set->feature_set_slug, $job, $job_stream, $stream_id);
+                                            }
+                                            
+                                            echo '</div>';
+                                        }
+                                    }
+                                    ?>
+                                </div>
+                                <?php
+                            }
+                            
+                            // Allow features to add content at the end
+                            do_action('oo_job_details_tab_end_' . $stream_slug, $job, $job_stream, $stream_id);
+                            ?>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>

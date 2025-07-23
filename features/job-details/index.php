@@ -17,19 +17,27 @@ job-details/
 ├── ajax.php           # AJAX handlers
 ├── views/
 │   ├── main-view.php         # Main job details page
-│   ├── tab-content-view.php  # Generic stream tab content template
-│   └── stream-templates/     # Stream-specific tab templates
-│       └── {stream-slug}-tab.php  # Optional custom templates
+│   ├── tab-content-view.php  # Operational tools template (phase selector, logs, etc.)
+│   └── stream-templates/     # DEPRECATED - No longer used
 
-Stream Tab Display Logic:
-1. Check for stream-specific template file (e.g., art-tab.php)
-2. Check for stream-specific hook (e.g., oo_job_details_stream_tab_art)
-3. Fall back to generic tab-content-view.php template
+Stream Tab Display Logic (v1.5.3.12+):
+1. Get feature sets assigned to the stream
+2. If stream has "operational_tools" feature set, display tab-content-view.php
+3. Render all other feature sets in designated areas
+4. Use hooks for custom extensions
 
 Available Hooks:
-- oo_job_details_stream_tab_{stream_slug} - Replace entire tab content
-- oo_job_details_before_logs_{stream_slug} - Add content before logs section
-- oo_job_details_after_content_{stream_slug} - Add content after tab content
+- oo_job_details_tab_start_{stream_slug} - Add content at tab beginning
+- oo_job_details_tab_end_{stream_slug} - Add content at tab end
+- oo_job_details_before_logs_{stream_slug} - Add content before logs (if operational tools enabled)
+- oo_job_details_after_content_{stream_slug} - Add content after operational tools
+- oo_job_details_feature_set_{feature_set_slug} - Fallback for feature set rendering
+
+Key Benefits:
+- Streams automatically inherit their feature sets configuration
+- No manual template creation needed for new streams
+- Consistent with stream dashboard pages
+- Plugin update safe - no custom templates to maintain
 */
 
 class OO_Job_Details_Feature {

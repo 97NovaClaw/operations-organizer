@@ -1,56 +1,52 @@
-# Stream-Specific Templates for Job Details
+# Stream Templates Directory (DEPRECATED)
 
-This directory contains stream-specific templates for the job details page tabs.
+**Note: This directory is no longer used as of version 1.5.3.12**
 
-## How It Works
+The job details stream tabs now use a fully dynamic approach that leverages the existing feature set system.
 
-When displaying a stream tab on the job details page, the system will:
+## How Stream Tabs Work Now
 
-1. First check if a stream-specific template exists in this directory
-2. If found, use the stream-specific template
-3. If not found, fall back to the generic `tab-content-view.php` template
+When displaying a stream tab on the job details page, the system:
 
-## Creating a Stream-Specific Template
+1. **Checks for Feature Sets** - Gets all active feature sets assigned to the stream
+2. **Operational Tools Check** - If the stream has the "operational_tools" feature set, it displays the standard job management interface (phase selector, logs, etc.)
+3. **Renders Feature Sets** - All other feature sets are rendered in their designated areas
+4. **Uses Hooks** - Provides hooks for extensions to add custom content
 
-To create a custom template for a stream:
+## Dynamic Content Areas
 
-1. Create a new PHP file in this directory named: `{stream-slug}-tab.php`
-   - For example: `art-tab.php`, `content-tab.php`, `electronics-tab.php`
-   
-2. The template will have access to these variables:
-   - `$job` - The job object
-   - `$job_stream` - The job stream link object (contains job_stream_id, status_in_stream, etc.)
-   - `$stream_id` - The stream ID
-   - `$stream_slug` - The stream slug
+Each stream tab now has these dynamic areas:
 
-3. You can include any custom functionality, layouts, or features specific to that stream
+- **Start Hook**: `oo_job_details_tab_start_{stream_slug}` - Add content at the beginning
+- **Operational Tools**: Standard job management interface (if enabled)
+- **Feature Sets**: Automatically rendered based on stream configuration
+- **End Hook**: `oo_job_details_tab_end_{stream_slug}` - Add content at the end
 
-## Example Template Structure
+## Benefits of the New Approach
+
+- **No Manual Templates**: New streams work automatically based on their feature sets
+- **Consistent with Stream Pages**: Uses the same feature set system as the main stream dashboard
+- **Plugin Update Safe**: No custom templates to maintain across updates
+- **Truly Modular**: Feature sets can be assigned/removed without code changes
+
+## Example: Adding Custom Content
+
+To add custom content to a specific stream's job details tab:
 
 ```php
-<?php
-/**
- * Custom tab template for [Stream Name] stream
- */
-
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
-}
-
-// Your custom stream-specific content here
-?>
-
-<div class="custom-stream-tab">
-    <h3><?php echo esc_html($job_stream->stream_name); ?> Details</h3>
-    
-    <!-- Custom content specific to this stream -->
-    
-</div>
+// In your custom plugin or theme
+add_action('oo_job_details_tab_start_art', function($job, $job_stream, $stream_id) {
+    ?>
+    <div class="custom-art-notice">
+        <p>Special instructions for Art stream jobs...</p>
+    </div>
+    <?php
+}, 10, 3);
 ```
 
-## Benefits
+## Legacy Support
 
-- Each stream can have its own unique layout and functionality
-- New streams automatically work with the generic template
-- Easy to add custom features for specific streams without affecting others
-- Maintains backward compatibility 
+If you have existing custom templates in this directory, they will be ignored. Please migrate any custom functionality to:
+1. Feature sets (recommended)
+2. Action hooks
+3. Custom plugins 
