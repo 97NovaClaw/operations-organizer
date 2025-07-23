@@ -163,6 +163,7 @@ class OO_Master_Log_AJAX {
                 ),
                 'user' => esc_html($log->user_display_name),
                 'description' => OO_Master_Log_Formatters::format_activity($log),
+                'user_note' => self::format_user_note($log),
                 'stream' => self::format_streams_display($log),
                 'actions' => sprintf(
                     '<button class="button button-small view-details" data-log-id="%d">View Details</button>',
@@ -333,6 +334,31 @@ class OO_Master_Log_AJAX {
         
         fclose($output);
         exit;
+    }
+    
+    /**
+     * Format user note for display
+     * 
+     * @param object $log Log entry
+     * @return string Formatted user note
+     */
+    private static function format_user_note($log) {
+        if (empty($log->user_notes)) {
+            return '<span class="no-note">-</span>';
+        }
+        
+        $note = esc_html($log->user_notes);
+        
+        // If note is long, truncate with tooltip
+        if (strlen($note) > 50) {
+            return sprintf(
+                '<span class="truncated-note" title="%s">%s...</span>',
+                esc_attr($log->user_notes),
+                esc_html(substr($log->user_notes, 0, 47))
+            );
+        }
+        
+        return $note;
     }
     
     /**

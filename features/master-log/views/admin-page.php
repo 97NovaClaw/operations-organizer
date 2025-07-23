@@ -69,6 +69,7 @@ $activity_types = OO_Master_Log_Database::get_activity_types();
                     <th><?php _e('Activity', 'operations-organizer'); ?></th>
                     <th><?php _e('User', 'operations-organizer'); ?></th>
                     <th><?php _e('Description', 'operations-organizer'); ?></th>
+                    <th><?php _e('User Note', 'operations-organizer'); ?></th>
                     <th><?php _e('Stream', 'operations-organizer'); ?></th>
                     <th><?php _e('Actions', 'operations-organizer'); ?></th>
                 </tr>
@@ -182,6 +183,17 @@ $activity_types = OO_Master_Log_Database::get_activity_types();
     white-space: pre-wrap;
     word-wrap: break-word;
 }
+
+/* User note styles */
+.no-note {
+    color: #999;
+    font-style: italic;
+}
+
+.truncated-note {
+    cursor: help;
+    border-bottom: 1px dotted #666;
+}
 </style>
 
 <script>
@@ -209,6 +221,7 @@ jQuery(document).ready(function($) {
             { data: 'activity' },
             { data: 'user' },
             { data: 'description' },
+            { data: 'user_note' },
             { data: 'stream' },
             { data: 'actions' }
         ],

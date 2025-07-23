@@ -37,17 +37,11 @@ class OO_Master_Log_Formatters {
         $from = !empty($metadata['from_phase_name']) ? $metadata['from_phase_name'] : 'Start';
         $to = $metadata['to_phase_name'] ?? 'Unknown';
         
-        $description = sprintf(
+        return sprintf(
             'moved from <strong>%s</strong> to <strong>%s</strong>',
             esc_html($from),
             esc_html($to)
         );
-        
-        if (!empty($log->user_notes)) {
-            $description .= sprintf(' with note: "<em>%s</em>"', esc_html($log->user_notes));
-        }
-        
-        return $description;
     }
     
     /**
@@ -142,17 +136,10 @@ class OO_Master_Log_Formatters {
         $metadata = is_array($log->metadata) ? $log->metadata : json_decode($log->metadata, true);
         $note_type = $metadata['note_type'] ?? 'general';
         
-        $description = sprintf(
+        return sprintf(
             'added a %s note',
             esc_html($note_type)
         );
-        
-        if (!empty($log->user_notes)) {
-            $truncated = wp_trim_words($log->user_notes, 20, '...');
-            $description .= sprintf(': "<em>%s</em>"', esc_html($truncated));
-        }
-        
-        return $description;
     }
     
     /**
@@ -204,15 +191,6 @@ class OO_Master_Log_Formatters {
      */
     private static function format_default($log) {
         $activity = str_replace('_', ' ', strtolower($log->activity_type));
-        
-        if (!empty($log->user_notes)) {
-            return sprintf(
-                '%s: "%s"',
-                esc_html($activity),
-                esc_html(wp_trim_words($log->user_notes, 20, '...'))
-            );
-        }
-        
         return esc_html($activity);
     }
     
