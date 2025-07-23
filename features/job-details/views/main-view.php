@@ -144,10 +144,16 @@ if (!empty($job->company_id)) {
                         $stream_feature_sets = function_exists('oo_get_feature_sets_for_stream') ? 
                             oo_get_feature_sets_for_stream($stream_id, 1) : array();
                         
+                        error_log('[JOB_DETAILS_DEBUG] Stream: ' . $job_stream->stream_name . ' (ID: ' . $stream_id . ')');
+                        error_log('[JOB_DETAILS_DEBUG] Feature sets found: ' . count($stream_feature_sets));
+                        foreach ($stream_feature_sets as $fs) {
+                            error_log('[JOB_DETAILS_DEBUG] Feature set: ' . $fs->name . ' (slug: ' . $fs->slug . ')');
+                        }
+                        
                         // Check if stream has operational tools feature set
                         $has_operational_tools = false;
                         foreach ($stream_feature_sets as $fs) {
-                            if ($fs->feature_set_slug === 'operational_tools') {
+                            if ($fs->slug === 'operational_tools') {
                                 $has_operational_tools = true;
                                 break;
                             }
@@ -180,20 +186,20 @@ if (!empty($job->company_id)) {
                                 <div class="oo-feature-sets-content">
                                     <?php
                                     foreach ($stream_feature_sets as $feature_set) {
-                                        if ($feature_set->feature_set_slug !== 'operational_tools') {
+                                        if ($feature_set->slug !== 'operational_tools') {
                                             // Render non-operational feature sets
-                                            echo '<div class="oo-feature-set-section" data-feature-set="' . esc_attr($feature_set->feature_set_slug) . '">';
+                                            echo '<div class="oo-feature-set-section" data-feature-set="' . esc_attr($feature_set->slug) . '">';
                                             
                                             // Use the feature set rendering function if available
                                             if (function_exists('oo_render_feature_set_content')) {
-                                                echo oo_render_feature_set_content($stream_slug, $feature_set->feature_set_slug, array(
+                                                echo oo_render_feature_set_content($stream_slug, $feature_set->slug, array(
                                                     'context' => 'job_details',
                                                     'job' => $job,
                                                     'job_stream' => $job_stream
                                                 ));
                                             } else {
                                                 // Fallback hook for feature sets
-                                                do_action('oo_job_details_feature_set_' . $feature_set->feature_set_slug, $job, $job_stream, $stream_id);
+                                                do_action('oo_job_details_feature_set_' . $feature_set->slug, $job, $job_stream, $stream_id);
                                             }
                                             
                                             echo '</div>';

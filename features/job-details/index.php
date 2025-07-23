@@ -116,13 +116,22 @@ class OO_Job_Details_Feature {
         $job_streams_table = $wpdb->prefix . 'oo_job_streams_link';
         $streams_table = $wpdb->prefix . 'oo_streams';
         
-        $job_streams = $wpdb->get_results($wpdb->prepare("
+        $job_streams_query = $wpdb->prepare("
             SELECT js.*, s.stream_name, s.stream_slug
             FROM {$job_streams_table} js
             INNER JOIN {$streams_table} s ON js.stream_id = s.stream_id
             WHERE js.job_id = %d
             ORDER BY s.stream_name ASC
-        ", $job_id));
+        ", $job_id);
+        
+        error_log('[JOB_DETAILS_DEBUG] Job streams query: ' . $job_streams_query);
+        
+        $job_streams = $wpdb->get_results($job_streams_query);
+        
+        error_log('[JOB_DETAILS_DEBUG] Job streams found: ' . count($job_streams));
+        foreach ($job_streams as $js) {
+            error_log('[JOB_DETAILS_DEBUG] Stream: ' . $js->stream_name . ' (ID: ' . $js->stream_id . ', Slug: ' . $js->stream_slug . ')');
+        }
         
         // Include the main view
         include __DIR__ . '/views/main-view.php';
