@@ -17,7 +17,19 @@ job-details/
 ├── ajax.php           # AJAX handlers
 ├── views/
 │   ├── main-view.php         # Main job details page
-│   └── tab-content-view.php  # Stream tab content template
+│   ├── tab-content-view.php  # Generic stream tab content template
+│   └── stream-templates/     # Stream-specific tab templates
+│       └── {stream-slug}-tab.php  # Optional custom templates
+
+Stream Tab Display Logic:
+1. Check for stream-specific template file (e.g., art-tab.php)
+2. Check for stream-specific hook (e.g., oo_job_details_stream_tab_art)
+3. Fall back to generic tab-content-view.php template
+
+Available Hooks:
+- oo_job_details_stream_tab_{stream_slug} - Replace entire tab content
+- oo_job_details_before_logs_{stream_slug} - Add content before logs section
+- oo_job_details_after_content_{stream_slug} - Add content after tab content
 */
 
 class OO_Job_Details_Feature {

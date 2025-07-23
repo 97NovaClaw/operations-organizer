@@ -136,9 +136,27 @@ if (!empty($job->company_id)) {
                          data-stream-id="<?php echo esc_attr($job_stream->stream_id); ?>"
                          data-job-stream-id="<?php echo esc_attr($job_stream->job_stream_id); ?>">
                         <?php 
-                        // Include the tab content view
+                        // Use stream-specific template if it exists, otherwise use generic template
                         $stream_id = $job_stream->stream_id;
-                        include __DIR__ . '/tab-content-view.php';
+                        $stream_slug = $job_stream->stream_slug;
+                        
+                        // Check for stream-specific template
+                        $stream_template_path = __DIR__ . '/stream-templates/' . $stream_slug . '-tab.php';
+                        
+                        if (file_exists($stream_template_path)) {
+                            // Use stream-specific template
+                            include $stream_template_path;
+                        } else {
+                            // Check if there's a hook for this stream
+                            $hook_name = 'oo_job_details_stream_tab_' . str_replace('-', '_', $stream_slug);
+                            if (has_action($hook_name)) {
+                                // Use hook-based content
+                                do_action($hook_name, $job, $job_stream, $stream_id);
+                            } else {
+                                // Use generic template
+                                include __DIR__ . '/tab-content-view.php';
+                            }
+                        }
                         ?>
                     </div>
                 <?php endforeach; ?>

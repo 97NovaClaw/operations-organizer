@@ -89,6 +89,11 @@ $employees = OO_Employee::get_employees();
     </div>
     <?php endif; ?>
     
+    <?php 
+    // Allow features to add content before the job logs section
+    do_action('oo_job_details_before_logs_' . $stream_slug, $job, $job_stream, $stream_id);
+    ?>
+    
     <!-- Job Logs Section -->
     <div class="oo-job-logs-section">
         <h3><?php esc_html_e('Detailed Job Logs', 'operations-organizer'); ?></h3>
@@ -197,6 +202,11 @@ $employees = OO_Employee::get_employees();
         </form>
     </div>
 </div>
+
+<?php 
+// Allow features to add content after the main tab content
+do_action('oo_job_details_after_content_' . $stream_slug, $job, $job_stream, $stream_id);
+?>
 
 <!-- Activity Log Modal (shared across all tabs) -->
 <div id="job-details-activity-log-modal" class="oo-modal" style="display:none;">
