@@ -170,14 +170,12 @@ jQuery(document).ready(function($) {
      * Show activity log modal
      */
     function showActivityLog(jobStreamId) {
-        // Determine which system to use based on available nonces
-        var useStreamDashboard = typeof oo_data !== 'undefined' && oo_data.nonce_activity_log;
+        // Always use the job details activity log system for consistency
+        var modalId = '#job-details-activity-log-modal';
+        var action = 'oo_job_details_get_activity_log';
+        var nonce = oo_job_details_data.nonce;
         
-        var modalId = useStreamDashboard ? '#stream-activity-log-modal' : '#job-details-activity-log-modal';
-        var action = useStreamDashboard ? 'oo_stream_dashboard_get_activity_log' : 'oo_job_details_get_activity_log';
-        var nonce = useStreamDashboard ? oo_data.nonce_activity_log : oo_job_details_data.nonce;
-        
-        console.log('[DEBUG] Activity log - Using:', useStreamDashboard ? 'Stream Dashboard' : 'Job Details', 'system');
+        console.log('[DEBUG] Activity log - Using Job Details system');
         console.log('[DEBUG] Modal ID:', modalId);
         console.log('[DEBUG] Action:', action);
         
@@ -185,8 +183,17 @@ jQuery(document).ready(function($) {
         var $loading = $modal.find('.activity-log-loading');
         var $content = $modal.find('.activity-log-content');
         
+        console.log('[DEBUG] Modal element found:', $modal.length > 0);
+        console.log('[DEBUG] Modal current display:', $modal.css('display'));
+        console.log('[DEBUG] Modal visibility:', $modal.is(':visible'));
+        console.log('[DEBUG] Modal element:', $modal[0]);
+        
         // Show modal with loading state
+        console.log('[DEBUG] About to show modal...');
         $modal.fadeIn();
+        console.log('[DEBUG] Modal display after fadeIn:', $modal.css('display'));
+        console.log('[DEBUG] Modal visibility after fadeIn:', $modal.is(':visible'));
+        
         $loading.show();
         $content.hide();
         
