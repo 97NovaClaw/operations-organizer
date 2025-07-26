@@ -867,14 +867,14 @@
 }
 
 .oo-job-form-column {
-    flex: 3;
+    flex: 2;
     min-width: 0; /* Prevents flex item from growing beyond container */
     /* Remove max-width to allow full page utilization */
 }
 
 .oo-job-list-column {
-    flex: 2;
-    min-width: 350px; /* Ensure jobs list has enough space for table content */
+    flex: 1;
+    min-width: 300px; /* Ensure jobs list has enough space for table content */
     width: 100%;
     background: #fff;
     border: 1px solid #ccd0d4;
