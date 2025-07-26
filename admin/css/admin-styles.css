@@ -861,13 +861,14 @@
 }
 
 .oo-job-form-column {
-    flex: 2;
+    flex: 3;
     min-width: 0; /* Prevents flex item from growing beyond container */
-    max-width: 1000px; /* Reasonable max width to prevent form from getting too wide */
+    max-width: 900px; /* Reasonable max width to prevent form from getting too wide */
 }
 
 .oo-job-list-column {
-    flex: 1;
+    flex: 2;
+    min-width: 400px; /* Ensure jobs list has enough space for table content */
     background: #fff;
     border: 1px solid #ccd0d4;
     border-radius: 4px;
@@ -975,7 +976,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 1200px) {
+@media (max-width: 1100px) {
     .oo-job-management-layout {
         flex-direction: column;
     }
@@ -984,6 +985,7 @@
     .oo-job-list-column {
         flex: none;
         width: 100%;
+        min-width: auto;
     }
     
     .oo-job-list-column {
