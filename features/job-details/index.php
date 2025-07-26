@@ -116,13 +116,22 @@ class OO_Job_Details_Feature {
         $job_streams_table = $wpdb->prefix . 'oo_job_streams_link';
         $streams_table = $wpdb->prefix . 'oo_streams';
         
-        $job_streams = $wpdb->get_results($wpdb->prepare("
+        $job_streams_query = $wpdb->prepare("
             SELECT js.*, s.stream_name, s.stream_slug
             FROM {$job_streams_table} js
             INNER JOIN {$streams_table} s ON js.stream_id = s.stream_id
-            WHERE js.job_id = %d
+            WHERE js.job_id = %d AND s.is_active = 1
             ORDER BY s.stream_name ASC
-        ", $job_id));
+        ", $job_id);
+        
+        error_log('[JOB_DETAILS_DEBUG] Job streams query: ' . $job_streams_query);
+
+        $job_streams = $wpdb->get_results($job_streams_query);
+
+        if (empty($job_streams)) {
+            echo '<p>' . esc_html__('No streams are currently assigned to this job.', 'operations-organizer') . '</p>';
+            return;
+        }
         
         // Include the main view
         include __DIR__ . '/views/main-view.php';
@@ -145,11 +154,15 @@ class OO_Job_Details_Feature {
             OO_PLUGIN_VERSION
         );
         
+        // Enqueue DataTables for advanced table functionality
+        wp_enqueue_script('datatables', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', array('jquery'), '1.13.6', true);
+        wp_enqueue_style('datatables-css', 'https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css');
+        
         // Enqueue JavaScript
         wp_enqueue_script(
             'oo-job-details-script',
             OO_PLUGIN_URL . 'assets/js/features/job-details/main.js',
-            array('jquery'),
+            array('jquery', 'datatables'),
             OO_PLUGIN_VERSION,
             true
         );
@@ -158,6 +171,7 @@ class OO_Job_Details_Feature {
         wp_localize_script('oo-job-details-script', 'oo_job_details_data', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('oo_job_details_nonce'),
+            'dashboard_nonce' => wp_create_nonce('oo_dashboard_nonce'),
             'job_id' => isset($_GET['job_id']) ? intval($_GET['job_id']) : 0,
             'strings' => array(
                 'error_updating' => __('Error: Could not update phase.', 'operations-organizer'),

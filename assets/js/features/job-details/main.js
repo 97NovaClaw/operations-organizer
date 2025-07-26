@@ -57,18 +57,7 @@ jQuery(document).ready(function($) {
         $(this).data('previous-value', $(this).val());
     });
     
-    // Apply log filters
-    $('.oo-apply-log-filters').on('click', function() {
-        var $panel = $(this).closest('.oo-tab-panel');
-        loadLogsForTab($panel);
-    });
-    
-    // Reset log filters
-    $('.oo-reset-log-filters').on('click', function() {
-        var $panel = $(this).closest('.oo-tab-panel');
-        $panel.find('.oo-log-filter').val('');
-        loadLogsForTab($panel);
-    });
+    // Apply/Reset log filters are now handled inside loadLogsForTab function
     
     // View activity log
     $('.oo-view-activity-log').on('click', function() {
@@ -89,82 +78,88 @@ jQuery(document).ready(function($) {
     });
     
     /**
-     * Load logs for a specific tab
+     * Load logs for a specific tab using DataTables
      */
     function loadLogsForTab($panel) {
         var streamId = $panel.data('stream-id');
-        var $tbody = $panel.find('.oo-logs-table tbody');
+        var $table = $panel.find('.oo-logs-table');
+        var tableId = 'job-details-logs-table-' + streamId;
         
-        // Show loading
-        $tbody.html('<tr><td colspan="6" class="oo-loading-message">' + 
-                   'Loading logs...' + '</td></tr>');
+        // Set unique ID for this table
+        $table.attr('id', tableId);
         
-        // Collect filter values
-        var filters = {
-            action: 'oo_job_details_get_logs',
-            nonce: oo_job_details_data.nonce,
-            job_id: oo_job_details_data.job_id,
-            stream_id: streamId
-        };
+        // Destroy existing DataTable if it exists
+        if ($.fn.DataTable.isDataTable('#' + tableId)) {
+            $('#' + tableId).DataTable().destroy();
+        }
         
-        $panel.find('.oo-log-filter').each(function() {
-            var filterType = $(this).data('filter');
-            var value = $(this).val();
-            if (value) {
-                if (filterType === 'employee' || filterType === 'phase') {
-                    filters[filterType + '_id'] = value;
-                } else {
-                    filters[filterType] = value;
+        // Initialize DataTable with the same system as stream dashboard
+        var logsTable = $table.DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: oo_job_details_data.ajax_url,
+                type: 'POST',
+                data: function(d) {
+                    d.action = 'oo_get_dashboard_data';
+                    d.nonce = oo_job_details_data.dashboard_nonce || oo_job_details_data.nonce;
+                    d.filter_employee_id = $panel.find('[data-filter="employee"]').val();
+                    d.filter_phase_id = $panel.find('[data-filter="phase"]').val();
+                    d.filter_date_from = $panel.find('[data-filter="date_from"]').val();
+                    d.filter_date_to = $panel.find('[data-filter="date_to"]').val();
+                    d.filter_stream_id = streamId;
+                    d.filter_job_id = oo_job_details_data.job_id; // Add job filter
+                    d.selected_columns_config = [];
+                    
+                    console.log('Sending job details logs request data:', d);
+                    return d;
+                },
+                dataSrc: function(json) {
+                    console.log('Received job details logs response:', json);
+                    if (json && json.success === true && json.data && json.data.data) {
+                        return json.data.data;
+                    }
+                    return json.data || [];
+                },
+                error: function(xhr, error, thrown) {
+                    console.error('Job Details DataTables AJAX error:', error, thrown, xhr.responseText);
+                    alert('Error loading job log data: ' + error);
                 }
+            },
+            columns: [
+                { data: 'employee_name', title: 'Employee' },
+                { data: 'phase_name', title: 'Phase' },
+                { data: 'start_time', title: 'Start Time' },
+                { data: 'end_time', title: 'End Time', defaultContent: '-' },
+                { data: 'status', title: 'Status' },
+                { data: 'notes', title: 'Notes', defaultContent: '-' }
+            ],
+            order: [[2, 'desc']], // Order by start_time descending
+            pageLength: 25,
+            responsive: true,
+            language: {
+                emptyTable: "No logs found for this job in this stream",
+                zeroRecords: "No logs match the current filters"
             }
         });
         
-        // Make AJAX request
-        $.ajax({
-            url: oo_job_details_data.ajax_url,
-            type: 'POST',
-            data: filters,
-            success: function(response) {
-                if (response.success && response.data.logs) {
-                    renderLogs($tbody, response.data.logs);
-                    $panel.data('logs-loaded', true);
-                } else {
-                    $tbody.html('<tr><td colspan="6" class="oo-no-logs">' + 
-                               'No logs found.' + '</td></tr>');
-                }
-            },
-            error: function() {
-                $tbody.html('<tr><td colspan="6" class="oo-error-message">' + 
-                           'Error loading logs.' + '</td></tr>');
-            }
+        // Store table reference and mark as loaded
+        $panel.data('logs-table', logsTable);
+        $panel.data('logs-loaded', true);
+        
+        // Apply filters functionality
+        $panel.find('.oo-apply-log-filters').off('click').on('click', function() {
+            logsTable.ajax.reload();
+        });
+        
+        // Reset filters functionality
+        $panel.find('.oo-reset-log-filters').off('click').on('click', function() {
+            $panel.find('.oo-log-filter').val('');
+            logsTable.ajax.reload();
         });
     }
     
-    /**
-     * Render logs in the table
-     */
-    function renderLogs($tbody, logs) {
-        if (logs.length === 0) {
-            $tbody.html('<tr><td colspan="6" class="oo-no-logs">' + 
-                       'No logs found.' + '</td></tr>');
-            return;
-        }
-        
-        var html = '';
-        $.each(logs, function(index, log) {
-            html += '<tr>';
-            html += '<td>' + escapeHtml(log.employee_name) + '</td>';
-            html += '<td>' + escapeHtml(log.phase_name) + '</td>';
-            html += '<td>' + formatDateTime(log.start_time) + '</td>';
-            html += '<td>' + (log.end_time ? formatDateTime(log.end_time) : '-') + '</td>';
-            html += '<td><span class="oo-status-' + log.status + '">' + 
-                    escapeHtml(log.status) + '</span></td>';
-            html += '<td>' + (log.notes ? escapeHtml(log.notes) : '-') + '</td>';
-            html += '</tr>';
-        });
-        
-        $tbody.html(html);
-    }
+
     
     /**
      * Show activity log modal

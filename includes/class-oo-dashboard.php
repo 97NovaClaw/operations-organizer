@@ -105,6 +105,7 @@ class OO_Dashboard { // Renamed class
         $search_value = isset($_POST['search']['value']) ? sanitize_text_field($_POST['search']['value']) : '';
         $filter_employee_id = isset($_POST['filter_employee_id']) && !empty($_POST['filter_employee_id']) ? intval($_POST['filter_employee_id']) : null;
         $filter_job_number = isset($_POST['filter_job_number']) && !empty($_POST['filter_job_number']) ? sanitize_text_field($_POST['filter_job_number']) : null;
+        $filter_job_id = isset($_POST['filter_job_id']) && !empty($_POST['filter_job_id']) ? intval($_POST['filter_job_id']) : null;
         $filter_phase_id = isset($_POST['filter_phase_id']) && !empty($_POST['filter_phase_id']) ? intval($_POST['filter_phase_id']) : null;
         $filter_stream_id = isset($_POST['filter_stream_id']) && !empty($_POST['filter_stream_id']) ? intval($_POST['filter_stream_id']) : null;
         $filter_date_from = isset($_POST['filter_date_from']) && !empty($_POST['filter_date_from']) ? sanitize_text_field($_POST['filter_date_from']) : null;
@@ -164,6 +165,7 @@ class OO_Dashboard { // Renamed class
             'search_general' => $search_value, 
             'employee_id'    => $filter_employee_id,
             'job_number'     => $filter_job_number,
+            'job_id'         => $filter_job_id,
             'phase_id'       => $filter_phase_id,
             'stream_id'      => $filter_stream_id,
             'date_from'      => $filter_date_from,
