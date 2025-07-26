@@ -208,31 +208,4 @@ $employees = OO_Employee::get_employees();
 do_action('oo_job_details_after_content_' . $stream_slug, $job, $job_stream, $stream_id);
 ?>
 
-<!-- Activity Log Modal (shared across all tabs) -->
-<div id="job-details-activity-log-modal" class="oo-modal" style="display:none;">
-    <div class="oo-modal-content">
-        <span class="oo-close-modal">&times;</span>
-        <h2><?php esc_html_e('Activity Log', 'operations-organizer'); ?></h2>
-        <div class="activity-log-container">
-            <div class="activity-log-loading">
-                <span class="spinner is-active"></span>
-                <p><?php esc_html_e('Loading activity log...', 'operations-organizer'); ?></p>
-            </div>
-            <div class="activity-log-content" style="display:none;"></div>
-        </div>
-    </div>
-</div>
-
-<!-- Stream Dashboard Activity Log Modal (for modular streams) -->
-<div id="stream-activity-log-modal" class="oo-modal" style="display:none;">
-    <div class="oo-modal-content">
-        <span class="oo-modal-close">&times;</span>
-        <h2><?php esc_html_e('Activity Log', 'operations-organizer'); ?></h2>
-        <div class="activity-log-loading">
-            <p><?php esc_html_e('Loading activity log...', 'operations-organizer'); ?></p>
-        </div>
-        <div class="activity-log-content" style="display:none;">
-            <!-- Activity log content will be loaded here -->
-        </div>
-    </div>
-</div> 
+ 
