@@ -23,11 +23,11 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
         </div>
     <?php endif; ?>
 
-    <div class="oo-add-job-form-container">
-        <div class="oo-dashboard-section">
-            <h2><?php esc_html_e( 'Add New Job', 'operations-organizer' ); ?></h2>
-            <form method="post" class="oo-add-job-form">
-                <?php wp_nonce_field( 'oo_add_job_nonce', 'oo_add_job_nonce' ); ?>
+    <!-- Add New Job Section -->
+    <div class="oo-add-job-section">
+        <h2><?php esc_html_e( 'Add New Job', 'operations-organizer' ); ?></h2>
+        <form method="post" class="oo-add-job-form">
+            <?php wp_nonce_field( 'oo_add_job_nonce', 'oo_add_job_nonce' ); ?>
                 
                 <!-- Job Streams Section -->
                 <div class="oo-form-section">

@@ -800,3 +800,54 @@
         padding: 12px 20px;
     }
 } 
+
+/* Job Management Page - Match Job Details Styling */
+.oo-job-management-page {
+    max-width: 1200px;
+}
+
+.oo-add-job-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    margin: 20px 0;
+    padding: 20px;
+    border-radius: 4px;
+}
+
+.oo-add-job-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #23282d;
+    font-size: 1.4em;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.oo-add-job-form {
+    max-width: 100%;
+}
+
+/* Ensure form sections within the add job form maintain their styling */
+.oo-add-job-form .oo-form-section {
+    background: #f9f9f9;
+    border: 1px solid #e1e1e1;
+    margin-bottom: 25px;
+}
+
+.oo-add-job-form .oo-form-actions {
+    background: #fff;
+    padding: 20px;
+    margin: 20px 0 0 0;
+    border-top: 1px solid #eee;
+    text-align: left;
+}
+
+/* Jobs list section styling to match */
+.oo-job-management-page .wp-filter {
+    margin-top: 30px;
+}
+
+.oo-job-management-page .tablenav {
+    margin-top: 20px;
+} 
