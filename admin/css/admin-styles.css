@@ -41,6 +41,7 @@
 .toplevel_page_oo_dashboard #wpcontent,
 .job-tracker_page_oo_employees #wpcontent,
 .job-tracker_page_oo_phases #wpcontent,
+.job-tracker_page_oo_jobs #wpcontent, /* Job Management page */
 .admin_page_oo_start_job #wpcontent, /* For hidden start page */
 .admin_page_oo_stop_job #wpcontent { /* For hidden stop page */
     padding-left: 0;
@@ -803,7 +804,10 @@
 
 /* Job Management Page - Full Width Layout */
 .oo-job-management-page {
-    /* Use full available width for the page */
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 20px; /* Add some breathing room from screen edges */
 }
 
 .oo-add-job-section {
@@ -855,20 +859,23 @@
 /* Job Management Page - Two Column Layout */
 .oo-job-management-layout {
     display: flex;
-    gap: 20px;
+    gap: 30px;
     align-items: flex-start;
     margin: 20px 0;
+    width: 100%;
+    max-width: none;
 }
 
 .oo-job-form-column {
     flex: 3;
     min-width: 0; /* Prevents flex item from growing beyond container */
-    max-width: 900px; /* Reasonable max width to prevent form from getting too wide */
+    /* Remove max-width to allow full page utilization */
 }
 
 .oo-job-list-column {
     flex: 2;
-    min-width: 400px; /* Ensure jobs list has enough space for table content */
+    min-width: 350px; /* Ensure jobs list has enough space for table content */
+    width: 100%;
     background: #fff;
     border: 1px solid #ccd0d4;
     border-radius: 4px;
