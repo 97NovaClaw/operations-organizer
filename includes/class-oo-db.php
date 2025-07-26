@@ -379,6 +379,7 @@ class OO_DB { // Renamed class
             job_stream_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             job_id BIGINT UNSIGNED NOT NULL,
             stream_id INT UNSIGNED NOT NULL,
+            current_phase_id BIGINT UNSIGNED NULL,
             status_in_stream VARCHAR(50) NOT NULL DEFAULT 'Not Started',
             assigned_manager_id BIGINT UNSIGNED NULL,
             start_date_stream DATE NULL,
@@ -391,7 +392,8 @@ class OO_DB { // Renamed class
             UNIQUE KEY uq_job_stream (job_id, stream_id),
             KEY idx_status_in_stream (status_in_stream),
             KEY idx_assigned_manager_id (assigned_manager_id),
-            KEY idx_building_id (building_id)
+            KEY idx_building_id (building_id),
+            KEY idx_current_phase_id (current_phase_id)
         ) $charset_collate;";
 
         // SQL for oo_phases table
@@ -2464,10 +2466,32 @@ class OO_DB { // Renamed class
             return new WP_Error('job_stream_exists', 'This stream is already associated with this job.');
         }
 
+        // Get the first phase for this stream to auto-assign
+        $first_phase = $wpdb->get_row( $wpdb->prepare(
+            "SELECT phase_id, phase_name FROM " . self::$phases_table . " 
+             WHERE stream_id = %d AND is_active = 1 
+             ORDER BY order_in_stream ASC, phase_id ASC 
+             LIMIT 1",
+            intval( $args['stream_id'] )
+        ) );
+
+        // Set initial phase assignment
+        $initial_phase_id = null;
+        $initial_status = 'Not Started';
+        
+        if ( $first_phase ) {
+            $initial_phase_id = $first_phase->phase_id;
+            $initial_status = $first_phase->phase_name;
+            oo_log('Auto-assigning job to first phase: ' . $first_phase->phase_name . ' (ID: ' . $first_phase->phase_id . ')', __METHOD__);
+        } else {
+            oo_log('WARNING: No active phases found for stream_id ' . $args['stream_id'] . ', job will remain unassigned', __METHOD__);
+        }
+
         $data = array(
             'job_id' => intval( $args['job_id'] ),
             'stream_id' => intval( $args['stream_id'] ),
-            'status_in_stream' => isset($args['status_in_stream']) ? sanitize_text_field( $args['status_in_stream'] ) : 'Not Started',
+            'current_phase_id' => $initial_phase_id,
+            'status_in_stream' => isset($args['status_in_stream']) ? sanitize_text_field( $args['status_in_stream'] ) : $initial_status,
             'assigned_manager_id' => isset($args['assigned_manager_id']) ? intval( $args['assigned_manager_id'] ) : null,
             'start_date_stream' => isset($args['start_date_stream']) ? oo_sanitize_date( $args['start_date_stream'] ) : null,
             'due_date_stream' => isset($args['due_date_stream']) ? oo_sanitize_date( $args['due_date_stream'] ) : null,
@@ -2480,6 +2504,7 @@ class OO_DB { // Renamed class
         $formats = array(
             '%d', // job_id
             '%d', // stream_id
+            '%d', // current_phase_id
             '%s', // status_in_stream
             '%d', // assigned_manager_id (use %d, will be NULL if value is null)
             '%s', // start_date_stream
@@ -2489,10 +2514,6 @@ class OO_DB { // Renamed class
             '%s', // created_at
             '%s'  // updated_at
         );
-        
-        // Remove null values and their formats to allow DB defaults, except for explicit nulls.
-        // $wpdb->insert handles null values correctly for columns that allow NULL.
-        // No need to manually unset nulls here if formats match column types correctly.
 
         $result = $wpdb->insert( self::$job_streams_link_table, $data, $formats );
 
@@ -2500,8 +2521,28 @@ class OO_DB { // Renamed class
             oo_log('Error adding job_stream: ' . $wpdb->last_error, array('data' => $data, 'formats' => $formats));
             return new WP_Error('db_insert_error', 'Could not add job stream: ' . $wpdb->last_error);
         }
-        oo_log('Job stream added successfully. ID: ' . $wpdb->insert_id, __METHOD__);
-        return $wpdb->insert_id;
+        
+        $job_stream_id = $wpdb->insert_id;
+        oo_log('Job stream added successfully. ID: ' . $job_stream_id, __METHOD__);
+        
+        // Create activity log entry for initial phase assignment if kanban feature is available
+        if ( $first_phase && class_exists('OO_Kanban_Database') ) {
+            try {
+                OO_Kanban_Database::record_phase_change(
+                    $job_stream_id,
+                    null, // from_phase_id (no previous phase)
+                    $first_phase->phase_id, // to_phase_id
+                    get_current_user_id(), // user_id (0 if not logged in - system action)
+                    'Job assigned to stream - automatically set to first phase' // notes
+                );
+                oo_log('Activity log entry created for initial phase assignment', __METHOD__);
+            } catch (Exception $e) {
+                oo_log('WARNING: Failed to create activity log entry: ' . $e->getMessage(), __METHOD__);
+                // Don't fail the job creation for logging issues
+            }
+        }
+        
+        return $job_stream_id;
     }
 
     /**
