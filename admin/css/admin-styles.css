@@ -1043,10 +1043,4 @@
     }
 }
 
-/* Ensure jobs list doesn't get too cramped */
-@media (min-width: 1201px) {
-    .oo-job-list-column {
-        min-width: 300px;
-        max-width: 400px;
-    }
-} 
+/* Jobs list width is now handled by calc() - no max-width constraint needed */ 
