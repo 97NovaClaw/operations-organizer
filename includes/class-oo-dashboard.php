@@ -109,6 +109,12 @@ class OO_Dashboard { // Renamed class
         $filter_employee_id = isset($_POST['filter_employee_id']) && !empty($_POST['filter_employee_id']) ? intval($_POST['filter_employee_id']) : null;
         $filter_job_number = isset($_POST['filter_job_number']) && !empty($_POST['filter_job_number']) ? sanitize_text_field($_POST['filter_job_number']) : null;
         $filter_job_id = isset($_POST['filter_job_id']) && !empty($_POST['filter_job_id']) ? intval($_POST['filter_job_id']) : null;
+        $filter_phase_id = isset($_POST['filter_phase_id']) && !empty($_POST['filter_phase_id']) ? intval($_POST['filter_phase_id']) : null;
+        $filter_stream_id = isset($_POST['filter_stream_id']) && !empty($_POST['filter_stream_id']) ? intval($_POST['filter_stream_id']) : null;
+        $filter_date_from = isset($_POST['filter_date_from']) && !empty($_POST['filter_date_from']) ? sanitize_text_field($_POST['filter_date_from']) : null;
+        $filter_date_to = isset($_POST['filter_date_to']) && !empty($_POST['filter_date_to']) ? sanitize_text_field($_POST['filter_date_to']) : null;
+        $filter_status = isset($_POST['filter_status']) && !empty($_POST['filter_status']) ? sanitize_text_field($_POST['filter_status']) : null;
+        $selected_columns_config = isset($_POST['selected_columns_config']) && is_array($_POST['selected_columns_config']) ? $_POST['selected_columns_config'] : array();
         
         // Debug job filtering
         if ($filter_job_id) {
@@ -123,12 +129,6 @@ class OO_Dashboard { // Renamed class
                 ]
             ], 'INFO');
         }
-        $filter_phase_id = isset($_POST['filter_phase_id']) && !empty($_POST['filter_phase_id']) ? intval($_POST['filter_phase_id']) : null;
-        $filter_stream_id = isset($_POST['filter_stream_id']) && !empty($_POST['filter_stream_id']) ? intval($_POST['filter_stream_id']) : null;
-        $filter_date_from = isset($_POST['filter_date_from']) && !empty($_POST['filter_date_from']) ? sanitize_text_field($_POST['filter_date_from']) : null;
-        $filter_date_to = isset($_POST['filter_date_to']) && !empty($_POST['filter_date_to']) ? sanitize_text_field($_POST['filter_date_to']) : null;
-        $filter_status = isset($_POST['filter_status']) && !empty($_POST['filter_status']) ? sanitize_text_field($_POST['filter_status']) : null;
-        $selected_columns_config = isset($_POST['selected_columns_config']) && is_array($_POST['selected_columns_config']) ? $_POST['selected_columns_config'] : array();
 
         // Extract primary KPI keys for direct data fetching if needed for those columns
         $selected_primary_kpi_keys = array();
