@@ -859,7 +859,7 @@
 /* Job Management Page - Two Column Layout */
 .oo-job-management-layout {
     display: flex;
-    gap: 30px;
+    gap: 20px;
     align-items: flex-start;
     margin: 20px 0;
     width: 100%;
@@ -867,15 +867,16 @@
 }
 
 .oo-job-form-column {
-    flex: 2;
+    width: calc(66.67% - 14px); /* 66.67% minus portion of gap */
+    flex: none;
     min-width: 0; /* Prevents flex item from growing beyond container */
     /* Remove max-width to allow full page utilization */
 }
 
 .oo-job-list-column {
-    flex: 1;
-    min-width: 300px; /* Ensure jobs list has enough space for table content */
-    width: 100%;
+    width: calc(33.33% - 6px); /* 33.33% minus portion of gap */
+    flex: none;
+    min-width: 280px; /* Reduced minimum for better flexibility */
     background: #fff;
     border: 1px solid #ccd0d4;
     border-radius: 4px;
