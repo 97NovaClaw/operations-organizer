@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.3.19
+ * Version:           1.5.3.20
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.3.19' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.3.20' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -316,6 +316,8 @@ add_action('wp_ajax_oo_stop_job_action', array('OO_Admin_Pages', 'handle_stop_jo
 add_action('wp_ajax_oo_search_customers', array('OO_Job', 'ajax_search_customers'));
 add_action('wp_ajax_oo_add_customer', array('OO_Job', 'ajax_add_customer'));
 add_action('wp_ajax_oo_add_company', array('OO_Job', 'ajax_add_company'));
+add_action('wp_ajax_oo_get_job_for_edit', array('OO_Job', 'ajax_get_job_for_edit'));
+add_action('wp_ajax_oo_update_job', array('OO_Job', 'ajax_update_job'));
 add_action('wp_ajax_oo_get_customer_details', array('OO_Customer', 'ajax_get_customer_details'));
 
 // Company search and management AJAX handlers

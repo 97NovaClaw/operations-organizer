@@ -401,8 +401,28 @@ class OO_Job {
             wp_die(__('You do not have sufficient permissions to access this page.', 'operations-organizer'));
         }
 
-        // Process form submission for adding new job
+        // Process form submission for adding/editing job
         if (isset($_POST['submit_add_job']) && isset($_POST['oo_add_job_nonce']) && wp_verify_nonce($_POST['oo_add_job_nonce'], 'oo_add_job_nonce')) {
+            $edit_job_id = isset($_POST['edit_job_id']) ? intval($_POST['edit_job_id']) : 0;
+            $is_edit_mode = $edit_job_id > 0;
+            
+            if ($is_edit_mode) {
+                // Handle job update
+                self::handle_job_update($edit_job_id);
+            } else {
+                // Handle new job creation
+                self::handle_job_creation();
+            }
+        }
+
+        // Prepare and display page data
+        self::prepare_page_data();
+    }
+
+    /**
+     * Handle job creation (original logic)
+     */
+    private static function handle_job_creation() {
             $customer_id = isset($_POST['customer_id']) ? intval($_POST['customer_id']) : null;
             $customer_name = isset($_POST['customer_name']) ? sanitize_text_field($_POST['customer_name']) : '';
             
@@ -495,8 +515,118 @@ class OO_Job {
                 }
                 $GLOBALS['oo_job_success'] = $success_message;
             }
+    }
+
+    /**
+     * Handle job update
+     */
+    private static function handle_job_update($job_id) {
+        // Verify job exists
+        $existing_job = OO_DB::get_job($job_id);
+        if (!$existing_job) {
+            $GLOBALS['oo_job_error'] = __('Job not found.', 'operations-organizer');
+            return;
         }
 
+        $customer_id = isset($_POST['customer_id']) ? intval($_POST['customer_id']) : null;
+        $customer_name = isset($_POST['customer_name']) ? sanitize_text_field($_POST['customer_name']) : '';
+        
+        // Handle customer auto-creation if needed
+        if ( empty( $customer_id ) && !empty( $customer_name ) ) {
+            $customer = OO_Customer::find_or_create_by_name( $customer_name );
+            if ( is_wp_error( $customer ) ) {
+                $GLOBALS['oo_job_error'] = 'Error with customer: ' . $customer->get_error_message();
+                return;
+            } else {
+                $customer_id = $customer->customer_id;
+                $GLOBALS['oo_customer_auto_created'] = $customer_name;
+            }
+        }
+
+        // Prepare job data for update
+        $job_data = array(
+            'job_number' => isset($_POST['job_number']) ? sanitize_text_field($_POST['job_number']) : '',
+            'claim_number' => isset($_POST['claim_number']) ? sanitize_text_field($_POST['claim_number']) : '',
+            'customer_id' => $customer_id,
+            'client_name' => isset($_POST['client_name']) ? sanitize_text_field($_POST['client_name']) : '',
+            'client_phone' => self::process_client_phone_data(),
+            'client_email' => isset($_POST['client_email']) ? sanitize_email($_POST['client_email']) : '',
+            'client_contact' => isset($_POST['client_contact']) ? sanitize_textarea_field($_POST['client_contact']) : '',
+            'address' => isset($_POST['address']) ? sanitize_text_field($_POST['address']) : '',
+            'city' => isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '',
+            'province' => isset($_POST['province']) ? sanitize_text_field($_POST['province']) : '',
+            'postal_code' => isset($_POST['postal_code']) ? sanitize_text_field($_POST['postal_code']) : '',
+            'start_date' => isset($_POST['start_date']) ? oo_sanitize_date($_POST['start_date']) : null,
+            'due_date' => isset($_POST['due_date']) ? oo_sanitize_date($_POST['due_date']) : null,
+            'notes' => isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : ''
+        );
+
+        // Update job data
+        $result = OO_DB::update_job($job_id, $job_data);
+        if (is_wp_error($result)) {
+            $GLOBALS['oo_job_error'] = 'Error updating job: ' . $result->get_error_message();
+            return;
+        }
+
+        // Handle stream updates
+        $current_streams = OO_DB::get_job_streams_for_job($job_id);
+        $current_stream_ids = array();
+        foreach ($current_streams as $stream) {
+            $current_stream_ids[] = $stream->stream_id;
+        }
+
+        // Get new stream selection from form
+        $new_stream_ids = array();
+        $all_streams = OO_DB::get_streams(array('is_active' => 1));
+        foreach ($all_streams as $stream) {
+            $checkbox_name = 'stream_' . $stream->stream_id;
+            if (isset($_POST[$checkbox_name])) {
+                $new_stream_ids[] = intval($stream->stream_id);
+            }
+        }
+
+        // Remove streams that are no longer selected
+        foreach ($current_stream_ids as $stream_id) {
+            if (!in_array($stream_id, $new_stream_ids)) {
+                OO_DB::remove_job_stream($job_id, $stream_id);
+            }
+        }
+
+        // Add new streams
+        foreach ($new_stream_ids as $stream_id) {
+            if (!in_array($stream_id, $current_stream_ids)) {
+                $job_stream_data = array(
+                    'job_id' => $job_id,
+                    'stream_id' => $stream_id
+                );
+                
+                $link_result = OO_DB::add_job_stream($job_stream_data);
+                
+                if (!is_wp_error($link_result)) {
+                    // Create stream-specific data record
+                    $stream_data = array(
+                        'job_id' => $job_id,
+                        'status_in_stream' => 'Pending',
+                        'last_updated_in_stream' => current_time('mysql', 1)
+                    );
+                    
+                    // Create initial entry in the appropriate stream data table
+                    oo_create_stream_data_for_job($job_id, $stream_id, $stream_data);
+                }
+            }
+        }
+
+        $success_message = __('Job updated successfully.', 'operations-organizer');
+        if ( isset( $GLOBALS['oo_customer_auto_created'] ) ) {
+            $success_message .= ' ' . sprintf( __('Customer "%s" was automatically created.', 'operations-organizer'), $GLOBALS['oo_customer_auto_created'] );
+        }
+        $GLOBALS['oo_job_success'] = $success_message;
+    }
+
+    /**
+     * Prepare and display job management page data
+     */
+    private static function prepare_page_data() {
         // Prepare job data for display
         $current_page = isset($_GET['paged']) ? intval($_GET['paged']) : 1;
         $per_page = 20;
@@ -752,6 +882,184 @@ class OO_Job {
         } else {
             wp_send_json_error(['message' => 'Company was created but could not be retrieved.']);
         }
+    }
+
+    /**
+     * AJAX handler for getting job data for editing
+     */
+    public static function ajax_get_job_for_edit() {
+        check_ajax_referer('oo_job_edit_nonce', 'nonce');
+        
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        $job_id = isset($_POST['job_id']) ? intval($_POST['job_id']) : 0;
+        
+        if (!$job_id) {
+            wp_send_json_error(['message' => 'Invalid job ID.']);
+            return;
+        }
+
+        // Get job data
+        $job = OO_DB::get_job($job_id);
+        if (!$job) {
+            wp_send_json_error(['message' => 'Job not found.']);
+            return;
+        }
+
+        // Get customer data if available
+        $customer_data = null;
+        if (!empty($job->customer_id)) {
+            $customer = OO_DB::get_customer($job->customer_id);
+            if ($customer) {
+                $customer_data = [
+                    'customer_id' => $customer->customer_id,
+                    'customer_name' => $customer->name
+                ];
+            }
+        }
+
+        // Get job streams
+        $job_streams = OO_DB::get_job_streams_for_job($job_id);
+        $stream_ids = array();
+        foreach ($job_streams as $job_stream) {
+            $stream_ids[] = $job_stream->stream_id;
+        }
+
+        // Prepare response data
+        $response_data = [
+            'job_id' => $job->job_id,
+            'job_number' => $job->job_number,
+            'claim_number' => $job->claim_number,
+            'start_date' => $job->start_date,
+            'due_date' => $job->due_date,
+            'address' => $job->address,
+            'city' => $job->city,
+            'province' => $job->province,
+            'postal_code' => $job->postal_code,
+            'notes' => $job->notes,
+            'client_name' => $job->client_name,
+            'client_contact' => $job->client_contact,
+            'customer_id' => $job->customer_id,
+            'streams' => $stream_ids
+        ];
+
+        // Add customer data if available
+        if ($customer_data) {
+            $response_data = array_merge($response_data, $customer_data);
+        }
+
+        wp_send_json_success($response_data);
+    }
+
+    /**
+     * AJAX handler for updating a job
+     */
+    public static function ajax_update_job() {
+        check_ajax_referer('oo_add_job_nonce', 'nonce');
+        
+        if (!current_user_can(oo_get_capability())) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+            return;
+        }
+
+        $job_id = isset($_POST['edit_job_id']) ? intval($_POST['edit_job_id']) : 0;
+        
+        if (!$job_id) {
+            wp_send_json_error(['message' => 'Invalid job ID for update.']);
+            return;
+        }
+
+        // Verify job exists
+        $existing_job = OO_DB::get_job($job_id);
+        if (!$existing_job) {
+            wp_send_json_error(['message' => 'Job not found.']);
+            return;
+        }
+
+        // Prepare job data for update
+        $job_data = array();
+
+        // Basic job fields
+        if (isset($_POST['job_number'])) {
+            $job_data['job_number'] = sanitize_text_field($_POST['job_number']);
+        }
+        if (isset($_POST['claim_number'])) {
+            $job_data['claim_number'] = sanitize_text_field($_POST['claim_number']);
+        }
+        if (isset($_POST['start_date'])) {
+            $job_data['start_date'] = sanitize_text_field($_POST['start_date']);
+        }
+        if (isset($_POST['due_date'])) {
+            $job_data['due_date'] = sanitize_text_field($_POST['due_date']);
+        }
+        if (isset($_POST['address'])) {
+            $job_data['address'] = sanitize_text_field($_POST['address']);
+        }
+        if (isset($_POST['city'])) {
+            $job_data['city'] = sanitize_text_field($_POST['city']);
+        }
+        if (isset($_POST['province'])) {
+            $job_data['province'] = sanitize_text_field($_POST['province']);
+        }
+        if (isset($_POST['postal_code'])) {
+            $job_data['postal_code'] = sanitize_text_field($_POST['postal_code']);
+        }
+        if (isset($_POST['notes'])) {
+            $job_data['notes'] = sanitize_textarea_field($_POST['notes']);
+        }
+        if (isset($_POST['client_name'])) {
+            $job_data['client_name'] = sanitize_text_field($_POST['client_name']);
+        }
+        if (isset($_POST['client_contact'])) {
+            $job_data['client_contact'] = sanitize_textarea_field($_POST['client_contact']);
+        }
+        if (isset($_POST['customer_id'])) {
+            $job_data['customer_id'] = intval($_POST['customer_id']) ?: null;
+        }
+
+        // Update job data
+        $result = OO_DB::update_job($job_id, $job_data);
+        if (is_wp_error($result)) {
+            wp_send_json_error(['message' => 'Error updating job: ' . $result->get_error_message()]);
+            return;
+        }
+
+        // Handle stream updates
+        $current_streams = OO_DB::get_job_streams_for_job($job_id);
+        $current_stream_ids = array();
+        foreach ($current_streams as $stream) {
+            $current_stream_ids[] = $stream->stream_id;
+        }
+
+        // Get new stream selection from form
+        $new_stream_ids = array();
+        foreach ($_POST as $key => $value) {
+            if (strpos($key, 'stream_') === 0 && $value == '1') {
+                $stream_id = intval(substr($key, 7));
+                if ($stream_id > 0) {
+                    $new_stream_ids[] = $stream_id;
+                }
+            }
+        }
+
+        // Remove streams that are no longer selected
+        foreach ($current_stream_ids as $stream_id) {
+            if (!in_array($stream_id, $new_stream_ids)) {
+                OO_DB::remove_job_stream($job_id, $stream_id);
+            }
+        }
+
+        // Add new streams
+        foreach ($new_stream_ids as $stream_id) {
+            if (!in_array($stream_id, $current_stream_ids)) {
+                OO_DB::add_job_stream($job_id, $stream_id);
+            }
+        }
+
+        wp_send_json_success(['message' => 'Job updated successfully.']);
     }
 
     // TODO: Add more methods as needed, e.g., for validation, specific data retrieval.

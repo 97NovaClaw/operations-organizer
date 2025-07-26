@@ -851,3 +851,150 @@
 .oo-job-management-page .tablenav {
     margin-top: 20px;
 } 
+
+/* Job Management Page - Two Column Layout */
+.oo-job-management-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    margin: 20px 0;
+}
+
+.oo-job-form-column {
+    flex: 2;
+    min-width: 0; /* Prevents flex item from growing beyond container */
+}
+
+.oo-job-list-column {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    min-height: fit-content;
+    position: sticky;
+    top: 32px; /* Account for WordPress admin bar */
+}
+
+.oo-jobs-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    background: #f9f9f9;
+    border-radius: 4px 4px 0 0;
+}
+
+.oo-jobs-list-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+    color: #23282d;
+}
+
+#oo-toggle-jobs-list {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+#oo-toggle-jobs-list .dashicons {
+    font-size: 16px;
+    transition: transform 0.3s ease;
+}
+
+#oo-toggle-jobs-list.collapsed .dashicons {
+    transform: rotate(180deg);
+}
+
+.oo-jobs-list-content {
+    padding: 15px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.oo-jobs-list-content.collapsed {
+    height: 0;
+    padding: 0 15px;
+}
+
+/* Compact table styling for jobs list */
+.oo-job-list-column .wp-list-table {
+    font-size: 12px;
+}
+
+.oo-job-list-column .wp-list-table th,
+.oo-job-list-column .wp-list-table td {
+    padding: 8px 5px;
+}
+
+.oo-job-list-column .button {
+    font-size: 11px;
+    padding: 3px 6px;
+    height: auto;
+    line-height: 1.2;
+    margin: 1px;
+}
+
+.oo-job-list-column .oo-filters-form {
+    margin-bottom: 15px;
+}
+
+.oo-job-list-column .wp-filter {
+    margin: 0;
+}
+
+.oo-job-list-column .search-box input[type="search"] {
+    font-size: 12px;
+    padding: 4px 8px;
+    height: auto;
+}
+
+.oo-job-list-column .search-box .button {
+    font-size: 11px;
+    padding: 5px 8px;
+    height: auto;
+}
+
+/* Form state indicators */
+.oo-add-job-section.edit-mode h2::before {
+    content: "✏️ ";
+    margin-right: 8px;
+}
+
+.oo-add-job-section.edit-mode {
+    border-left: 4px solid #2271b1;
+}
+
+/* Cancel edit button styling */
+#oo-cancel-edit-btn {
+    margin-left: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .oo-job-management-layout {
+        flex-direction: column;
+    }
+    
+    .oo-job-form-column,
+    .oo-job-list-column {
+        flex: none;
+        width: 100%;
+    }
+    
+    .oo-job-list-column {
+        position: static;
+        margin-top: 20px;
+    }
+}
+
+/* Ensure jobs list doesn't get too cramped */
+@media (min-width: 1201px) {
+    .oo-job-list-column {
+        min-width: 300px;
+        max-width: 400px;
+    }
+} 

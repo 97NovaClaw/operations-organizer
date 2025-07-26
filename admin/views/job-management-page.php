@@ -23,30 +23,36 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
         </div>
     <?php endif; ?>
 
-    <!-- Add New Job Section -->
-    <div class="oo-add-job-section">
-        <h2><?php esc_html_e( 'Add New Job', 'operations-organizer' ); ?></h2>
-        <form method="post" class="oo-add-job-form">
-            <?php wp_nonce_field( 'oo_add_job_nonce', 'oo_add_job_nonce' ); ?>
-                
-                <!-- Job Streams Section -->
-                <div class="oo-form-section">
-                    <h3 class="oo-section-title"><?php esc_html_e( 'Job Streams', 'operations-organizer' ); ?></h3>
-                    <p class="description" style="margin-bottom: 15px; color: #646970;"><?php esc_html_e( 'Select which types of work this job will include.', 'operations-organizer' ); ?></p>
-                    <div class="oo-form-field">
-                        <fieldset class="oo-checkbox-group">
-                            <legend class="screen-reader-text"><?php esc_html_e( 'Select streams for this job', 'operations-organizer' ); ?></legend>
-                            <div class="oo-checkbox-grid">
-                                <?php foreach ($GLOBALS['streams'] as $stream): ?>
-                                <label class="oo-checkbox-item">
-                                    <input type="checkbox" id="stream_<?php echo esc_attr($stream->stream_id); ?>" name="stream_<?php echo esc_attr($stream->stream_id); ?>" value="1" />
-                                    <span class="oo-checkbox-label"><?php echo esc_html($stream->stream_name); ?></span>
-                                </label>
-                                <?php endforeach; ?>
+    <!-- Two-column layout container -->
+    <div class="oo-job-management-layout">
+        
+        <!-- Left Column: Job Form (2/3 width) -->
+        <div class="oo-job-form-column">
+            <!-- Add/Edit Job Section -->
+            <div class="oo-add-job-section" id="oo-job-form-section">
+                <h2 id="oo-job-form-title"><?php esc_html_e( 'Add New Job', 'operations-organizer' ); ?></h2>
+                <form method="post" class="oo-add-job-form" id="oo-job-form">
+                    <?php wp_nonce_field( 'oo_add_job_nonce', 'oo_add_job_nonce' ); ?>
+                    <input type="hidden" id="edit_job_id" name="edit_job_id" value="" />
+                        
+                        <!-- Job Streams Section -->
+                        <div class="oo-form-section">
+                            <h3 class="oo-section-title"><?php esc_html_e( 'Job Streams', 'operations-organizer' ); ?></h3>
+                            <p class="description" style="margin-bottom: 15px; color: #646970;"><?php esc_html_e( 'Select which types of work this job will include.', 'operations-organizer' ); ?></p>
+                            <div class="oo-form-field">
+                                <fieldset class="oo-checkbox-group">
+                                    <legend class="screen-reader-text"><?php esc_html_e( 'Select streams for this job', 'operations-organizer' ); ?></legend>
+                                    <div class="oo-checkbox-grid">
+                                        <?php foreach ($GLOBALS['streams'] as $stream): ?>
+                                        <label class="oo-checkbox-item">
+                                            <input type="checkbox" id="stream_<?php echo esc_attr($stream->stream_id); ?>" name="stream_<?php echo esc_attr($stream->stream_id); ?>" value="1" />
+                                            <span class="oo-checkbox-label"><?php echo esc_html($stream->stream_name); ?></span>
+                                        </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </fieldset>
                             </div>
-                        </fieldset>
-                    </div>
-                </div>
+                        </div>
                 
                 <!-- Job Details Section -->
                 <div class="oo-form-section">
@@ -150,464 +156,598 @@ global $jobs, $total_jobs, $current_page, $per_page, $search_term;
                 </div>
 
                 <div class="oo-form-actions">
-                    <input type="submit" name="submit_add_job" id="submit_add_job" class="button button-primary button-large" value="<?php esc_attr_e( 'Add Job', 'operations-organizer' ); ?>" />
+                    <input type="submit" name="submit_add_job" id="oo-job-submit-btn" class="button button-primary button-large" value="<?php esc_attr_e( 'Add Job', 'operations-organizer' ); ?>" />
+                    <button type="button" id="oo-cancel-edit-btn" class="button button-secondary" style="display:none;"><?php esc_html_e( 'Cancel Edit', 'operations-organizer' ); ?></button>
+                </div>
+            </form>
+            </div>
+        </div>
+
+        <!-- Right Column: Jobs List (1/3 width) -->
+        <div class="oo-job-list-column">
+            <div class="oo-jobs-list-header">
+                <h2><?php esc_html_e( 'Jobs List', 'operations-organizer' ); ?></h2>
+                <button type="button" id="oo-toggle-jobs-list" class="button button-secondary">
+                    <span class="dashicons dashicons-arrow-up-alt2"></span>
+                    <?php esc_html_e( 'Collapse', 'operations-organizer' ); ?>
+                </button>
+            </div>
+            
+            <div id="oo-jobs-list-content" class="oo-jobs-list-content">
+
+            <form method="get" class="oo-filters-form">
+                <input type="hidden" name="page" value="oo_jobs" />
+                <div class="wp-filter">
+                    <p class="search-box">
+                        <label class="screen-reader-text" for="job-search-input"><?php esc_html_e( 'Search Jobs:', 'operations-organizer' ); ?></label>
+                        <input type="search" id="job-search-input" name="s" value="<?php echo esc_attr( $search_term ); ?>" placeholder="<?php esc_attr_e( 'Search jobs...', 'operations-organizer' ); ?>" />
+                        <input type="submit" id="search-submit" class="button" value="<?php esc_attr_e( 'Search Jobs', 'operations-organizer' ); ?>" />
+                    </p>
+                </div>
+            </form>
+            <div class="clear"></div>
+
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
+                        <th scope="col"><?php esc_html_e( 'Job Number', 'operations-organizer' ); ?></th>
+                        <th scope="col"><?php esc_html_e( 'Client', 'operations-organizer' ); ?></th>
+                        <th scope="col"><?php esc_html_e( 'Start Date', 'operations-organizer' ); ?></th>
+                        <th scope="col"><?php esc_html_e( 'Streams', 'operations-organizer' ); ?></th>
+                        <th scope="col"><?php esc_html_e( 'Actions', 'operations-organizer' ); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if ( ! empty( $jobs ) ) : ?>
+                        <?php foreach ( $jobs as $job ) : 
+                            // Get associated streams for this job
+                            $job_stream_links = OO_DB::get_job_streams_for_job($job->job_id);
+                            $stream_names = array();
+                            
+                            foreach ($job_stream_links as $job_stream) {
+                                // Use the helper function to get stream name
+                                $stream_name = oo_get_stream_name($job_stream->stream_id);
+                                if ($stream_name) {
+                                    $stream_names[] = esc_html($stream_name);
+                                }
+                            }
+                        ?>
+                            <tr>
+                                <td><?php echo esc_html( $job->job_number ); ?></td>
+                                <td><?php echo esc_html( $job->client_name ); ?></td>
+                                <td><?php echo $job->start_date ? esc_html( $job->start_date ) : '—'; ?></td>
+                                <td><?php echo !empty($stream_names) ? implode(', ', $stream_names) : '—'; ?></td>
+                                <td>
+                                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=oo_job_details&job_id=' . $job->job_id ) ); ?>" class="button button-primary"><?php esc_html_e( 'View Details', 'operations-organizer' ); ?></a>
+                                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=oo_dashboard&filter_job_number=' . urlencode( $job->job_number ) ) ); ?>" class="button button-secondary"><?php esc_html_e( 'View Logs', 'operations-organizer' ); ?></a>
+                                    <button class="button button-secondary oo-edit-job-button" data-job-id="<?php echo esc_attr( $job->job_id ); ?>"><?php esc_html_e( 'Edit', 'operations-organizer' ); ?></button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else : ?>
+                        <tr>
+                            <td colspan="5"><?php esc_html_e( 'No jobs found.', 'operations-organizer' ); ?></td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+
+            <?php
+            // Pagination
+            if ( $total_jobs > $per_page ) {
+                $base_url = remove_query_arg( array( 'paged', 'filter_action' ), wp_unslash( $_SERVER['REQUEST_URI'] ) );
+                $page_links = paginate_links( array(
+                    'base' => $base_url . '%_%',
+                    'format' => '&paged=%#%',
+                    'prev_text' => __( '&laquo; Previous' ),
+                    'next_text' => __( 'Next &raquo;' ),
+                    'total' => ceil( $total_jobs / $per_page ),
+                    'current' => $current_page,
+                    'add_args' => array_map( 'urlencode', array_filter( compact( 's', 'status_filter' ) ) )
+                ) );
+
+                if ( $page_links ) {
+                    echo '<div class="tablenav"><div class="tablenav-pages">' . $page_links . '</div></div>';
+                }
+            }
+            ?>
+            </div> <!-- End oo-jobs-list-content -->
+        </div> <!-- End oo-job-list-column -->
+    </div> <!-- End oo-job-management-layout -->
+
+    <!-- Customer Modal -->
+    <div id="customerModal" class="oo-modal">
+        <div class="oo-modal-content">
+            <span class="oo-modal-close">&times;</span>
+            <h2><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></h2>
+            <form id="addCustomerForm">
+                <div class="form-field">
+                    <label for="modal_customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
+                    <input type="text" id="modal_customer_name" name="name" required class="regular-text" />
+                </div>
+                <div class="form-field">
+                    <label for="modal_customer_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
+                    <?php
+                    echo oo_get_phone_repeater_html(array(
+                        'container_id'   => 'modal_customer_phone_container',
+                        'field_name'     => 'phone_numbers',
+                        'add_button_text' => 'Add Phone',
+                        'max_phones'     => 3,
+                        'container_class' => 'compact'
+                    ));
+                    ?>
+                </div>
+                <div class="form-field">
+                    <label for="modal_customer_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
+                    <?php
+                    echo oo_get_email_repeater_html(array(
+                        'container_id'   => 'modal_customer_email_container',
+                        'field_name'     => 'email_addresses',
+                        'add_button_text' => 'Add Email',
+                        'max_emails'     => 3,
+                        'container_class' => 'compact'
+                    ));
+                    ?>
+                </div>
+                <div class="form-field">
+                    <label for="modal_customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label>
+                    <?php
+                    // Use our new company autocomplete helper
+                    echo oo_get_company_autocomplete_html(array(
+                        'input_id'              => 'modal_customer_company',
+                        'input_name'            => 'company_search',
+                        'hidden_field_id'       => 'selected_company_id',
+                        'hidden_field_name'     => 'company_id'
+                    ));
+                    ?>
+                </div>
+                <div class="form-field">
+                    <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Customer', 'operations-organizer' ); ?></button>
+                    <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
                 </div>
             </form>
         </div>
     </div>
 
-    <h2><?php esc_html_e( 'Jobs List', 'operations-organizer' ); ?></h2>
-
-    <form method="get" class="oo-filters-form">
-        <input type="hidden" name="page" value="oo_jobs" />
-        <div class="wp-filter">
-            <p class="search-box">
-                <label class="screen-reader-text" for="job-search-input"><?php esc_html_e( 'Search Jobs:', 'operations-organizer' ); ?></label>
-                <input type="search" id="job-search-input" name="s" value="<?php echo esc_attr( $search_term ); ?>" placeholder="<?php esc_attr_e( 'Search jobs...', 'operations-organizer' ); ?>" />
-                <input type="submit" id="search-submit" class="button" value="<?php esc_attr_e( 'Search Jobs', 'operations-organizer' ); ?>" />
-            </p>
+    <!-- Company Modal -->
+    <div id="companyModal" class="oo-modal">
+        <div class="oo-modal-content">
+            <span class="oo-modal-close">&times;</span>
+            <h2><?php esc_html_e( 'Add New Company', 'operations-organizer' ); ?></h2>
+            <form id="addCompanyForm">
+                <div class="form-field">
+                    <label for="modal_company_name"><?php esc_html_e( 'Company Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
+                    <input type="text" id="modal_company_name" name="name" required class="regular-text" />
+                </div>
+                <div class="form-field">
+                    <label for="modal_company_address"><?php esc_html_e( 'Address', 'operations-organizer' ); ?></label>
+                    <input type="text" id="modal_company_address" name="address" class="regular-text" />
+                </div>
+                <div class="oo-form-grid">
+                    <div class="form-field">
+                        <label for="modal_company_city"><?php esc_html_e( 'City', 'operations-organizer' ); ?></label>
+                        <input type="text" id="modal_company_city" name="city" class="regular-text" />
+                    </div>
+                    <div class="form-field">
+                        <label for="modal_company_province"><?php esc_html_e( 'Province', 'operations-organizer' ); ?></label>
+                        <input type="text" id="modal_company_province" name="province" class="regular-text" />
+                    </div>
+                    <div class="form-field">
+                        <label for="modal_company_postal_code"><?php esc_html_e( 'Postal Code', 'operations-organizer' ); ?></label>
+                        <input type="text" id="modal_company_postal_code" name="postal_code" class="regular-text" />
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label for="modal_company_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
+                    <?php
+                    echo oo_get_phone_repeater_html(array(
+                        'container_id'   => 'modal_company_phone_container',
+                        'field_name'     => 'phone_numbers',
+                        'add_button_text' => 'Add Phone',
+                        'max_phones'     => 3,
+                        'container_class' => 'compact'
+                    ));
+                    ?>
+                </div>
+                <div class="form-field">
+                    <label for="modal_company_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
+                    <?php
+                    echo oo_get_email_repeater_html(array(
+                        'container_id'   => 'modal_company_email_container',
+                        'field_name'     => 'email_addresses',
+                        'add_button_text' => 'Add Email',
+                        'max_emails'     => 3,
+                        'container_class' => 'compact'
+                    ));
+                    ?>
+                </div>
+                <div class="form-field">
+                    <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Company', 'operations-organizer' ); ?></button>
+                    <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
+                </div>
+            </form>
         </div>
-    </form>
-    <div class="clear"></div>
-
-    <table class="wp-list-table widefat fixed striped">
-        <thead>
-            <tr>
-                <th scope="col"><?php esc_html_e( 'Job Number', 'operations-organizer' ); ?></th>
-                <th scope="col"><?php esc_html_e( 'Client', 'operations-organizer' ); ?></th>
-                <th scope="col"><?php esc_html_e( 'Start Date', 'operations-organizer' ); ?></th>
-                <th scope="col"><?php esc_html_e( 'Streams', 'operations-organizer' ); ?></th>
-                <th scope="col"><?php esc_html_e( 'Actions', 'operations-organizer' ); ?></th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if ( ! empty( $jobs ) ) : ?>
-                <?php foreach ( $jobs as $job ) : 
-                    // Get associated streams for this job
-                    $job_stream_links = OO_DB::get_job_streams_for_job($job->job_id);
-                    $stream_names = array();
-                    
-                    foreach ($job_stream_links as $job_stream) {
-                        // Use the helper function to get stream name
-                        $stream_name = oo_get_stream_name($job_stream->stream_id);
-                        if ($stream_name) {
-                            $stream_names[] = esc_html($stream_name);
-                        }
-                    }
-                ?>
-                    <tr>
-                        <td><?php echo esc_html( $job->job_number ); ?></td>
-                        <td><?php echo esc_html( $job->client_name ); ?></td>
-                        <td><?php echo $job->start_date ? esc_html( $job->start_date ) : '—'; ?></td>
-                        <td><?php echo !empty($stream_names) ? implode(', ', $stream_names) : '—'; ?></td>
-                        <td>
-                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=oo_job_details&job_id=' . $job->job_id ) ); ?>" class="button button-primary"><?php esc_html_e( 'View Details', 'operations-organizer' ); ?></a>
-                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=oo_dashboard&filter_job_number=' . urlencode( $job->job_number ) ) ); ?>" class="button button-secondary"><?php esc_html_e( 'View Logs', 'operations-organizer' ); ?></a>
-                            <button class="button button-secondary oo-edit-job-button" data-job-id="<?php echo esc_attr( $job->job_id ); ?>"><?php esc_html_e( 'Edit', 'operations-organizer' ); ?></button>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else : ?>
-                <tr>
-                    <td colspan="5"><?php esc_html_e( 'No jobs found.', 'operations-organizer' ); ?></td>
-                </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
+    </div>
 
     <?php
-    // Pagination
-    if ( $total_jobs > $per_page ) {
-        $base_url = remove_query_arg( array( 'paged', 'filter_action' ), wp_unslash( $_SERVER['REQUEST_URI'] ) );
-        $page_links = paginate_links( array(
-            'base' => $base_url . '%_%',
-            'format' => '&paged=%#%',
-            'prev_text' => __( '&laquo; Previous' ),
-            'next_text' => __( 'Next &raquo;' ),
-            'total' => ceil( $total_jobs / $per_page ),
-            'current' => $current_page,
-            'add_args' => array_map( 'urlencode', array_filter( compact( 's', 'status_filter' ) ) )
-        ) );
-
-        if ( $page_links ) {
-            echo '<div class="tablenav"><div class="tablenav-pages">' . $page_links . '</div></div>';
-        }
-    }
+    // Register default autocomplete callbacks
+    oo_register_default_autocomplete_callbacks();
     ?>
-</div>
 
-<!-- Customer Modal -->
-<div id="customerModal" class="oo-modal">
-    <div class="oo-modal-content">
-        <span class="oo-modal-close">&times;</span>
-        <h2><?php esc_html_e( 'Add New Customer', 'operations-organizer' ); ?></h2>
-        <form id="addCustomerForm">
-            <div class="form-field">
-                <label for="modal_customer_name"><?php esc_html_e( 'Customer Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
-                <input type="text" id="modal_customer_name" name="name" required class="regular-text" />
-            </div>
-            <div class="form-field">
-                <label for="modal_customer_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
-                <?php
-                echo oo_get_phone_repeater_html(array(
-                    'container_id'   => 'modal_customer_phone_container',
-                    'field_name'     => 'phone_numbers',
-                    'add_button_text' => 'Add Phone',
-                    'max_phones'     => 3,
-                    'container_class' => 'compact'
-                ));
-                ?>
-            </div>
-            <div class="form-field">
-                <label for="modal_customer_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
-                <?php
-                echo oo_get_email_repeater_html(array(
-                    'container_id'   => 'modal_customer_email_container',
-                    'field_name'     => 'email_addresses',
-                    'add_button_text' => 'Add Email',
-                    'max_emails'     => 3,
-                    'container_class' => 'compact'
-                ));
-                ?>
-            </div>
-            <div class="form-field">
-                <label for="modal_customer_company"><?php esc_html_e( 'Company', 'operations-organizer' ); ?></label>
-                <?php
-                // Use our new company autocomplete helper
-                echo oo_get_company_autocomplete_html(array(
-                    'input_id'              => 'modal_customer_company',
-                    'input_name'            => 'company_search',
-                    'hidden_field_id'       => 'selected_company_id',
-                    'hidden_field_name'     => 'company_id'
-                ));
-                ?>
-            </div>
-            <div class="form-field">
-                <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Customer', 'operations-organizer' ); ?></button>
-                <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Company Modal -->
-<div id="companyModal" class="oo-modal">
-    <div class="oo-modal-content">
-        <span class="oo-modal-close">&times;</span>
-        <h2><?php esc_html_e( 'Add New Company', 'operations-organizer' ); ?></h2>
-        <form id="addCompanyForm">
-            <div class="form-field">
-                <label for="modal_company_name"><?php esc_html_e( 'Company Name', 'operations-organizer' ); ?> <span class="required">*</span></label>
-                <input type="text" id="modal_company_name" name="name" required class="regular-text" />
-            </div>
-            <div class="form-field">
-                <label for="modal_company_address"><?php esc_html_e( 'Address', 'operations-organizer' ); ?></label>
-                <input type="text" id="modal_company_address" name="address" class="regular-text" />
-            </div>
-            <div class="oo-form-grid">
-                <div class="form-field">
-                    <label for="modal_company_city"><?php esc_html_e( 'City', 'operations-organizer' ); ?></label>
-                    <input type="text" id="modal_company_city" name="city" class="regular-text" />
-                </div>
-                <div class="form-field">
-                    <label for="modal_company_province"><?php esc_html_e( 'Province', 'operations-organizer' ); ?></label>
-                    <input type="text" id="modal_company_province" name="province" class="regular-text" />
-                </div>
-                <div class="form-field">
-                    <label for="modal_company_postal_code"><?php esc_html_e( 'Postal Code', 'operations-organizer' ); ?></label>
-                    <input type="text" id="modal_company_postal_code" name="postal_code" class="regular-text" />
-                </div>
-            </div>
-            <div class="form-field">
-                <label for="modal_company_phone_container"><?php esc_html_e( 'Phone Numbers', 'operations-organizer' ); ?></label>
-                <?php
-                echo oo_get_phone_repeater_html(array(
-                    'container_id'   => 'modal_company_phone_container',
-                    'field_name'     => 'phone_numbers',
-                    'add_button_text' => 'Add Phone',
-                    'max_phones'     => 3,
-                    'container_class' => 'compact'
-                ));
-                ?>
-            </div>
-            <div class="form-field">
-                <label for="modal_company_email_container"><?php esc_html_e( 'Email Addresses', 'operations-organizer' ); ?></label>
-                <?php
-                echo oo_get_email_repeater_html(array(
-                    'container_id'   => 'modal_company_email_container',
-                    'field_name'     => 'email_addresses',
-                    'add_button_text' => 'Add Email',
-                    'max_emails'     => 3,
-                    'container_class' => 'compact'
-                ));
-                ?>
-            </div>
-            <div class="form-field">
-                <button type="submit" class="button button-primary"><?php esc_html_e( 'Add Company', 'operations-organizer' ); ?></button>
-                <button type="button" class="button oo-modal-cancel"><?php esc_html_e( 'Cancel', 'operations-organizer' ); ?></button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<?php
-// Register default autocomplete callbacks
-oo_register_default_autocomplete_callbacks();
-?>
-
-<script type="text/javascript">
-jQuery(document).ready(function($) {
-    
-    // Company autocomplete callback functions
-    window.OO_Autocomplete_Callbacks = window.OO_Autocomplete_Callbacks || {};
-    
-    /**
-     * Handle company selection in the modal
-     */
-    window.OO_Autocomplete_Callbacks.onCompanySelect = function(company, $input) {
-        // Set the hidden field value
-        $('#selected_company_id').val(company.id);
-        // Set the display name in the input
-        $input.val(company.name);
-        console.log('Company selected:', company);
-    };
-    
-    /**
-     * Handle "Add New Company" action
-     */
-    window.OO_Autocomplete_Callbacks.onAddNewCompany = function(searchTerm, $input) {
-        // Open the company modal with the search term pre-filled
-        $('#modal_company_name').val(searchTerm);
-        $('#companyModal').show();
-        $('#modal_company_name').focus();
-    };
-    
-    /**
-     * Handle customer selection in the main form
-     */
-    window.OO_Autocomplete_Callbacks.onCustomerSelect = function(customer, $input) {
-        // Set the hidden field value
-        $('#customer_id').val(customer.id);
-        // Set the display name in the input
-        $input.val(customer.name);
-        console.log('Customer selected:', customer);
-    };
-    
-    /**
-     * Handle "Add New Customer" action
-     */
-    window.OO_Autocomplete_Callbacks.onAddNewCustomer = function(searchTerm, $input) {
-        // Open the customer modal with the search term pre-filled
-        $('#modal_customer_name').val(searchTerm);
-        $('#customerModal').show();
-        $('#modal_customer_name').focus();
-    };
-    // Edit job button functionality
-    $('.oo-edit-job-button').on('click', function() {
-        var jobId = $(this).data('job-id');
-        alert('Job editing will open a detailed form with stream-specific fields for Soft Content, Electronics, Art, and Content data. This functionality will be implemented in the next update. Job ID: ' + jobId);
-    });
-
-    // Success notification function
-    function showSuccessNotification(message) {
-        // Remove any existing notifications
-        $('.oo-success-notification').remove();
+    <script type="text/javascript">
+    jQuery(document).ready(function($) {
         
-        // Create notification element
-        const $notification = $('<div class="oo-success-notification">' +
-            '<div class="oo-notification-content">' +
-                '<span class="oo-notification-icon">✓</span>' +
-                '<span class="oo-notification-message">' + message + '</span>' +
-                '<span class="oo-notification-close">&times;</span>' +
-            '</div>' +
-        '</div>');
+        // Company autocomplete callback functions
+        window.OO_Autocomplete_Callbacks = window.OO_Autocomplete_Callbacks || {};
         
-        // Add to page
-        $('body').append($notification);
+        /**
+         * Handle company selection in the modal
+         */
+        window.OO_Autocomplete_Callbacks.onCompanySelect = function(company, $input) {
+            // Set the hidden field value
+            $('#selected_company_id').val(company.id);
+            // Set the display name in the input
+            $input.val(company.name);
+            console.log('Company selected:', company);
+        };
         
-        // Show with animation
-        setTimeout(function() {
-            $notification.addClass('show');
-        }, 100);
+        /**
+         * Handle "Add New Company" action
+         */
+        window.OO_Autocomplete_Callbacks.onAddNewCompany = function(searchTerm, $input) {
+            // Open the company modal with the search term pre-filled
+            $('#modal_company_name').val(searchTerm);
+            $('#companyModal').show();
+            $('#modal_company_name').focus();
+        };
         
-        // Auto-hide after 4 seconds
-        setTimeout(function() {
-            $notification.removeClass('show');
-            setTimeout(function() {
-                $notification.remove();
-            }, 300);
-        }, 4000);
+        /**
+         * Handle customer selection in the main form
+         */
+        window.OO_Autocomplete_Callbacks.onCustomerSelect = function(customer, $input) {
+            // Set the hidden field value
+            $('#customer_id').val(customer.id);
+            // Set the display name in the input
+            $input.val(customer.name);
+            console.log('Customer selected:', customer);
+        };
         
-        // Manual close
-        $notification.find('.oo-notification-close').on('click', function() {
-            $notification.removeClass('show');
-            setTimeout(function() {
-                $notification.remove();
-            }, 300);
+        /**
+         * Handle "Add New Customer" action
+         */
+        window.OO_Autocomplete_Callbacks.onAddNewCustomer = function(searchTerm, $input) {
+            // Open the customer modal with the search term pre-filled
+            $('#modal_customer_name').val(searchTerm);
+            $('#customerModal').show();
+            $('#modal_customer_name').focus();
+        };
+        // Toggle jobs list collapse/expand
+        $('#oo-toggle-jobs-list').on('click', function() {
+            var $button = $(this);
+            var $content = $('#oo-jobs-list-content');
+            var $icon = $button.find('.dashicons');
+            
+            if ($content.hasClass('collapsed')) {
+                $content.removeClass('collapsed');
+                $button.removeClass('collapsed');
+                $button.find('span:not(.dashicons)').text('<?php esc_html_e('Collapse', 'operations-organizer'); ?>');
+                $icon.removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-up-alt2');
+            } else {
+                $content.addClass('collapsed');
+                $button.addClass('collapsed');
+                $button.find('span:not(.dashicons)').text('<?php esc_html_e('Expand', 'operations-organizer'); ?>');
+                $icon.removeClass('dashicons-arrow-up-alt2').addClass('dashicons-arrow-down-alt2');
+            }
         });
-    }
 
-    // Modal functionality
-    
-    $('.oo-modal-close, .oo-modal-cancel').on('click', function() {
-        $('#customerModal').hide();
-        $('#addCustomerForm')[0].reset();
-        $('#companyModal').hide();
-        $('#addCompanyForm')[0].reset();
-        // Clear company autocomplete fields
-        $('#modal_customer_company').val('');
-        $('#selected_company_id').val('');
-    });
-    
-    // Close modal when clicking outside
-    $('#customerModal').on('click', function(e) {
-        if (e.target === this) {
-            $(this).hide();
+        // Edit job button functionality
+        $('.oo-edit-job-button').on('click', function() {
+            var jobId = $(this).data('job-id');
+            loadJobForEdit(jobId);
+        });
+
+        // Cancel edit functionality
+        $('#oo-cancel-edit-btn').on('click', function() {
+            resetFormToAddMode();
+        });
+
+        // Load job data for editing
+        function loadJobForEdit(jobId) {
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'oo_get_job_for_edit',
+                    job_id: jobId,
+                    nonce: '<?php echo wp_create_nonce('oo_job_edit_nonce'); ?>'
+                },
+                beforeSend: function() {
+                    // Show loading state
+                    $('#oo-job-form-title').text('<?php esc_html_e('Loading...', 'operations-organizer'); ?>');
+                    $('#oo-job-submit-btn').prop('disabled', true);
+                },
+                success: function(response) {
+                    if (response.success && response.data) {
+                        populateFormWithJobData(response.data);
+                        switchToEditMode(jobId);
+                    } else {
+                        alert('Error loading job data: ' + (response.data ? response.data : 'Unknown error'));
+                        console.error('Job load error:', response);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Error loading job data: ' + error);
+                    console.error('AJAX error:', xhr.responseText);
+                },
+                complete: function() {
+                    $('#oo-job-submit-btn').prop('disabled', false);
+                }
+            });
+        }
+
+        // Populate form with job data
+        function populateFormWithJobData(jobData) {
+            // Basic job fields
+            $('#job_number').val(jobData.job_number || '');
+            $('#claim_number').val(jobData.claim_number || '');
+            $('#start_date').val(jobData.start_date || '');
+            $('#address').val(jobData.address || '');
+            $('#city').val(jobData.city || '');
+            $('#province').val(jobData.province || '');
+            $('#postal_code').val(jobData.postal_code || '');
+            $('#due_date').val(jobData.due_date || '');
+            $('#notes').val(jobData.notes || '');
+            
+            // Client fields (for backward compatibility)
+            $('#client_name').val(jobData.client_name || '');
+            $('#client_contact').val(jobData.client_contact || '');
+            
+            // Customer fields
+            if (jobData.customer_id) {
+                $('#customer_id').val(jobData.customer_id);
+                $('#customer_name').val(jobData.customer_name || '');
+            }
+            
+            // Clear and check stream checkboxes
+            $('.oo-checkbox-group input[type="checkbox"]').prop('checked', false);
+            if (jobData.streams && jobData.streams.length > 0) {
+                jobData.streams.forEach(function(streamId) {
+                    $('#stream_' + streamId).prop('checked', true);
+                });
+            }
+        }
+
+        // Switch form to edit mode
+        function switchToEditMode(jobId) {
+            $('#edit_job_id').val(jobId);
+            $('#oo-job-form-title').text('<?php esc_html_e('Edit Job', 'operations-organizer'); ?>');
+            $('#oo-job-submit-btn').val('<?php esc_attr_e('Update Job', 'operations-organizer'); ?>');
+            $('#oo-cancel-edit-btn').show();
+            $('#oo-job-form-section').addClass('edit-mode');
+            
+            // Scroll to form
+            $('html, body').animate({
+                scrollTop: $('#oo-job-form-section').offset().top - 50
+            }, 500);
+        }
+
+        // Reset form to add mode
+        function resetFormToAddMode() {
+            $('#edit_job_id').val('');
+            $('#oo-job-form-title').text('<?php esc_html_e('Add New Job', 'operations-organizer'); ?>');
+            $('#oo-job-submit-btn').val('<?php esc_attr_e('Add Job', 'operations-organizer'); ?>');
+            $('#oo-cancel-edit-btn').hide();
+            $('#oo-job-form-section').removeClass('edit-mode');
+            
+            // Clear form
+            $('#oo-job-form')[0].reset();
+            $('#customer_id').val('');
+            $('.oo-checkbox-group input[type="checkbox"]').prop('checked', false);
+            
+            // Set default start date
+            $('#start_date').val('<?php echo esc_attr(current_time('Y-m-d')); ?>');
+        }
+
+        // Success notification function
+        function showSuccessNotification(message) {
+            // Remove any existing notifications
+            $('.oo-success-notification').remove();
+            
+            // Create notification element
+            const $notification = $('<div class="oo-success-notification">' +
+                '<div class="oo-notification-content">' +
+                    '<span class="oo-notification-icon">✓</span>' +
+                    '<span class="oo-notification-message">' + message + '</span>' +
+                    '<span class="oo-notification-close">&times;</span>' +
+                '</div>' +
+            '</div>');
+            
+            // Add to page
+            $('body').append($notification);
+            
+            // Show with animation
+            setTimeout(function() {
+                $notification.addClass('show');
+            }, 100);
+            
+            // Auto-hide after 4 seconds
+            setTimeout(function() {
+                $notification.removeClass('show');
+                setTimeout(function() {
+                    $notification.remove();
+                }, 300);
+            }, 4000);
+            
+            // Manual close
+            $notification.find('.oo-notification-close').on('click', function() {
+                $notification.removeClass('show');
+                setTimeout(function() {
+                    $notification.remove();
+                }, 300);
+            });
+        }
+
+        // Modal functionality
+        
+        $('.oo-modal-close, .oo-modal-cancel').on('click', function() {
+            $('#customerModal').hide();
             $('#addCustomerForm')[0].reset();
+            $('#companyModal').hide();
+            $('#addCompanyForm')[0].reset();
             // Clear company autocomplete fields
             $('#modal_customer_company').val('');
             $('#selected_company_id').val('');
-        }
-    });
-    
-    // Close company modal when clicking outside
-    $('#companyModal').on('click', function(e) {
-        if (e.target === this) {
-            $(this).hide();
-            $('#addCompanyForm')[0].reset();
-        }
-    });
-    
-    // Add customer form submission
-    $('#addCustomerForm').on('submit', function(e) {
-        e.preventDefault();
+        });
         
-        // Check if oo_data is available
-        if (typeof oo_data === 'undefined') {
-            alert('Configuration error. Please refresh the page and try again.');
-            return;
-        }
-        
-        // Get form and submit button
-        const $form = $(this);
-        const $submitButton = $form.find('button[type="submit"]');
-        const originalButtonText = $submitButton.text();
-        
-        // Disable form and show loading state
-        $submitButton.prop('disabled', true).text('Adding Customer...');
-        $form.find('input, textarea, select').prop('disabled', true);
-        
-        // Collect form data including repeater data
-        const formData = {
-            action: 'oo_add_customer',
-            nonce: oo_data.nonce_add_customer,
-            name: $('#modal_customer_name').val(),
-            company_id: $('#selected_company_id').val()
-        };
-        
-        // Add phone numbers JSON data
-        const phoneJsonField = $form.find('input[name="phone_numbers_json"]');
-        if (phoneJsonField.length && phoneJsonField.val()) {
-            formData.phone_numbers_json = phoneJsonField.val();
-        }
-        
-        // Add email addresses JSON data
-        const emailJsonField = $form.find('input[name="email_addresses_json"]');
-        if (emailJsonField.length && emailJsonField.val()) {
-            formData.email_addresses_json = emailJsonField.val();
-        }
-        
-        $.post(oo_data.ajax_url, formData)
-        .done(function(response) {
-            if (response.success) {
-                // Select the newly created customer using our callback
-                window.OO_Autocomplete_Callbacks.onCustomerSelect(response.data.customer, $('#customer_name'));
-                $('#customerModal').hide();
+        // Close modal when clicking outside
+        $('#customerModal').on('click', function(e) {
+            if (e.target === this) {
+                $(this).hide();
                 $('#addCustomerForm')[0].reset();
-                // Also clear the company autocomplete fields
+                // Clear company autocomplete fields
                 $('#modal_customer_company').val('');
                 $('#selected_company_id').val('');
-                
-                // Show success notification with better styling
-                showSuccessNotification(response.data.message);
-            } else {
-                alert('Error: ' + response.data.message);
             }
-        })
-        .fail(function() {
-            alert('Error adding customer. Please try again.');
-        })
-        .always(function() {
-            // Re-enable form and restore button
-            $submitButton.prop('disabled', false).text(originalButtonText);
-            $form.find('input, textarea, select').prop('disabled', false);
         });
-    });
-    
-    // Add company form submission
-    $('#addCompanyForm').on('submit', function(e) {
-        e.preventDefault();
         
-        // Check if oo_data is available
-        if (typeof oo_data === 'undefined') {
-            alert('Configuration error. Please refresh the page and try again.');
-            return;
-        }
-        
-        // Get form and submit button
-        const $form = $(this);
-        const $submitButton = $form.find('button[type="submit"]');
-        const originalButtonText = $submitButton.text();
-        
-        // Disable form and show loading state
-        $submitButton.prop('disabled', true).text('Adding Company...');
-        $form.find('input, textarea, select').prop('disabled', true);
-        
-        // Collect form data including repeater data
-        const formData = {
-            action: 'oo_add_company',
-            nonce: oo_data.nonce_add_company,
-            name: $('#modal_company_name').val(),
-            address: $('#modal_company_address').val(),
-            city: $('#modal_company_city').val(),
-            province: $('#modal_company_province').val(),
-            postal_code: $('#modal_company_postal_code').val()
-        };
-        
-        // Add phone numbers JSON data
-        const phoneJsonField = $form.find('input[name="phone_numbers_json"]');
-        if (phoneJsonField.length && phoneJsonField.val()) {
-            formData.phone_numbers_json = phoneJsonField.val();
-        }
-        
-        // Add email addresses JSON data
-        const emailJsonField = $form.find('input[name="email_addresses_json"]');
-        if (emailJsonField.length && emailJsonField.val()) {
-            formData.email_addresses_json = emailJsonField.val();
-        }
-        
-        $.post(oo_data.ajax_url, formData)
-        .done(function(response) {
-            if (response.success) {
-                // Select the newly created company using our callback
-                window.OO_Autocomplete_Callbacks.onCompanySelect(response.data.company, $('#modal_customer_company'));
-                $('#companyModal').hide();
+        // Close company modal when clicking outside
+        $('#companyModal').on('click', function(e) {
+            if (e.target === this) {
+                $(this).hide();
                 $('#addCompanyForm')[0].reset();
-                
-                // Show success notification
-                showSuccessNotification(response.data.message);
-            } else {
-                alert('Error: ' + response.data.message);
             }
-        })
-        .fail(function() {
-            alert('Error adding company. Please try again.');
-        })
-        .always(function() {
-            // Re-enable form and restore button
-            $submitButton.prop('disabled', false).text(originalButtonText);
-            $form.find('input, textarea, select').prop('disabled', false);
+        });
+        
+        // Add customer form submission
+        $('#addCustomerForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Check if oo_data is available
+            if (typeof oo_data === 'undefined') {
+                alert('Configuration error. Please refresh the page and try again.');
+                return;
+            }
+            
+            // Get form and submit button
+            const $form = $(this);
+            const $submitButton = $form.find('button[type="submit"]');
+            const originalButtonText = $submitButton.text();
+            
+            // Disable form and show loading state
+            $submitButton.prop('disabled', true).text('Adding Customer...');
+            $form.find('input, textarea, select').prop('disabled', true);
+            
+            // Collect form data including repeater data
+            const formData = {
+                action: 'oo_add_customer',
+                nonce: oo_data.nonce_add_customer,
+                name: $('#modal_customer_name').val(),
+                company_id: $('#selected_company_id').val()
+            };
+            
+            // Add phone numbers JSON data
+            const phoneJsonField = $form.find('input[name="phone_numbers_json"]');
+            if (phoneJsonField.length && phoneJsonField.val()) {
+                formData.phone_numbers_json = phoneJsonField.val();
+            }
+            
+            // Add email addresses JSON data
+            const emailJsonField = $form.find('input[name="email_addresses_json"]');
+            if (emailJsonField.length && emailJsonField.val()) {
+                formData.email_addresses_json = emailJsonField.val();
+            }
+            
+            $.post(oo_data.ajax_url, formData)
+            .done(function(response) {
+                if (response.success) {
+                    // Select the newly created customer using our callback
+                    window.OO_Autocomplete_Callbacks.onCustomerSelect(response.data.customer, $('#customer_name'));
+                    $('#customerModal').hide();
+                    $('#addCustomerForm')[0].reset();
+                    // Also clear the company autocomplete fields
+                    $('#modal_customer_company').val('');
+                    $('#selected_company_id').val('');
+                    
+                    // Show success notification with better styling
+                    showSuccessNotification(response.data.message);
+                } else {
+                    alert('Error: ' + response.data.message);
+                }
+            })
+            .fail(function() {
+                alert('Error adding customer. Please try again.');
+            })
+            .always(function() {
+                // Re-enable form and restore button
+                $submitButton.prop('disabled', false).text(originalButtonText);
+                $form.find('input, textarea, select').prop('disabled', false);
+            });
+        });
+        
+        // Add company form submission
+        $('#addCompanyForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Check if oo_data is available
+            if (typeof oo_data === 'undefined') {
+                alert('Configuration error. Please refresh the page and try again.');
+                return;
+            }
+            
+            // Get form and submit button
+            const $form = $(this);
+            const $submitButton = $form.find('button[type="submit"]');
+            const originalButtonText = $submitButton.text();
+            
+            // Disable form and show loading state
+            $submitButton.prop('disabled', true).text('Adding Company...');
+            $form.find('input, textarea, select').prop('disabled', true);
+            
+            // Collect form data including repeater data
+            const formData = {
+                action: 'oo_add_company',
+                nonce: oo_data.nonce_add_company,
+                name: $('#modal_company_name').val(),
+                address: $('#modal_company_address').val(),
+                city: $('#modal_company_city').val(),
+                province: $('#modal_company_province').val(),
+                postal_code: $('#modal_company_postal_code').val()
+            };
+            
+            // Add phone numbers JSON data
+            const phoneJsonField = $form.find('input[name="phone_numbers_json"]');
+            if (phoneJsonField.length && phoneJsonField.val()) {
+                formData.phone_numbers_json = phoneJsonField.val();
+            }
+            
+            // Add email addresses JSON data
+            const emailJsonField = $form.find('input[name="email_addresses_json"]');
+            if (emailJsonField.length && emailJsonField.val()) {
+                formData.email_addresses_json = emailJsonField.val();
+            }
+            
+            $.post(oo_data.ajax_url, formData)
+            .done(function(response) {
+                if (response.success) {
+                    // Select the newly created company using our callback
+                    window.OO_Autocomplete_Callbacks.onCompanySelect(response.data.company, $('#modal_customer_company'));
+                    $('#companyModal').hide();
+                    $('#addCompanyForm')[0].reset();
+                    
+                    // Show success notification
+                    showSuccessNotification(response.data.message);
+                } else {
+                    alert('Error: ' + response.data.message);
+                }
+            })
+            .fail(function() {
+                alert('Error adding company. Please try again.');
+            })
+            .always(function() {
+                // Re-enable form and restore button
+                $submitButton.prop('disabled', false).text(originalButtonText);
+                $form.find('input, textarea, select').prop('disabled', false);
+            });
         });
     });
-});
-</script> 
+    </script> 
