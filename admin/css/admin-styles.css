@@ -923,6 +923,8 @@
     padding: 15px;
     transition: all 0.3s ease;
     overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .oo-jobs-list-content.collapsed {
@@ -933,11 +935,39 @@
 /* Compact table styling for jobs list */
 .oo-job-list-column .wp-list-table {
     font-size: 12px;
+    width: 100% !important;
+    table-layout: fixed; /* Helps with consistent column widths */
 }
 
 .oo-job-list-column .wp-list-table th,
 .oo-job-list-column .wp-list-table td {
     padding: 8px 5px;
+}
+
+/* Optimize column widths for jobs list table */
+.oo-job-list-column .wp-list-table th:nth-child(1), /* Job Number */
+.oo-job-list-column .wp-list-table td:nth-child(1) {
+    width: 15%;
+}
+
+.oo-job-list-column .wp-list-table th:nth-child(2), /* Client */
+.oo-job-list-column .wp-list-table td:nth-child(2) {
+    width: 20%;
+}
+
+.oo-job-list-column .wp-list-table th:nth-child(3), /* Start Date */
+.oo-job-list-column .wp-list-table td:nth-child(3) {
+    width: 15%;
+}
+
+.oo-job-list-column .wp-list-table th:nth-child(4), /* Streams */
+.oo-job-list-column .wp-list-table td:nth-child(4) {
+    width: 25%;
+}
+
+.oo-job-list-column .wp-list-table th:nth-child(5), /* Actions */
+.oo-job-list-column .wp-list-table td:nth-child(5) {
+    width: 25%;
 }
 
 .oo-job-list-column .button {
@@ -950,10 +980,21 @@
 
 .oo-job-list-column .oo-filters-form {
     margin-bottom: 15px;
+    width: 100%;
 }
 
 .oo-job-list-column .wp-filter {
     margin: 0;
+    width: 100%;
+}
+
+.oo-job-list-column .search-box {
+    width: 100%;
+}
+
+.oo-job-list-column .search-box input[type="search"] {
+    width: 100%;
+    max-width: none;
 }
 
 .oo-job-list-column .search-box input[type="search"] {
