@@ -81,6 +81,9 @@ class OO_Dashboard { // Renamed class
         oo_log('AJAX call received.', __METHOD__);
         oo_log($_POST, 'POST data for ' . __METHOD__);
         
+        // Add stream debug logging for job details integration
+        oo_stream_debug_log('Dashboard AJAX called - checking for job details integration', $_POST, 'DEBUG');
+        
         error_log('[DASHBOARD_DEBUG] About to check nonce');
         try {
             check_ajax_referer('oo_dashboard_nonce', 'nonce');
@@ -106,6 +109,20 @@ class OO_Dashboard { // Renamed class
         $filter_employee_id = isset($_POST['filter_employee_id']) && !empty($_POST['filter_employee_id']) ? intval($_POST['filter_employee_id']) : null;
         $filter_job_number = isset($_POST['filter_job_number']) && !empty($_POST['filter_job_number']) ? sanitize_text_field($_POST['filter_job_number']) : null;
         $filter_job_id = isset($_POST['filter_job_id']) && !empty($_POST['filter_job_id']) ? intval($_POST['filter_job_id']) : null;
+        
+        // Debug job filtering
+        if ($filter_job_id) {
+            oo_stream_debug_log('Job Details filter detected - filtering by job_id: ' . $filter_job_id, [
+                'filter_job_id' => $filter_job_id,
+                'filter_stream_id' => $filter_stream_id,
+                'all_filters' => [
+                    'job_id' => $filter_job_id,
+                    'stream_id' => $filter_stream_id,
+                    'employee_id' => $filter_employee_id,
+                    'phase_id' => $filter_phase_id
+                ]
+            ], 'INFO');
+        }
         $filter_phase_id = isset($_POST['filter_phase_id']) && !empty($_POST['filter_phase_id']) ? intval($_POST['filter_phase_id']) : null;
         $filter_stream_id = isset($_POST['filter_stream_id']) && !empty($_POST['filter_stream_id']) ? intval($_POST['filter_stream_id']) : null;
         $filter_date_from = isset($_POST['filter_date_from']) && !empty($_POST['filter_date_from']) ? sanitize_text_field($_POST['filter_date_from']) : null;
@@ -174,10 +191,24 @@ class OO_Dashboard { // Renamed class
         );
         oo_log($args, 'Dashboard data query args: ');
         error_log('[DASHBOARD_DEBUG] About to call OO_DB::get_job_logs with args: ' . print_r($args, true));
+        
+        // Debug the args being sent to the database
+        oo_stream_debug_log('About to query database with args', $args, 'DEBUG');
 
         try {
             $logs = OO_DB::get_job_logs($args);
             error_log('[DASHBOARD_DEBUG] get_job_logs returned ' . count($logs) . ' logs');
+            
+            // Debug the results
+            oo_stream_debug_log('Database query completed', [
+                'logs_count' => count($logs),
+                'has_job_filter' => !empty($args['job_id']),
+                'first_log_sample' => !empty($logs) ? [
+                    'job_id' => $logs[0]->job_id ?? 'N/A',
+                    'stream_id' => $logs[0]->stream_id ?? 'N/A',
+                    'employee_name' => $logs[0]->employee_name ?? 'N/A'
+                ] : null
+            ], 'INFO');
         } catch (Exception $e) {
             error_log('[DASHBOARD_DEBUG] get_job_logs threw exception: ' . $e->getMessage());
             wp_send_json_error(['message' => 'Database error: ' . $e->getMessage()], 500);

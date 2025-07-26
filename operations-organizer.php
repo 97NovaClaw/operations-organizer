@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.3.17
+ * Version:           1.5.3.18
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.3.17' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.3.18' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -36,6 +36,7 @@ require_once OO_PLUGIN_DIR . 'includes/class-oo-admin-pages.php';
 require_once OO_PLUGIN_DIR . 'includes/class-oo-dashboard.php';
 require_once OO_PLUGIN_DIR . 'includes/functions.php'; // Functions will also be prefixed
 require_once OO_PLUGIN_DIR . 'fix-database.php'; // Load database fix utilities
+require_once OO_PLUGIN_DIR . 'debug/stream-feature-debug.php'; // Include debug logging utilities
 
 // Include feature files
 require_once OO_PLUGIN_DIR . 'features/autocomplete/loader.php'; // Reusable autocomplete component
@@ -122,6 +123,21 @@ function oo_plugin_update_check() {
 if ( is_admin() ) {
     $oo_admin_pages = new OO_Admin_Pages();
     add_action( 'admin_menu', array( $oo_admin_pages, 'add_admin_menu_pages' ) );
+    
+    // Add debug menu
+    add_action( 'admin_menu', 'oo_add_debug_menu' );
+    function oo_add_debug_menu() {
+        add_submenu_page(
+            'operations-organizer',
+            'Debug Logs',
+            'Debug Logs',
+            'manage_options',
+            'oo_debug_logs',
+            function() {
+                include OO_PLUGIN_DIR . 'debug/view-stream-debug-log.php';
+            }
+        );
+    }
 
     // Enqueue admin scripts and styles
     add_action( 'admin_enqueue_scripts', 'oo_enqueue_admin_assets' );

@@ -5,9 +5,17 @@
 jQuery(document).ready(function($) {
     'use strict';
     
+    console.log('[JOB_DETAILS_DEBUG] Job details script loaded');
+    console.log('[JOB_DETAILS_DEBUG] Available global objects:', {
+        oo_job_details_data: typeof oo_job_details_data,
+        DataTable: typeof $.fn.DataTable
+    });
+    
     // Initialize tabs
     $('.oo-tab-button').on('click', function() {
         var tabId = $(this).data('tab');
+        
+        console.log('[JOB_DETAILS_DEBUG] Tab clicked:', tabId);
         
         // Update active states
         $('.oo-tab-button').removeClass('active');
@@ -18,6 +26,9 @@ jQuery(document).ready(function($) {
         
         // Load logs for the newly active tab if not already loaded
         var $panel = $('#' + tabId);
+        console.log('[JOB_DETAILS_DEBUG] Panel found:', $panel.length > 0);
+        console.log('[JOB_DETAILS_DEBUG] Logs already loaded:', $panel.data('logs-loaded'));
+        
         if (!$panel.data('logs-loaded')) {
             loadLogsForTab($panel);
         }
@@ -25,7 +36,9 @@ jQuery(document).ready(function($) {
     
     // Load logs for the initially active tab
     var $activePanel = $('.oo-tab-panel.active');
+    console.log('[JOB_DETAILS_DEBUG] Found active panel on load:', $activePanel.length > 0);
     if ($activePanel.length) {
+        console.log('[JOB_DETAILS_DEBUG] Loading logs for initially active panel');
         loadLogsForTab($activePanel);
     }
     
@@ -85,47 +98,61 @@ jQuery(document).ready(function($) {
         var $table = $panel.find('.oo-logs-table');
         var tableId = 'job-details-logs-table-' + streamId;
         
+        console.log('[JOB_DETAILS_DEBUG] Starting loadLogsForTab for stream:', streamId);
+        console.log('[JOB_DETAILS_DEBUG] Table found:', $table.length > 0);
+        console.log('[JOB_DETAILS_DEBUG] Table ID will be:', tableId);
+        console.log('[JOB_DETAILS_DEBUG] jQuery DataTables available:', typeof $.fn.DataTable !== 'undefined');
+        console.log('[JOB_DETAILS_DEBUG] oo_job_details_data:', oo_job_details_data);
+        
         // Set unique ID for this table
         $table.attr('id', tableId);
         
         // Destroy existing DataTable if it exists
         if ($.fn.DataTable.isDataTable('#' + tableId)) {
+            console.log('[JOB_DETAILS_DEBUG] Destroying existing DataTable');
             $('#' + tableId).DataTable().destroy();
         }
         
         // Initialize DataTable with the same system as stream dashboard
-        var logsTable = $table.DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: {
-                url: oo_job_details_data.ajax_url,
-                type: 'POST',
-                data: function(d) {
-                    d.action = 'oo_get_dashboard_data';
-                    d.nonce = oo_job_details_data.dashboard_nonce || oo_job_details_data.nonce;
-                    d.filter_employee_id = $panel.find('[data-filter="employee"]').val();
-                    d.filter_phase_id = $panel.find('[data-filter="phase"]').val();
-                    d.filter_date_from = $panel.find('[data-filter="date_from"]').val();
-                    d.filter_date_to = $panel.find('[data-filter="date_to"]').val();
-                    d.filter_stream_id = streamId;
-                    d.filter_job_id = oo_job_details_data.job_id; // Add job filter
-                    d.selected_columns_config = [];
-                    
-                    console.log('Sending job details logs request data:', d);
-                    return d;
-                },
-                dataSrc: function(json) {
-                    console.log('Received job details logs response:', json);
-                    if (json && json.success === true && json.data && json.data.data) {
-                        return json.data.data;
+        console.log('[JOB_DETAILS_DEBUG] About to initialize DataTable');
+        
+        try {
+            var logsTable = $table.DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: oo_job_details_data.ajax_url,
+                    type: 'POST',
+                    data: function(d) {
+                        d.action = 'oo_get_dashboard_data';
+                        d.nonce = oo_job_details_data.dashboard_nonce || oo_job_details_data.nonce;
+                        d.filter_employee_id = $panel.find('[data-filter="employee"]').val();
+                        d.filter_phase_id = $panel.find('[data-filter="phase"]').val();
+                        d.filter_date_from = $panel.find('[data-filter="date_from"]').val();
+                        d.filter_date_to = $panel.find('[data-filter="date_to"]').val();
+                        d.filter_stream_id = streamId;
+                        d.filter_job_id = oo_job_details_data.job_id; // Add job filter
+                        d.selected_columns_config = [];
+                        
+                        console.log('[JOB_DETAILS_DEBUG] Sending job details logs request data:', d);
+                        return d;
+                    },
+                    dataSrc: function(json) {
+                        console.log('[JOB_DETAILS_DEBUG] Received job details logs response:', json);
+                        if (json && json.success === true && json.data && json.data.data) {
+                            console.log('[JOB_DETAILS_DEBUG] Extracted data array:', json.data.data);
+                            return json.data.data;
+                        }
+                        console.log('[JOB_DETAILS_DEBUG] No data found or wrong format');
+                        return json.data || [];
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('[JOB_DETAILS_DEBUG] DataTables AJAX error:', error, thrown);
+                        console.error('[JOB_DETAILS_DEBUG] Response text:', xhr.responseText);
+                        console.error('[JOB_DETAILS_DEBUG] Response status:', xhr.status);
+                        alert('Error loading job log data: ' + error + '\nCheck console for details.');
                     }
-                    return json.data || [];
                 },
-                error: function(xhr, error, thrown) {
-                    console.error('Job Details DataTables AJAX error:', error, thrown, xhr.responseText);
-                    alert('Error loading job log data: ' + error);
-                }
-            },
             columns: [
                 { data: 'employee_name', title: 'Employee' },
                 { data: 'phase_name', title: 'Phase' },
@@ -143,20 +170,29 @@ jQuery(document).ready(function($) {
             }
         });
         
+        console.log('[JOB_DETAILS_DEBUG] DataTable initialized successfully');
+        
         // Store table reference and mark as loaded
         $panel.data('logs-table', logsTable);
         $panel.data('logs-loaded', true);
         
         // Apply filters functionality
         $panel.find('.oo-apply-log-filters').off('click').on('click', function() {
+            console.log('[JOB_DETAILS_DEBUG] Apply filters clicked');
             logsTable.ajax.reload();
         });
         
         // Reset filters functionality
         $panel.find('.oo-reset-log-filters').off('click').on('click', function() {
+            console.log('[JOB_DETAILS_DEBUG] Reset filters clicked');
             $panel.find('.oo-log-filter').val('');
             logsTable.ajax.reload();
         });
+        
+        } catch (error) {
+            console.error('[JOB_DETAILS_DEBUG] Error initializing DataTable:', error);
+            alert('Failed to initialize job logs table: ' + error.message);
+        }
     }
     
 
