@@ -801,9 +801,9 @@
     }
 } 
 
-/* Job Management Page - Match Job Details Styling */
+/* Job Management Page - Full Width Layout */
 .oo-job-management-page {
-    max-width: 1200px;
+    /* Use full available width for the page */
 }
 
 .oo-add-job-section {
@@ -863,6 +863,7 @@
 .oo-job-form-column {
     flex: 2;
     min-width: 0; /* Prevents flex item from growing beyond container */
+    max-width: 1000px; /* Reasonable max width to prevent form from getting too wide */
 }
 
 .oo-job-list-column {
