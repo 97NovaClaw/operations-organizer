@@ -807,7 +807,7 @@
     width: 100%;
     max-width: none;
     margin: 0;
-    padding: 0 20px; /* Add some breathing room from screen edges */
+    padding: 0 20px 0 0; /* Right padding only - left spacing comes from admin sidebar */
 }
 
 .oo-add-job-section {
