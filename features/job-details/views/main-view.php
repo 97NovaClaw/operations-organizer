@@ -274,6 +274,9 @@ if (!empty($job->company_id)) {
 <?php 
 // Include Table View Manager modal if the feature exists
 if (file_exists(OO_PLUGIN_DIR . 'features/table-view-manager/views/configure-view-modal.php')) {
+    echo '<!-- Table View Manager Modal Included -->';
     include OO_PLUGIN_DIR . 'features/table-view-manager/views/configure-view-modal.php';
+} else {
+    echo '<!-- Table View Manager Modal NOT FOUND -->';
 }
 ?> 

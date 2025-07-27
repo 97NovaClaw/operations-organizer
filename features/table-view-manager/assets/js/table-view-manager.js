@@ -3,6 +3,8 @@
  */
 (function($) {
     'use strict';
+    
+    console.log('[TVM] Table View Manager JavaScript loaded!');
 
     // Main object for Table View Manager
     window.OOTableViewManager = {

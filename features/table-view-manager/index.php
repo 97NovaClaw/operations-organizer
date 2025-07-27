@@ -53,6 +53,9 @@ class OO_Table_View_Manager_Feature {
      * Enqueue CSS and JavaScript assets
      */
     public static function enqueue_assets($hook) {
+        // Debug log the hook
+        error_log('[Table View Manager] Current admin page hook: ' . $hook);
+        
         // Only load on pages that have customizable tables
         $allowed_pages = array(
             'job-tracker_page_oo_job_details',
@@ -69,8 +72,11 @@ class OO_Table_View_Manager_Feature {
         }
         
         if (!$load_assets) {
+            error_log('[Table View Manager] Assets not loaded - hook "' . $hook . '" not in allowed pages');
             return;
         }
+        
+        error_log('[Table View Manager] Loading assets for hook: ' . $hook);
         
         // Enqueue jQuery UI Sortable (included in WordPress)
         wp_enqueue_script('jquery-ui-sortable');
