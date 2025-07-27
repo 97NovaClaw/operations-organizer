@@ -62,7 +62,7 @@
             // Configure view button click
             $(document).on('click', '.oo-configure-view-btn', function() {
                 var tableId = $(this).data('table-id');
-                var $table = $(this).closest('.oo-table-container').find('table');
+                var $table = $('table[data-table-id="' + tableId + '"]');
                 self.openModal(tableId, $table);
             });
         },
@@ -71,19 +71,38 @@
         initializeDataTables: function() {
             var self = this;
             
+            console.log('[TVM] Initializing DataTables integration');
+            
             // Hook into DataTables initialization
             $(document).on('init.dt', function(e, settings) {
+                console.log('[TVM] DataTable init event fired');
                 var api = new $.fn.dataTable.Api(settings);
                 var $table = $(api.table().node());
                 var tableId = $table.data('table-id');
                 
+                console.log('[TVM] Table found:', $table.attr('id'), 'with table-id:', tableId);
+                
                 if (tableId) {
                     // Add Configure View button
                     var $container = $table.closest('.dataTables_wrapper');
+                    console.log('[TVM] DataTables wrapper found:', $container.length > 0);
+                    
                     if ($container.length && !$container.find('.oo-configure-view-btn').length) {
                         var btnHtml = '<button class="button oo-configure-view-btn" data-table-id="' + tableId + '">' +
                                      ooTableViewManager.strings.configure_view + '</button>';
                         $container.find('.dataTables_length').after(btnHtml);
+                        console.log('[TVM] Configure View button added for table:', tableId);
+                    }
+                    // Special case for job activity log table
+                    else if (tableId === 'job_details_activity_log') {
+                        var $header = $table.closest('.oo-job-activity-column').find('.oo-activity-log-header');
+                        if ($header.length && !$header.find('.oo-configure-view-btn').length) {
+                            var btnHtml = '<button class="button oo-configure-view-btn" data-table-id="' + tableId + '">' +
+                                         ooTableViewManager.strings.configure_view + '</button>';
+                            // Add before the collapse button
+                            $header.find('#oo-toggle-activity-log').before(btnHtml + ' ');
+                            console.log('[TVM] Configure View button added to activity log header');
+                        }
                     }
                     
                     // Apply saved preferences if available
@@ -543,6 +562,47 @@
     // Initialize when DOM is ready
     $(document).ready(function() {
         OOTableViewManager.init();
+        
+        // Also check for already initialized DataTables
+        setTimeout(function() {
+            console.log('[TVM] Checking for already initialized DataTables');
+            $('table[data-table-id]').each(function() {
+                var $table = $(this);
+                var tableId = $table.data('table-id');
+                
+                if ($.fn.DataTable.isDataTable($table)) {
+                    console.log('[TVM] Found initialized DataTable:', tableId);
+                    var $container = $table.closest('.dataTables_wrapper');
+                    
+                    // Check for standard DataTables wrapper
+                    if ($container.length && !$container.find('.oo-configure-view-btn').length) {
+                        var btnHtml = '<button class="button oo-configure-view-btn" data-table-id="' + tableId + '">' +
+                                     ooTableViewManager.strings.configure_view + '</button>';
+                        $container.find('.dataTables_length').after(btnHtml);
+                        console.log('[TVM] Configure View button added to DataTables wrapper for table:', tableId);
+                    }
+                    // Special case for job activity log table
+                    else if (tableId === 'job_details_activity_log') {
+                        var $header = $table.closest('.oo-job-activity-column').find('.oo-activity-log-header');
+                        if ($header.length && !$header.find('.oo-configure-view-btn').length) {
+                            var btnHtml = '<button class="button oo-configure-view-btn" data-table-id="' + tableId + '">' +
+                                         ooTableViewManager.strings.configure_view + '</button>';
+                            // Add before the collapse button
+                            $header.find('#oo-toggle-activity-log').before(btnHtml + ' ');
+                            console.log('[TVM] Configure View button added to activity log header');
+                        }
+                    }
+                    
+                    // Apply saved preferences if available
+                    var api = $table.DataTable();
+                    if (ooTableViewManager.user_preferences && ooTableViewManager.user_preferences[tableId]) {
+                        OOTableViewManager.applyPreferencesToTable(api, ooTableViewManager.user_preferences[tableId]);
+                    } else {
+                        OOTableViewManager.applyDefaultColumnLimit(api);
+                    }
+                }
+            });
+        }, 1000); // Wait a bit for DataTables to initialize
     });
     
 })(jQuery); 
