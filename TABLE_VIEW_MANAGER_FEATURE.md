@@ -155,7 +155,7 @@ The feature integrates with existing pages by:
 ## Security Considerations
 
 1. **Nonce Verification**: All AJAX requests must verify nonces
-2. **Capability Checks**: Users can only save their own preferences
+2. **Capability Checks**: Currently all logged-in users can save preferences (future enhancement for role-based restrictions)
 3. **Data Sanitization**: All inputs sanitized before database storage
 4. **SQL Injection Prevention**: Use WordPress prepared statements
 
@@ -166,6 +166,19 @@ The feature integrates with existing pages by:
 3. **Batch Operations**: Save all preference changes in single AJAX call
 4. **Indexed Lookups**: Database indexes ensure fast preference retrieval
 
+## Implementation Decisions
+
+### Default Behavior
+- **Initial View**: All available columns are shown by default
+- **Column Limit**: First 20 columns are displayed initially (users can select more)
+- **Reset Function**: Resets to user's saved preferences (not a hardcoded default)
+- **Permission Level**: All logged-in users can save preferences (no role restrictions currently)
+
+### UI Decisions
+- **Modal Layout**: Tabbed interface (Visibility | Order)
+- **Apply Behavior**: Changes only apply after clicking "Apply" button (no live preview)
+- **Column Width**: Not implemented in Phase 1
+
 ## Future Enhancements
 
 ### Phase 2
@@ -173,6 +186,7 @@ The feature integrates with existing pages by:
 - Export/import view configurations
 - Shared views between users
 - Admin-defined default views
+- Role-based permission controls
 
 ### Phase 3
 - Advanced filtering preferences
