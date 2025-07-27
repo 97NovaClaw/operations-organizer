@@ -509,6 +509,7 @@
     width: calc(50% - 10px); /* Exact 50% minus portion of gap */
     flex: none; /* Prevent flex from overriding width */
     min-width: 280px;
+    margin-top: 20px; /* Align with stream details section top margin */
     background: #fff;
     border: 1px solid #ccd0d4;
     border-radius: 4px;
