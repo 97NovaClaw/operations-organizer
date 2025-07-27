@@ -4,7 +4,8 @@
 
 /* Main wrapper */
 .oo-job-details-wrap {
-    max-width: 1200px;
+    width: 100%;
+    max-width: none;
 }
 
 /* Job Information Section */
@@ -499,13 +500,13 @@
 }
 
 .oo-job-stream-column {
-    width: calc(66.67% - 14px); /* Exact 2/3 minus portion of gap */
+    width: calc(50% - 10px); /* Exact 50% minus portion of gap */
     flex: none; /* Prevent flex from overriding width */
     min-width: 0;
 }
 
 .oo-job-activity-column {
-    width: calc(33.33% - 6px); /* Exact 1/3 minus portion of gap */
+    width: calc(50% - 10px); /* Exact 50% minus portion of gap */
     flex: none; /* Prevent flex from overriding width */
     min-width: 280px;
     margin-right: 20px; /* Space from screen edge to match left admin sidebar spacing */
