@@ -14,6 +14,9 @@ jQuery(document).ready(function($) {
     // Initialize job activity log table
     initializeJobActivityLogTable();
     
+    // Initialize activity log toggle functionality
+    initializeActivityLogToggle();
+    
     // Initialize tabs
     $('.oo-tab-button').on('click', function() {
         var tabId = $(this).data('tab');
@@ -366,6 +369,55 @@ jQuery(document).ready(function($) {
         }
     });
     
+    /**
+     * Initialize activity log toggle functionality
+     */
+    function initializeActivityLogToggle() {
+        console.log('[JOB_DETAILS_DEBUG] Initializing activity log toggle functionality');
+        
+        var $toggleButton = $('#oo-toggle-activity-log');
+        var $content = $('#oo-activity-log-content');
+        var $icon = $toggleButton.find('.dashicons');
+        var $text = $toggleButton.contents().filter(function() {
+            return this.nodeType === 3; // Text node
+        });
+        
+        if ($toggleButton.length === 0) {
+            console.log('[JOB_DETAILS_DEBUG] Activity log toggle button not found');
+            return;
+        }
+        
+        $toggleButton.on('click', function() {
+            console.log('[JOB_DETAILS_DEBUG] Activity log toggle clicked');
+            
+            if ($content.is(':visible')) {
+                // Collapse
+                $content.slideUp(300);
+                $icon.removeClass('dashicons-arrow-up-alt2').addClass('dashicons-arrow-down-alt2');
+                // Update button text - find text nodes and replace
+                var buttonText = $toggleButton.contents().filter(function() {
+                    return this.nodeType === 3; // Text nodes
+                });
+                if (buttonText.length > 0) {
+                    buttonText[0].nodeValue = 'Expand';
+                }
+            } else {
+                // Expand
+                $content.slideDown(300);
+                $icon.removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-up-alt2');
+                // Update button text - find text nodes and replace
+                var buttonText = $toggleButton.contents().filter(function() {
+                    return this.nodeType === 3; // Text nodes
+                });
+                if (buttonText.length > 0) {
+                    buttonText[0].nodeValue = 'Collapse';
+                }
+            }
+        });
+        
+        console.log('[JOB_DETAILS_DEBUG] Activity log toggle functionality initialized');
+    }
+
     /**
      * Initialize the job activity log DataTable
      */

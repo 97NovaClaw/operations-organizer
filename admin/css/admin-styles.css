@@ -42,6 +42,7 @@
 .job-tracker_page_oo_employees #wpcontent,
 .job-tracker_page_oo_phases #wpcontent,
 .job-tracker_page_oo_jobs #wpcontent, /* Job Management page */
+.job-tracker_page_oo_job_details #wpcontent, /* Job Details page */
 .admin_page_oo_start_job #wpcontent, /* For hidden start page */
 .admin_page_oo_stop_job #wpcontent { /* For hidden stop page */
     padding-left: 0;

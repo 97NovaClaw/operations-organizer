@@ -488,124 +488,211 @@
     clear: both;
 }
 
-/* Job Activity Log Section */
-.oo-job-activity-log-section {
-    background: #fff;
-    border: 1px solid #ccd0d4;
-    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+/* Job Details Two Column Layout */
+.oo-job-details-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
     margin: 20px 0;
-    padding: 20px;
-    border-radius: 4px;
+    width: 100%;
+    max-width: none;
 }
 
-.oo-job-activity-log-section h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    color: #23282d;
-    font-size: 1.3em;
+.oo-job-stream-column {
+    width: calc(66.67% - 14px); /* Exact 2/3 minus portion of gap */
+    flex: none; /* Prevent flex from overriding width */
+    min-width: 0;
+}
+
+.oo-job-activity-column {
+    width: calc(33.33% - 6px); /* Exact 1/3 minus portion of gap */
+    flex: none; /* Prevent flex from overriding width */
+    min-width: 280px;
+    margin-right: 20px; /* Space from screen edge to match left admin sidebar spacing */
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    min-height: fit-content;
+    position: sticky;
+    top: 32px; /* Account for WordPress admin bar */
+}
+
+/* Activity Log Header with Toggle */
+.oo-activity-log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px 10px;
     border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
+    background: #f8f9fa;
+    border-radius: 4px 4px 0 0;
+}
+
+.oo-activity-log-header h2 {
+    margin: 0;
+    color: #23282d;
+    font-size: 1.2em;
+    flex: 1;
+}
+
+#oo-toggle-activity-log {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    font-size: 12px;
+    height: auto;
+    min-height: 0;
+}
+
+#oo-toggle-activity-log .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/* Activity Log Content */
+.oo-activity-log-content {
+    padding: 20px;
+    overflow: hidden; /* For smooth slideUp/slideDown */
 }
 
 .oo-activity-log-container {
     overflow-x: auto;
 }
 
-.oo-job-activity-log-section table {
-    width: 100%;
+/* Activity Log Table Styling */
+.oo-job-activity-column table {
+    width: 100% !important;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
-.oo-job-activity-log-section th,
-.oo-job-activity-log-section td {
-    padding: 12px 8px;
+.oo-job-activity-column th,
+.oo-job-activity-column td {
+    padding: 8px 6px;
     text-align: left;
     border-bottom: 1px solid #ddd;
     vertical-align: top;
     word-wrap: break-word;
+    font-size: 12px;
 }
 
-.oo-job-activity-log-section th {
+.oo-job-activity-column th {
     background-color: #f8f9fa;
     font-weight: 600;
     color: #23282d;
     border-bottom: 2px solid #ddd;
 }
 
-.oo-job-activity-log-section tbody tr:hover {
+.oo-job-activity-column tbody tr:hover {
     background-color: #f8f9fa;
 }
 
-/* Column width optimization for activity log */
-.oo-job-activity-log-section th:nth-child(1), /* Date/Time */
-.oo-job-activity-log-section td:nth-child(1) {
-    width: 12%;
-    min-width: 120px;
+/* Optimized column widths for narrow activity log */
+.oo-job-activity-column th:nth-child(1), /* Date/Time */
+.oo-job-activity-column td:nth-child(1) {
+    width: 15%;
 }
 
-.oo-job-activity-log-section th:nth-child(2), /* Activity Type */
-.oo-job-activity-log-section td:nth-child(2) {
-    width: 12%;
-    min-width: 120px;
+.oo-job-activity-column th:nth-child(2), /* Activity Type */
+.oo-job-activity-column td:nth-child(2) {
+    width: 15%;
 }
 
-.oo-job-activity-log-section th:nth-child(3), /* Level */
-.oo-job-activity-log-section td:nth-child(3) {
+.oo-job-activity-column th:nth-child(3), /* Level */
+.oo-job-activity-column td:nth-child(3) {
     width: 8%;
-    min-width: 60px;
 }
 
-.oo-job-activity-log-section th:nth-child(4), /* User */
-.oo-job-activity-log-section td:nth-child(4) {
+.oo-job-activity-column th:nth-child(4), /* User */
+.oo-job-activity-column td:nth-child(4) {
+    width: 12%;
+}
+
+.oo-job-activity-column th:nth-child(5), /* Stream */
+.oo-job-activity-column td:nth-child(5) {
     width: 10%;
-    min-width: 100px;
 }
 
-.oo-job-activity-log-section th:nth-child(5), /* Stream */
-.oo-job-activity-log-section td:nth-child(5) {
+.oo-job-activity-column th:nth-child(6), /* Field */
+.oo-job-activity-column td:nth-child(6) {
+    width: 8%;
+}
+
+.oo-job-activity-column th:nth-child(7), /* Old Value */
+.oo-job-activity-column td:nth-child(7) {
     width: 10%;
-    min-width: 100px;
 }
 
-.oo-job-activity-log-section th:nth-child(6), /* Field */
-.oo-job-activity-log-section td:nth-child(6) {
-    width: 8%;
-    min-width: 80px;
+.oo-job-activity-column th:nth-child(8), /* New Value */
+.oo-job-activity-column td:nth-child(8) {
+    width: 10%;
 }
 
-.oo-job-activity-log-section th:nth-child(7), /* Old Value */
-.oo-job-activity-log-section td:nth-child(7) {
+.oo-job-activity-column th:nth-child(9), /* Notes */
+.oo-job-activity-column td:nth-child(9) {
     width: 12%;
-    min-width: 100px;
 }
 
-.oo-job-activity-log-section th:nth-child(8), /* New Value */
-.oo-job-activity-log-section td:nth-child(8) {
-    width: 12%;
-    min-width: 100px;
-}
-
-.oo-job-activity-log-section th:nth-child(9), /* Notes */
-.oo-job-activity-log-section td:nth-child(9) {
-    width: 16%;
-    min-width: 150px;
-}
-
-.oo-job-activity-log-section th:nth-child(10), /* Category */
-.oo-job-activity-log-section td:nth-child(10) {
+.oo-job-activity-column th:nth-child(10), /* Category */
+.oo-job-activity-column td:nth-child(10) {
     width: 8%;
-    min-width: 80px;
 }
 
-/* Responsive adjustments for activity log */
+/* DataTables specific adjustments for activity log */
+.oo-job-activity-column .dataTables_wrapper {
+    width: 100%;
+}
+
+.oo-job-activity-column .dataTables_filter {
+    margin-bottom: 10px;
+}
+
+.oo-job-activity-column .dataTables_filter input {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+}
+
+.oo-job-activity-column .dataTables_length,
+.oo-job-activity-column .dataTables_info,
+.oo-job-activity-column .dataTables_paginate {
+    font-size: 12px;
+}
+
+.oo-job-activity-column .dataTables_paginate .paginate_button {
+    padding: 2px 6px;
+    margin: 0 1px;
+    font-size: 11px;
+}
+
+/* Responsive adjustments for job details layout */
 @media (max-width: 1200px) {
+    .oo-job-details-layout {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .oo-job-stream-column,
+    .oo-job-activity-column {
+        width: 100%;
+        margin-right: 0;
+        position: static;
+    }
+    
+    .oo-job-activity-column {
+        min-width: auto;
+    }
+    
     .oo-activity-log-container {
         overflow-x: scroll;
     }
     
-    .oo-job-activity-log-section th,
-    .oo-job-activity-log-section td {
-        padding: 8px 6px;
-        font-size: 14px;
+    .oo-job-activity-column th,
+    .oo-job-activity-column td {
+        padding: 6px 4px;
+        font-size: 11px;
     }
 } 

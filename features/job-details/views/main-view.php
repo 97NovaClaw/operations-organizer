@@ -109,35 +109,14 @@ if (!empty($job->company_id)) {
         </div>
     </div>
 
-    <!-- Job Activity Log Section -->
-    <div class="oo-job-activity-log-section">
-        <h2><?php esc_html_e('Job Activity Log', 'operations-organizer'); ?></h2>
-        <div class="oo-activity-log-container">
-            <table id="oo-job-activity-log-table" class="wp-list-table widefat fixed striped" style="width:100%">
-                <thead>
-                    <tr>
-                        <th><?php esc_html_e('Date/Time', 'operations-organizer'); ?></th>
-                        <th><?php esc_html_e('Activity Type', 'operations-organizer'); ?></th>
-                        <th><?php esc_html_e('Level', 'operations-organizer'); ?></th>
-                        <th><?php esc_html_e('User', 'operations-organizer'); ?></th>
-                        <th><?php esc_html_e('Stream', 'operations-organizer'); ?></th>
-                        <th><?php esc_html_e('Field', 'operations-organizer'); ?></th>
-                        <th><?php esc_html_e('Old Value', 'operations-organizer'); ?></th>
-                        <th><?php esc_html_e('New Value', 'operations-organizer'); ?></th>
-                        <th><?php esc_html_e('Notes', 'operations-organizer'); ?></th>
-                        <th><?php esc_html_e('Category', 'operations-organizer'); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- DataTables will populate this -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Stream Tabs Section -->
-    <div class="oo-stream-tabs-section">
-        <h2><?php esc_html_e('Stream Details', 'operations-organizer'); ?></h2>
+    <!-- Two-column layout container -->
+    <div class="oo-job-details-layout">
+        
+        <!-- Left Column: Stream Details (2/3 width) -->
+        <div class="oo-job-stream-column">
+            <!-- Stream Tabs Section -->
+            <div class="oo-stream-tabs-section">
+                <h2><?php esc_html_e('Stream Details', 'operations-organizer'); ?></h2>
         
         <?php if (empty($job_streams)): ?>
             <p class="oo-notice oo-info">
@@ -238,8 +217,44 @@ if (!empty($job->company_id)) {
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
+            </div>
+        </div>
+        
+        <!-- Right Column: Job Activity Log (1/3 width) -->
+        <div class="oo-job-activity-column">
+            <div class="oo-activity-log-header">
+                <h2><?php esc_html_e('Job Activity Log', 'operations-organizer'); ?></h2>
+                <button type="button" id="oo-toggle-activity-log" class="button button-secondary">
+                    <span class="dashicons dashicons-arrow-up-alt2"></span>
+                    <?php esc_html_e('Collapse', 'operations-organizer'); ?>
+                </button>
+            </div>
+            
+            <div id="oo-activity-log-content" class="oo-activity-log-content">
+                <div class="oo-activity-log-container">
+                    <table id="oo-job-activity-log-table" class="wp-list-table widefat fixed striped" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e('Date/Time', 'operations-organizer'); ?></th>
+                                <th><?php esc_html_e('Activity Type', 'operations-organizer'); ?></th>
+                                <th><?php esc_html_e('Level', 'operations-organizer'); ?></th>
+                                <th><?php esc_html_e('User', 'operations-organizer'); ?></th>
+                                <th><?php esc_html_e('Stream', 'operations-organizer'); ?></th>
+                                <th><?php esc_html_e('Field', 'operations-organizer'); ?></th>
+                                <th><?php esc_html_e('Old Value', 'operations-organizer'); ?></th>
+                                <th><?php esc_html_e('New Value', 'operations-organizer'); ?></th>
+                                <th><?php esc_html_e('Notes', 'operations-organizer'); ?></th>
+                                <th><?php esc_html_e('Category', 'operations-organizer'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- DataTables will populate this -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
 <!-- Activity Log Modal (single modal for all streams) -->
 <div id="job-details-activity-log-modal" class="oo-modal" style="display:none;">
