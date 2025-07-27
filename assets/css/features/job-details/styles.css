@@ -494,7 +494,7 @@
     display: flex;
     gap: 20px;
     align-items: flex-start;
-    margin: 20px 0;
+    margin: 20px 20px 20px 0; /* Add right margin to match left admin sidebar spacing */
     width: 100%;
     max-width: none;
 }
@@ -509,7 +509,6 @@
     width: calc(50% - 10px); /* Exact 50% minus portion of gap */
     flex: none; /* Prevent flex from overriding width */
     min-width: 280px;
-    margin-right: 20px; /* Space from screen edge to match left admin sidebar spacing */
     background: #fff;
     border: 1px solid #ccd0d4;
     border-radius: 4px;
@@ -672,7 +671,7 @@
 /* Responsive adjustments for job details layout */
 @media (max-width: 1200px) {
     .oo-job-info-section,
-    .oo-job-activity-column {
+    .oo-job-details-layout {
         margin-right: 0; /* Remove right margin on mobile */
     }
     
