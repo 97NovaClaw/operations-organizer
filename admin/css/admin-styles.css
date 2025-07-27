@@ -862,23 +862,22 @@
     display: flex;
     gap: 20px;
     align-items: flex-start;
-    margin: 20px 0;
-    width: 100%;
+    margin: 20px 20px 20px 0; /* Add right margin to match admin sidebar spacing */
+    /* Removed width: 100% to let it auto-calculate like other sections */
     max-width: none;
 }
 
 .oo-job-form-column {
-    width: calc(66.67% - 14px); /* 66.67% minus portion of gap */
+    width: calc(50% - 10px); /* 50% minus portion of gap */
     flex: none;
     min-width: 0; /* Prevents flex item from growing beyond container */
-    /* Remove max-width to allow full page utilization */
 }
 
 .oo-job-list-column {
-    width: calc(33.33% - 6px); /* 33.33% minus portion of gap */
+    width: calc(50% - 10px); /* 50% minus portion of gap */
     flex: none;
     min-width: 280px; /* Reduced minimum for better flexibility */
-    margin-right: 20px; /* Space from screen edge to match left admin sidebar spacing */
+    /* Removed margin-right: handled by parent container now */
     background: #fff;
     border: 1px solid #ccd0d4;
     border-radius: 4px;
@@ -1030,6 +1029,7 @@
 @media (max-width: 1100px) {
     .oo-job-management-layout {
         flex-direction: column;
+        margin-right: 0; /* Remove right margin on mobile */
     }
     
     .oo-job-form-column,
