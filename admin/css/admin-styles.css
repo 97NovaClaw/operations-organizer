@@ -807,7 +807,7 @@
     width: 100%;
     max-width: none;
     margin: 0;
-    padding: 0 20px 0 0; /* Right padding only - left spacing comes from admin sidebar */
+    padding: 0; /* No padding - spacing handled by column margins */
 }
 
 .oo-add-job-section {
@@ -877,6 +877,7 @@
     width: calc(33.33% - 6px); /* 33.33% minus portion of gap */
     flex: none;
     min-width: 280px; /* Reduced minimum for better flexibility */
+    margin-right: 20px; /* Space from screen edge to match left admin sidebar spacing */
     background: #fff;
     border: 1px solid #ccd0d4;
     border-radius: 4px;
