@@ -1,0 +1,277 @@
+/**
+ * Table View Manager Styles
+ */
+
+/* Configure View Button */
+.oo-configure-view-btn {
+    float: right;
+    margin-bottom: 10px;
+}
+
+/* Modal Container */
+.oo-table-view-modal .oo-modal-content {
+    max-width: 700px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.oo-table-view-modal .oo-modal-large {
+    width: 90%;
+}
+
+/* Modal Header */
+.oo-table-view-modal .oo-modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.oo-table-view-modal .oo-modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.oo-table-view-modal .oo-close-modal {
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 20px;
+    color: #999;
+    cursor: pointer;
+}
+
+.oo-table-view-modal .oo-close-modal:hover {
+    color: #333;
+}
+
+/* Modal Body */
+.oo-table-view-modal .oo-modal-body {
+    padding: 20px;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Tab Navigation */
+.oo-tvm-tabs {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+
+.oo-tvm-tab-button {
+    background: none;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.oo-tvm-tab-button:hover {
+    color: #333;
+}
+
+.oo-tvm-tab-button.active {
+    color: #2271b1;
+    border-bottom-color: #2271b1;
+}
+
+/* Tab Content */
+.oo-tvm-tab-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.oo-tvm-tab-panel {
+    display: none;
+    height: 100%;
+    flex-direction: column;
+}
+
+.oo-tvm-tab-panel.active {
+    display: flex;
+}
+
+/* Instructions */
+.oo-tvm-instructions {
+    margin-bottom: 15px;
+    color: #666;
+    font-size: 13px;
+}
+
+.oo-tvm-instructions p {
+    margin: 0;
+}
+
+/* Loading State */
+.oo-tvm-loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.oo-tvm-loading .spinner {
+    float: none;
+    margin: 0 auto 10px;
+}
+
+/* Column List (Visibility Tab) */
+.oo-tvm-column-list {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 15px;
+    background: #f9f9f9;
+}
+
+.oo-tvm-column-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.oo-tvm-column-item:last-child {
+    border-bottom: none;
+}
+
+.oo-tvm-column-item label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.oo-tvm-column-checkbox {
+    margin-right: 10px !important;
+}
+
+.oo-tvm-column-title {
+    font-size: 14px;
+}
+
+/* Column Groups */
+.oo-tvm-column-group {
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 4px;
+}
+
+.oo-tvm-group-header {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.oo-tvm-group-toggle {
+    margin-right: 10px;
+    transition: transform 0.3s ease;
+}
+
+.oo-tvm-column-group.collapsed .oo-tvm-group-toggle {
+    transform: rotate(-90deg);
+}
+
+.oo-tvm-group-checkbox {
+    margin: 0 10px 0 0 !important;
+}
+
+.oo-tvm-group-children {
+    padding: 10px 10px 10px 40px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.oo-tvm-column-group.collapsed .oo-tvm-group-children {
+    display: none;
+}
+
+/* Indeterminate checkbox state */
+.oo-tvm-group-checkbox:indeterminate {
+    opacity: 0.5;
+}
+
+/* Sortable List (Order Tab) */
+.oo-tvm-sortable-list {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 15px;
+    background: #f9f9f9;
+}
+
+.oo-tvm-sortable-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: move;
+}
+
+.oo-tvm-sortable-item:last-child {
+    margin-bottom: 0;
+}
+
+.oo-tvm-drag-handle {
+    margin-right: 10px;
+    color: #999;
+}
+
+.oo-tvm-sortable-item.ui-sortable-helper {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    opacity: 0.8;
+}
+
+.oo-tvm-sortable-placeholder {
+    height: 42px;
+    margin-bottom: 8px;
+    background: #e5e5e5;
+    border: 2px dashed #999;
+    border-radius: 4px;
+}
+
+/* Modal Footer */
+.oo-table-view-modal .oo-modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.oo-tvm-footer-left,
+.oo-tvm-footer-right {
+    display: flex;
+    gap: 10px;
+}
+
+/* Button States */
+.oo-tvm-apply-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .oo-table-view-modal .oo-modal-content {
+        width: 95%;
+        max-width: none;
+    }
+    
+    .oo-tvm-tab-button {
+        padding: 8px 15px;
+        font-size: 13px;
+    }
+} 

@@ -232,7 +232,7 @@ if (!empty($job->company_id)) {
             
             <div id="oo-activity-log-content" class="oo-activity-log-content">
                 <div class="oo-activity-log-container">
-                    <table id="oo-job-activity-log-table" class="wp-list-table widefat fixed striped" style="width:100%">
+                                            <table id="oo-job-activity-log-table" class="wp-list-table widefat fixed striped" style="width:100%" data-table-id="job_details_activity_log">
                         <thead>
                             <tr>
                                 <th><?php esc_html_e('Date/Time', 'operations-organizer'); ?></th>
@@ -269,4 +269,11 @@ if (!empty($job->company_id)) {
             <div class="activity-log-content" style="display:none;"></div>
         </div>
     </div>
-</div> 
+</div>
+
+<?php 
+// Include Table View Manager modal if the feature exists
+if (file_exists(OO_PLUGIN_DIR . 'features/table-view-manager/views/configure-view-modal.php')) {
+    include OO_PLUGIN_DIR . 'features/table-view-manager/views/configure-view-modal.php';
+}
+?> 

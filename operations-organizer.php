@@ -3,7 +3,7 @@
  * Plugin Name:       Operations Organizer
  * Plugin URI:        https://legworkmedia.ca/
  * Description:       Track job phases, employee KPIs, and stream-specific operational data.
- * Version:           1.5.3.41
+ * Version:           1.5.4.0
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Legwork Media
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OO_PLUGIN_FILE', __FILE__ ); // Define the main plugin file path
-define( 'OO_PLUGIN_VERSION', '1.5.3.41' ); // Updated plugin version constant
+define( 'OO_PLUGIN_VERSION', '1.5.4.0' ); // Updated plugin version constant
 
 // Include core files (will be renamed)
 require_once OO_PLUGIN_DIR . 'includes/class-oo-db.php';
@@ -439,6 +439,15 @@ if (file_exists(OO_PLUGIN_DIR . 'features/job-details/index.php')) {
 } else {
     error_log('Job Details feature file not found: ' . OO_PLUGIN_DIR . 'features/job-details/index.php');
     oo_log('Job Details feature not found. Plugin will continue without this feature.', 'operations-organizer');
+}
+
+// Load Table View Manager feature
+if (file_exists(OO_PLUGIN_DIR . 'features/table-view-manager/index.php')) {
+    require_once OO_PLUGIN_DIR . 'features/table-view-manager/index.php';
+    OO_Table_View_Manager_Feature::init();
+} else {
+    error_log('Table View Manager feature file not found: ' . OO_PLUGIN_DIR . 'features/table-view-manager/index.php');
+    oo_log('Table View Manager feature not found. Plugin will continue without this feature.', 'operations-organizer');
 }
 
 /**
