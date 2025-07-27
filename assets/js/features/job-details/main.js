@@ -398,7 +398,7 @@ jQuery(document).ready(function($) {
                     url: oo_job_details_data.ajax_url,
                     type: 'POST',
                     data: function(d) {
-                        d.action = 'oo_get_master_logs';
+                        d.action = 'oo_job_details_get_master_activity_log';
                         d.nonce = oo_job_details_data.master_log_nonce;
                         d.job_id = oo_job_details_data.job_id; // Filter by current job
                         

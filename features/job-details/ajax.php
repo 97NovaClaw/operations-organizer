@@ -21,6 +21,9 @@ class OO_Job_Details_AJAX {
         
         // Get activity log for a job stream
         add_action('wp_ajax_oo_job_details_get_activity_log', array(__CLASS__, 'handle_get_activity_log'));
+        
+        // Get master activity log for a job
+        add_action('wp_ajax_oo_job_details_get_master_activity_log', array(__CLASS__, 'handle_get_master_activity_log'));
     }
     
     /**
@@ -352,5 +355,128 @@ class OO_Job_Details_AJAX {
         $html .= '</div>'; // .activity-log-entries
         
         return $html;
+    }
+    
+    /**
+     * Handle getting master activity log for a job
+     */
+    public static function handle_get_master_activity_log() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'oo_master_log_nonce')) {
+            wp_send_json_error('Nonce verification failed');
+        }
+        
+        // Check capabilities
+        $capability = function_exists('oo_get_capability') ? oo_get_capability() : 'manage_options';
+        if (!current_user_can($capability)) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        global $wpdb;
+        
+        // DataTables parameters
+        $draw = intval($_POST['draw']);
+        $start = intval($_POST['start']);
+        $length = intval($_POST['length']);
+        $search = $_POST['search']['value'];
+        $order_column = intval($_POST['order'][0]['column']);
+        $order_dir = $_POST['order'][0]['dir'] === 'asc' ? 'ASC' : 'DESC';
+        
+        // Column mapping
+        $columns = array(
+            0 => 'created_at',
+            1 => 'activity_type',
+            2 => 'activity_level',
+            3 => 'user_id',
+            4 => 'stream_id',
+            5 => 'field_name',
+            6 => 'old_value',
+            7 => 'new_value',
+            8 => 'user_notes',
+            9 => 'activity_category'
+        );
+        
+        $order_by = isset($columns[$order_column]) ? $columns[$order_column] : 'created_at';
+        
+        // Get job ID
+        $job_id = isset($_POST['job_id']) ? intval($_POST['job_id']) : 0;
+        if (!$job_id) {
+            wp_send_json_error('Job ID is required');
+        }
+        
+        // Build query
+        $table_name = $wpdb->prefix . 'oo_master_activity_log';
+        
+        // Base where clause for job filtering
+        $where_clauses = array("l.job_id = %d");
+        $where_values = array($job_id);
+        
+        // Search filter
+        if (!empty($search)) {
+            $where_clauses[] = "(
+                l.activity_type LIKE %s OR 
+                l.user_notes LIKE %s OR
+                l.field_name LIKE %s OR
+                l.old_value LIKE %s OR
+                l.new_value LIKE %s
+            )";
+            $search_term = '%' . $wpdb->esc_like($search) . '%';
+            for ($i = 0; $i < 5; $i++) {
+                $where_values[] = $search_term;
+            }
+        }
+        
+        $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
+        
+        // Get total count
+        $count_query = "
+            SELECT COUNT(*)
+            FROM {$table_name} l
+            {$where_sql}
+        ";
+        
+        $total_count = $wpdb->get_var($wpdb->prepare($count_query, $where_values));
+        
+        // Get filtered data with joins
+        $data_query = "
+            SELECT 
+                l.*,
+                s.stream_name,
+                u.display_name as user_display_name
+            FROM {$table_name} l
+            LEFT JOIN {$wpdb->prefix}oo_streams s ON l.stream_id = s.stream_id
+            LEFT JOIN {$wpdb->users} u ON l.user_id = u.ID
+            {$where_sql}
+            ORDER BY l.{$order_by} {$order_dir}
+            LIMIT %d OFFSET %d
+        ";
+        
+        $query_values = array_merge($where_values, array($length, $start));
+        $results = $wpdb->get_results($wpdb->prepare($data_query, $query_values));
+        
+        // Format data for DataTables
+        $data = array();
+        foreach ($results as $log) {
+            $data[] = array(
+                'created_at' => $log->created_at,
+                'activity_type' => $log->activity_type,
+                'activity_level' => $log->activity_level,
+                'user_display_name' => $log->user_display_name ? $log->user_display_name : 'Unknown',
+                'stream_name' => $log->stream_name ? $log->stream_name : '-',
+                'field_name' => $log->field_name ? $log->field_name : '-',
+                'old_value' => $log->old_value ? $log->old_value : '-',
+                'new_value' => $log->new_value ? $log->new_value : '-',
+                'user_notes' => $log->user_notes ? $log->user_notes : '-',
+                'activity_category' => $log->activity_category ? $log->activity_category : '-'
+            );
+        }
+        
+        // Send response
+        wp_send_json(array(
+            'draw' => $draw,
+            'recordsTotal' => $total_count,
+            'recordsFiltered' => $total_count,
+            'data' => $data
+        ));
     }
 } 
