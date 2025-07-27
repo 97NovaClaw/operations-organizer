@@ -497,6 +497,7 @@
     margin: 20px 20px 20px 0; /* Add right margin to match left admin sidebar spacing */
     width: 100%;
     max-width: none;
+    box-sizing: border-box; /* Fix width calculation to align with job info section */
 }
 
 .oo-job-stream-column {
