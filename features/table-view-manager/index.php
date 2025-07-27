@@ -58,9 +58,11 @@ class OO_Table_View_Manager_Feature {
         
         // Only load on pages that have customizable tables
         $allowed_pages = array(
-            'job-tracker_page_oo_job_details',
-            'job-tracker_page_oo_stream_',  // Matches all stream pages
-            'toplevel_page_oo_dashboard'
+            'oo_jobs_page_oo_job_details',      // Job details page
+            'toplevel_page_oo_jobs',            // Jobs management page
+            'toplevel_page_oo_stream_',         // Stream pages
+            'job-tracker_page_oo_stream_',      // Alternative stream page hook
+            'toplevel_page_oo_dashboard'        // Main dashboard
         );
         
         $load_assets = false;
