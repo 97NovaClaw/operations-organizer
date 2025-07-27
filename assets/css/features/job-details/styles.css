@@ -486,4 +486,126 @@
 /* Ensure feature set content doesn't interfere with operational tools */
 .oo-stream-tab-wrapper .oo-job-logs-section + .oo-feature-sets-content {
     clear: both;
+}
+
+/* Job Activity Log Section */
+.oo-job-activity-log-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    margin: 20px 0;
+    padding: 20px;
+    border-radius: 4px;
+}
+
+.oo-job-activity-log-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #23282d;
+    font-size: 1.3em;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.oo-activity-log-container {
+    overflow-x: auto;
+}
+
+.oo-job-activity-log-section table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.oo-job-activity-log-section th,
+.oo-job-activity-log-section td {
+    padding: 12px 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    vertical-align: top;
+    word-wrap: break-word;
+}
+
+.oo-job-activity-log-section th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #23282d;
+    border-bottom: 2px solid #ddd;
+}
+
+.oo-job-activity-log-section tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Column width optimization for activity log */
+.oo-job-activity-log-section th:nth-child(1), /* Date/Time */
+.oo-job-activity-log-section td:nth-child(1) {
+    width: 12%;
+    min-width: 120px;
+}
+
+.oo-job-activity-log-section th:nth-child(2), /* Activity Type */
+.oo-job-activity-log-section td:nth-child(2) {
+    width: 12%;
+    min-width: 120px;
+}
+
+.oo-job-activity-log-section th:nth-child(3), /* Level */
+.oo-job-activity-log-section td:nth-child(3) {
+    width: 8%;
+    min-width: 60px;
+}
+
+.oo-job-activity-log-section th:nth-child(4), /* User */
+.oo-job-activity-log-section td:nth-child(4) {
+    width: 10%;
+    min-width: 100px;
+}
+
+.oo-job-activity-log-section th:nth-child(5), /* Stream */
+.oo-job-activity-log-section td:nth-child(5) {
+    width: 10%;
+    min-width: 100px;
+}
+
+.oo-job-activity-log-section th:nth-child(6), /* Field */
+.oo-job-activity-log-section td:nth-child(6) {
+    width: 8%;
+    min-width: 80px;
+}
+
+.oo-job-activity-log-section th:nth-child(7), /* Old Value */
+.oo-job-activity-log-section td:nth-child(7) {
+    width: 12%;
+    min-width: 100px;
+}
+
+.oo-job-activity-log-section th:nth-child(8), /* New Value */
+.oo-job-activity-log-section td:nth-child(8) {
+    width: 12%;
+    min-width: 100px;
+}
+
+.oo-job-activity-log-section th:nth-child(9), /* Notes */
+.oo-job-activity-log-section td:nth-child(9) {
+    width: 16%;
+    min-width: 150px;
+}
+
+.oo-job-activity-log-section th:nth-child(10), /* Category */
+.oo-job-activity-log-section td:nth-child(10) {
+    width: 8%;
+    min-width: 80px;
+}
+
+/* Responsive adjustments for activity log */
+@media (max-width: 1200px) {
+    .oo-activity-log-container {
+        overflow-x: scroll;
+    }
+    
+    .oo-job-activity-log-section th,
+    .oo-job-activity-log-section td {
+        padding: 8px 6px;
+        font-size: 14px;
+    }
 } 

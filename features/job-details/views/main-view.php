@@ -109,6 +109,32 @@ if (!empty($job->company_id)) {
         </div>
     </div>
 
+    <!-- Job Activity Log Section -->
+    <div class="oo-job-activity-log-section">
+        <h2><?php esc_html_e('Job Activity Log', 'operations-organizer'); ?></h2>
+        <div class="oo-activity-log-container">
+            <table id="oo-job-activity-log-table" class="wp-list-table widefat fixed striped" style="width:100%">
+                <thead>
+                    <tr>
+                        <th><?php esc_html_e('Date/Time', 'operations-organizer'); ?></th>
+                        <th><?php esc_html_e('Activity Type', 'operations-organizer'); ?></th>
+                        <th><?php esc_html_e('Level', 'operations-organizer'); ?></th>
+                        <th><?php esc_html_e('User', 'operations-organizer'); ?></th>
+                        <th><?php esc_html_e('Stream', 'operations-organizer'); ?></th>
+                        <th><?php esc_html_e('Field', 'operations-organizer'); ?></th>
+                        <th><?php esc_html_e('Old Value', 'operations-organizer'); ?></th>
+                        <th><?php esc_html_e('New Value', 'operations-organizer'); ?></th>
+                        <th><?php esc_html_e('Notes', 'operations-organizer'); ?></th>
+                        <th><?php esc_html_e('Category', 'operations-organizer'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- DataTables will populate this -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Stream Tabs Section -->
     <div class="oo-stream-tabs-section">
         <h2><?php esc_html_e('Stream Details', 'operations-organizer'); ?></h2>

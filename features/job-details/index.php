@@ -172,6 +172,7 @@ class OO_Job_Details_Feature {
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('oo_job_details_nonce'),
             'dashboard_nonce' => wp_create_nonce('oo_dashboard_nonce'),
+            'master_log_nonce' => wp_create_nonce('oo_master_log_nonce'),
             'job_id' => isset($_GET['job_id']) ? intval($_GET['job_id']) : 0,
             'strings' => array(
                 'error_updating' => __('Error: Could not update phase.', 'operations-organizer'),

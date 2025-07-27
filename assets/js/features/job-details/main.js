@@ -11,6 +11,9 @@ jQuery(document).ready(function($) {
         DataTable: typeof $.fn.DataTable
     });
     
+    // Initialize job activity log table
+    initializeJobActivityLogTable();
+    
     // Initialize tabs
     $('.oo-tab-button').on('click', function() {
         var tabId = $(this).data('tab');
@@ -363,6 +366,105 @@ jQuery(document).ready(function($) {
         }
     });
     
+    /**
+     * Initialize the job activity log DataTable
+     */
+    function initializeJobActivityLogTable() {
+        console.log('[JOB_DETAILS_DEBUG] Initializing job activity log table');
+        
+        if (!oo_job_details_data.job_id) {
+            console.log('[JOB_DETAILS_DEBUG] No job ID available, skipping activity log table');
+            return;
+        }
+        
+        if (typeof $.fn.DataTable === 'undefined') {
+            console.error('[JOB_DETAILS_DEBUG] DataTables not loaded');
+            return;
+        }
+        
+        var $table = $('#oo-job-activity-log-table');
+        if ($table.length === 0) {
+            console.log('[JOB_DETAILS_DEBUG] Activity log table not found in DOM');
+            return;
+        }
+        
+        console.log('[JOB_DETAILS_DEBUG] Initializing DataTable for job activity log with job_id:', oo_job_details_data.job_id);
+        
+        try {
+            var activityLogTable = $table.DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: oo_job_details_data.ajax_url,
+                    type: 'POST',
+                    data: function(d) {
+                        d.action = 'oo_get_master_logs';
+                        d.nonce = oo_job_details_data.master_log_nonce;
+                        d.job_id = oo_job_details_data.job_id; // Filter by current job
+                        
+                        console.log('[JOB_DETAILS_DEBUG] Sending activity log request:', d);
+                        return d;
+                    },
+                    dataSrc: function(json) {
+                        console.log('[JOB_DETAILS_DEBUG] Received activity log response:', json);
+                        if (json && json.data) {
+                            return json.data;
+                        }
+                        return [];
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('[JOB_DETAILS_DEBUG] Activity log AJAX error:', error, thrown);
+                        console.error('[JOB_DETAILS_DEBUG] Response text:', xhr.responseText);
+                    }
+                },
+                columns: [
+                    { 
+                        data: 'created_at', 
+                        title: 'Date/Time',
+                        render: function(data, type, row) {
+                            if (type === 'display' && data) {
+                                var date = new Date(data);
+                                return date.toLocaleString();
+                            }
+                            return data;
+                        }
+                    },
+                    { 
+                        data: 'activity_type', 
+                        title: 'Activity Type',
+                        render: function(data, type, row) {
+                            if (type === 'display' && data) {
+                                return data.replace(/_/g, ' ');
+                            }
+                            return data;
+                        }
+                    },
+                    { data: 'activity_level', title: 'Level' },
+                    { data: 'user_display_name', title: 'User', defaultContent: 'Unknown' },
+                    { data: 'stream_name', title: 'Stream', defaultContent: '-' },
+                    { data: 'field_name', title: 'Field', defaultContent: '-' },
+                    { data: 'old_value', title: 'Old Value', defaultContent: '-' },
+                    { data: 'new_value', title: 'New Value', defaultContent: '-' },
+                    { data: 'user_notes', title: 'Notes', defaultContent: '-' },
+                    { data: 'activity_category', title: 'Category', defaultContent: '-' }
+                ],
+                order: [[0, 'desc']], // Order by date descending (newest first)
+                pageLength: 25,
+                responsive: true,
+                language: {
+                    emptyTable: "No activity logs found for this job",
+                    zeroRecords: "No activity logs match the current filters",
+                    processing: "Loading activity logs..."
+                }
+            });
+            
+            console.log('[JOB_DETAILS_DEBUG] Job activity log DataTable initialized successfully');
+            
+        } catch (error) {
+            console.error('[JOB_DETAILS_DEBUG] Error initializing activity log DataTable:', error);
+        }
+    }
+
     /**
      * Escape HTML
      */
