@@ -877,6 +877,7 @@
     width: calc(50% - 10px); /* 50% minus portion of gap */
     flex: none;
     min-width: 280px; /* Reduced minimum for better flexibility */
+    margin-top: 20px; /* Align with add job section top margin */
     /* Removed margin-right: handled by parent container now */
     background: #fff;
     border: 1px solid #ccd0d4;
